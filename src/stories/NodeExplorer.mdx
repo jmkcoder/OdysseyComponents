@@ -53,7 +53,7 @@ The Node Explorer is a highly customizable tree view component that provides a c
 ## Installation
 
 ```bash
-npm install @odyssey/components
+npm install @jmkcoder/components
 ```
 
 ## Framework Integration
@@ -69,14 +69,14 @@ Using the component in plain HTML is straightforward:
   <meta charset="UTF-8">
   <title>Node Explorer Example</title>
   <!-- Include the styles -->
-  <link rel="stylesheet" href="node_modules/@odyssey/components/dist/components.bundle.css">
+  <link rel="stylesheet" href="node_modules/@jmkcoder/components/dist/components.bundle.css">
 </head>
 <body>
   <!-- Use the component -->
   <odyssey-node-explorer id="my-explorer"></odyssey-node-explorer>
   
   <!-- Include the library -->
-  <script src="node_modules/@odyssey/components/dist/index.js"></script>
+  <script src="node_modules/@jmkcoder/components/dist/index.js"></script>
   
   <script>
     // Initialize with data
@@ -115,13 +115,13 @@ You can also use the component directly via CDN without installation:
   <meta charset="UTF-8">
   <title>Node Explorer Example</title>
   <!-- Include styles from CDN -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@odyssey/components@1.0.0/dist/components.bundle.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@jmkcoder/components@1.0.0/dist/components.bundle.css">
 </head>
 <body>
   <odyssey-node-explorer id="my-explorer"></odyssey-node-explorer>
   
   <!-- Include the library from CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@odyssey/components@1.0.0/dist/index.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@jmkcoder/components@1.0.0/dist/index.js"></script>
   
   <script>
     // Initialize with data
@@ -140,8 +140,8 @@ Integrate the component with React applications:
 
 ```jsx
 import React, { useEffect, useRef } from 'react';
-import '@odyssey/components/dist/components.bundle.css';
-import OdysseyComponents from '@odyssey/components/dist/index.js';
+import '@jmkcoder/components/dist/components.bundle.css';
+import OdysseyComponents from '@jmkcoder/components/dist/index.js';
 
 // Register the component once (typically in your app's entry point)
 OdysseyComponents.defineNodeExplorer();
@@ -226,8 +226,8 @@ Using the component with Vue:
 
 <script>
 import { defineComponent, onMounted, onBeforeUnmount, ref, watch } from 'vue';
-import '@odyssey/components/dist/components.bundle.css';
-import OdysseyComponents from '@odyssey/components/dist/index.js';
+import '@jmkcoder/components/dist/components.bundle.css';
+import OdysseyComponents from '@jmkcoder/components/dist/index.js';
 
 // Register the component
 OdysseyComponents.defineNodeExplorer();
@@ -314,8 +314,8 @@ Integrating with Angular applications:
 ```typescript
 // node-explorer.component.ts
 import { Component, Input, Output, EventEmitter, OnInit, ElementRef, OnChanges, SimpleChanges } from '@angular/core';
-import '@odyssey/components/dist/components.bundle.css';
-import OdysseyComponents from '@odyssey/components/dist/index.js';
+import '@jmkcoder/components/dist/components.bundle.css';
+import OdysseyComponents from '@jmkcoder/components/dist/index.js';
 
 // Register the custom element
 OdysseyComponents.defineNodeExplorer();
@@ -452,7 +452,7 @@ export default defineConfig({
 
 ```javascript
 // Import the library default export
-import OdysseyComponents from '@odyssey/components/dist/index.js';
+import OdysseyComponents from '@jmkcoder/components/dist/index.js';
 
 // Register the components
 OdysseyComponents.registerComponents();

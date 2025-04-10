@@ -10,7 +10,7 @@ A hierarchical tree view component with drag-and-drop capabilities, multi-select
 ## Installation
 
 ```bash
-npm install @odyssey/components
+npm install @jmkcoder/components
 ```
 
 ## Usage
@@ -18,8 +18,8 @@ npm install @odyssey/components
 ### In a module environment (with bundlers like Webpack, Rollup, Vite)
 
 ```javascript
-import { defineNodeExplorer } from '@odyssey/components';
-import '@odyssey/components/dist/components.bundle.css'; 
+import { defineNodeExplorer } from '@jmkcoder/components';
+import '@jmkcoder/components/dist/components.bundle.css'; 
 
 // Register the components
 defineNodeExplorer();
@@ -31,8 +31,8 @@ defineNodeExplorer();
 <!DOCTYPE html>
 <html>
 <head>
-  <link rel="stylesheet" href="./node_modules/@odyssey/components/dist/components.bundle.css">
-  <script type="module" src="./node_modules/@odyssey/components/dist/index.js"></script>
+  <link rel="stylesheet" href="./node_modules/@jmkcoder/components/dist/components.bundle.css">
+  <script type="module" src="./node_modules/@jmkcoder/components/dist/index.js"></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
       // Register the components
