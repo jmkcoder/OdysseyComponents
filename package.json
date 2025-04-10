@@ -1,5 +1,5 @@
 {
-  "name": "odyssey-components",
+  "name": "@odyssey/components",
   "version": "1.0.0",
   "description": "Odyssey Web Components Library",
   "main": "dist/index.js",
