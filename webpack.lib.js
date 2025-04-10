@@ -9,7 +9,7 @@ module.exports = (env, argv) => {
     entry: './src/index.ts',
     devtool: isProd ? false : 'source-map',
     output: {
-      path: path.resolve(__dirname, 'distlib'),
+      path: path.resolve(__dirname, 'dist'),
       filename: 'index.js',
       library: {
         name: 'OdysseyComponents',
