@@ -1,0 +1,1052 @@
+import { Meta, Story, Canvas, ArgsTable, Source } from '@storybook/addon-docs';
+import { html } from 'lit';
+import NodeExplorerStories, { 
+  Default,
+  FileExplorer, 
+  OrganizationalChart, 
+  LargeDataset, 
+  LazyLoading, 
+  DarkTheme, 
+  MinimalTheme, 
+  HighContrastTheme, 
+  DisabledDragDrop, 
+  MultiSelectEnabled 
+} from './NodeExplorer.stories';
+
+<Meta 
+  title="Components/Node Explorer/Documentation"
+  of={NodeExplorerStories}
+  parameters={{
+    viewMode: 'docs',
+    previewTabs: { 
+      canvas: { hidden: true } 
+    }
+  }}
+/>
+
+# Node Explorer
+
+<div className="tip-wrapper">
+  <span className="tip">Component Status: Stable</span>
+</div>
+
+A powerful hierarchical tree view component with drag-and-drop capabilities for modern web applications.
+
+## Overview
+
+The Node Explorer is a highly customizable tree view component that provides a complete solution for displaying and manipulating hierarchical data structures. Built as a web component using the latest standards, it can be seamlessly integrated into any modern web application regardless of the framework you use.
+
+### Key Features
+
+- **Rich Hierarchical Display**: Render complex nested data structures with unlimited depth
+- **Drag and Drop**: Intuitive drag-and-drop interface for reordering and restructuring nodes
+- **Event-Based API**: Comprehensive event system for tracking selections, expansions, and structural changes
+- **Framework Agnostic**: Works with React, Vue, Angular, or plain JavaScript
+- **Customizable Styling**: Extensive theming capabilities via CSS custom properties
+- **Performance Optimized**: Efficient rendering even with large data sets
+- **Keyboard Accessibility**: Full keyboard navigation support
+- **Material Icons**: Built-in support for Material Design icons
+- **Multiple Selection**: Select multiple nodes with keyboard modifiers
+- **Theme Variants**: Light, dark, minimal, and high-contrast themes included
+- **Lazy Loading Support**: Load child nodes on demand for better performance
+
+## Installation
+
+```bash
+npm install @odyssey/components
+```
+
+## Framework Integration
+
+### Plain HTML
+
+Using the component in plain HTML is straightforward:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Node Explorer Example</title>
+  <!-- Include the styles -->
+  <link rel="stylesheet" href="node_modules/@odyssey/components/dist/components.bundle.css">
+</head>
+<body>
+  <!-- Use the component -->
+  <odyssey-node-explorer id="my-explorer"></odyssey-node-explorer>
+  
+  <!-- Include the library -->
+  <script src="node_modules/@odyssey/components/dist/index.js"></script>
+  
+  <script>
+    // Initialize with data
+    const explorer = document.getElementById('my-explorer');
+    const nodes = [
+      {
+        id: 'root',
+        label: 'Root Node',
+        expanded: true,
+        children: [
+          { id: 'child1', label: 'Child Node 1' },
+          { id: 'child2', label: 'Child Node 2' }
+        ]
+      }
+    ];
+    
+    explorer.setAttribute('nodes', JSON.stringify(nodes));
+    
+    // Listen for events
+    explorer.addEventListener('node-selected', (e) => {
+      console.log('Selected:', e.detail.node.label);
+    });
+  </script>
+</body>
+</html>
+```
+
+### CDN Usage
+
+You can also use the component directly via CDN without installation:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Node Explorer Example</title>
+  <!-- Include styles from CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@odyssey/components@1.0.0/dist/components.bundle.css">
+</head>
+<body>
+  <odyssey-node-explorer id="my-explorer"></odyssey-node-explorer>
+  
+  <!-- Include the library from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@odyssey/components@1.0.0/dist/index.js"></script>
+  
+  <script>
+    // Initialize with data
+    const explorer = document.getElementById('my-explorer');
+    explorer.setAttribute('nodes', JSON.stringify([
+      { id: 'node1', label: 'Example Node' }
+    ]));
+  </script>
+</body>
+</html>
+```
+
+### React
+
+Integrate the component with React applications:
+
+```jsx
+import React, { useEffect, useRef } from 'react';
+import '@odyssey/components/dist/components.bundle.css';
+import OdysseyComponents from '@odyssey/components/dist/index.js';
+
+// Register the component once (typically in your app's entry point)
+OdysseyComponents.defineNodeExplorer();
+
+const NodeExplorerWrapper = ({ nodes, onNodeSelected, allowDragDrop = true }) => {
+  const explorerRef = useRef(null);
+  
+  useEffect(() => {
+    if (explorerRef.current) {
+      // Set nodes data
+      explorerRef.current.setAttribute('nodes', JSON.stringify(nodes));
+      
+      // Add event listeners
+      const handleNodeSelected = (e) => {
+        if (onNodeSelected) onNodeSelected(e.detail.node);
+      };
+      
+      explorerRef.current.addEventListener('node-selected', handleNodeSelected);
+      
+      // Clean up
+      return () => {
+        explorerRef.current?.removeEventListener('node-selected', handleNodeSelected);
+      };
+    }
+  }, [nodes, onNodeSelected]);
+  
+  return (
+    <odyssey-node-explorer 
+      ref={explorerRef}
+      allow-drag-drop={allowDragDrop.toString()}
+    />
+  );
+};
+
+export default NodeExplorerWrapper;
+
+// Usage in component
+function App() {
+  const treeData = [
+    {
+      id: 'root',
+      label: 'Project Files',
+      expanded: true,
+      children: [
+        { id: 'src', label: 'src', icon: 'folder' },
+        { id: 'package.json', label: 'package.json', icon: 'description' }
+      ]
+    }
+  ];
+  
+  const handleNodeSelected = (node) => {
+    console.log('Selected node:', node);
+  };
+  
+  return (
+    <div className="app">
+      <h1>Project Explorer</h1>
+      <NodeExplorerWrapper
+        nodes={treeData}
+        onNodeSelected={handleNodeSelected}
+      />
+    </div>
+  );
+}
+```
+
+### Vue.js
+
+Using the component with Vue:
+
+```vue
+<template>
+  <div class="explorer-container">
+    <odyssey-node-explorer 
+      ref="explorer"
+      :allow-drag-drop="allowDragDrop"
+      :allow-multi-select="allowMultiSelect"
+      :theme="theme"
+    />
+  </div>
+</template>
+
+<script>
+import { defineComponent, onMounted, onBeforeUnmount, ref, watch } from 'vue';
+import '@odyssey/components/dist/components.bundle.css';
+import OdysseyComponents from '@odyssey/components/dist/index.js';
+
+// Register the component
+OdysseyComponents.defineNodeExplorer();
+
+export default defineComponent({
+  name: 'NodeExplorerVue',
+  props: {
+    nodes: { type: Array, required: true },
+    allowDragDrop: { type: Boolean, default: true },
+    allowMultiSelect: { type: Boolean, default: false },
+    theme: { type: String, default: 'light' }
+  },
+  setup(props, { emit }) {
+    const explorer = ref(null);
+    
+    const updateNodes = () => {
+      if (explorer.value) {
+        explorer.value.setAttribute('nodes', JSON.stringify(props.nodes));
+      }
+    };
+    
+    const handleNodeSelected = (event) => {
+      emit('node-selected', event.detail.node);
+    };
+    
+    watch(() => props.nodes, updateNodes);
+    
+    onMounted(() => {
+      updateNodes();
+      explorer.value.addEventListener('node-selected', handleNodeSelected);
+    });
+    
+    onBeforeUnmount(() => {
+      explorer.value?.removeEventListener('node-selected', handleNodeSelected);
+    });
+    
+    return { explorer };
+  }
+});
+</script>
+
+<style scoped>
+.explorer-container {
+  height: 100%;
+  min-height: 200px;
+}
+</style>
+
+<!-- Usage -->
+<script setup>
+import NodeExplorerVue from './NodeExplorerVue.vue';
+
+const treeData = [
+  {
+    id: 'root',
+    label: 'Project Files',
+    expanded: true,
+    children: [
+      { id: 'src', label: 'src', icon: 'folder' },
+      { id: 'package.json', label: 'package.json', icon: 'description' }
+    ]
+  }
+];
+
+const onNodeSelected = (node) => {
+  console.log('Selected:', node.label);
+};
+</script>
+
+<template>
+  <NodeExplorerVue
+    :nodes="treeData"
+    :allow-multi-select="true"
+    theme="dark"
+    @node-selected="onNodeSelected"
+  />
+</template>
+```
+
+### Angular
+
+Integrating with Angular applications:
+
+```typescript
+// node-explorer.component.ts
+import { Component, Input, Output, EventEmitter, OnInit, ElementRef, OnChanges, SimpleChanges } from '@angular/core';
+import '@odyssey/components/dist/components.bundle.css';
+import OdysseyComponents from '@odyssey/components/dist/index.js';
+
+// Register the custom element
+OdysseyComponents.defineNodeExplorer();
+
+@Component({
+  selector: 'app-node-explorer',
+  template: `<odyssey-node-explorer
+    #explorer
+    [attr.allow-drag-drop]="allowDragDrop"
+    [attr.allow-multi-select]="allowMultiSelect"
+    [attr.theme]="theme">
+  </odyssey-node-explorer>`,
+  styles: [`:host { display: block; height: 100%; }`]
+})
+export class NodeExplorerComponent implements OnInit, OnChanges {
+  @Input() nodes: any[] = [];
+  @Input() allowDragDrop: boolean = true;
+  @Input() allowMultiSelect: boolean = false;
+  @Input() theme: string = 'light';
+  
+  @Output() nodeSelected = new EventEmitter<any>();
+  @Output() nodesChanged = new EventEmitter<any[]>();
+  
+  private explorer: HTMLElement | null = null;
+  
+  constructor(private elementRef: ElementRef) {}
+  
+  ngOnInit(): void {
+    this.explorer = this.elementRef.nativeElement.querySelector('odyssey-node-explorer');
+    
+    if (this.explorer) {
+      this.updateNodes();
+      
+      this.explorer.addEventListener('node-selected', (event: any) => {
+        this.nodeSelected.emit(event.detail.node);
+      });
+      
+      this.explorer.addEventListener('nodes-changed', (event: any) => {
+        this.nodesChanged.emit(event.detail.nodes);
+      });
+    }
+  }
+  
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['nodes'] && !changes['nodes'].firstChange) {
+      this.updateNodes();
+    }
+  }
+  
+  private updateNodes(): void {
+    if (this.explorer && this.nodes) {
+      this.explorer.setAttribute('nodes', JSON.stringify(this.nodes));
+    }
+  }
+}
+
+// Usage in template
+// <app-node-explorer 
+//   [nodes]="treeData" 
+//   [allowMultiSelect]="true"
+//   (nodeSelected)="onNodeSelected($event)">
+// </app-node-explorer>
+```
+
+Remember to add `CUSTOM_ELEMENTS_SCHEMA` to your module to support custom elements:
+
+```typescript
+// app.module.ts
+import { NgModule, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
+import { AppComponent } from './app.component';
+import { NodeExplorerComponent } from './node-explorer.component';
+
+@NgModule({
+  declarations: [
+    AppComponent,
+    NodeExplorerComponent
+  ],
+  imports: [
+    BrowserModule
+  ],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA], // Required for custom elements
+  bootstrap: [AppComponent]
+})
+export class AppModule { }
+```
+
+## Bundlers Integration
+
+### Webpack
+
+When using webpack, ensure you have CSS loaders configured:
+
+```javascript
+// webpack.config.js
+module.exports = {
+  // ...other config
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader']
+      }
+    ]
+  }
+};
+```
+
+### Vite
+
+For Vite projects:
+
+```javascript
+// vite.config.js
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [
+    react({
+      // Enable custom elements support
+      include: '**/*.{jsx,tsx}',
+      customElements: {
+        exclude: [],
+      }
+    })
+  ]
+});
+```
+
+## Basic Usage
+
+### Registering the Component
+
+```javascript
+// Import the library default export
+import OdysseyComponents from '@odyssey/components/dist/index.js';
+
+// Register the components
+OdysseyComponents.registerComponents();
+
+// Or register individual components as needed
+OdysseyComponents.defineNodeExplorer();
+OdysseyComponents.defineOdysseyButton();
+```
+
+### HTML Integration
+
+```html
+<odyssey-node-explorer id="my-explorer"></odyssey-node-explorer>
+
+<script>
+  // Set the nodes data
+  const explorer = document.getElementById('my-explorer');
+  const nodes = [
+    {
+      id: 'root1',
+      label: 'Root Node',
+      expanded: true,
+      children: [
+        { id: 'child1', label: 'Child 1' },
+        { id: 'child2', label: 'Child 2' }
+      ]
+    }
+  ];
+  
+  explorer.setAttribute('nodes', JSON.stringify(nodes));
+</script>
+```
+
+## Data Structure
+
+The Node Explorer requires a specific data structure to properly render the hierarchical tree:
+
+```typescript
+interface ExplorerNode {
+    id: string;         // Unique identifier for the node
+    label: string;      // Display text for the node
+    children?: ExplorerNode[]; // Optional array of child nodes
+    expanded?: boolean; // Whether the node is expanded (default: false)
+    icon?: string;      // Optional Material icon name to display
+    _lazy?: boolean;    // Optional flag to indicate lazy loading
+}
+```
+
+## Examples
+
+### Basic Tree
+
+<Canvas of={Default} />
+
+```javascript
+const nodes = [
+  {
+    id: 'node1',
+    label: 'Project Root',
+    icon: 'folder',
+    expanded: false,
+    children: [
+      {
+        id: 'node2',
+        label: 'src',
+        icon: 'folder',
+        children: [
+          { id: 'node3', label: 'components', icon: 'folder' },
+          { id: 'node4', label: 'utils', icon: 'folder' }
+        ]
+      }
+    ]
+  }
+];
+
+// Set nodes on component
+document.querySelector('odyssey-node-explorer').setAttribute('nodes', JSON.stringify(nodes));
+```
+
+### File Explorer Example
+
+Create a realistic file explorer with appropriate icons:
+
+<Canvas of={FileExplorer} />
+
+```javascript
+const fileExplorerNodes = [
+  {
+    id: 'root',
+    label: 'My Project',
+    icon: 'folder',
+    expanded: true,
+    children: [
+      {
+        id: 'src',
+        label: 'src',
+        icon: 'folder',
+        expanded: true,
+        children: [
+          { 
+            id: 'components', 
+            label: 'components', 
+            icon: 'folder',
+            children: [
+              { id: 'button.js', label: 'button.js', icon: 'javascript' },
+              { id: 'input.js', label: 'input.js', icon: 'javascript' }
+            ]
+          },
+          { 
+            id: 'styles', 
+            label: 'styles', 
+            icon: 'folder',
+            children: [
+              { id: 'main.css', label: 'main.css', icon: 'css' }
+            ]
+          },
+          { id: 'app.js', label: 'app.js', icon: 'javascript' },
+          { id: 'index.js', label: 'index.js', icon: 'javascript' }
+        ]
+      },
+      {
+        id: 'public',
+        label: 'public',
+        icon: 'folder',
+        children: [
+          { id: 'index.html', label: 'index.html', icon: 'html' },
+          { id: 'favicon.ico', label: 'favicon.ico', icon: 'image' }
+        ]
+      },
+      { id: 'package.json', label: 'package.json', icon: 'code' },
+      { id: 'README.md', label: 'README.md', icon: 'description' }
+    ]
+  }
+];
+
+// Apply to component
+document.querySelector('#file-explorer').setAttribute('nodes', JSON.stringify(fileExplorerNodes));
+```
+
+### Organizational Chart
+
+Display a company's organizational structure:
+
+<Canvas of={OrganizationalChart} />
+
+```javascript
+const orgChartNodes = [
+  {
+    id: 'ceo',
+    label: 'John Smith (CEO)',
+    icon: 'person',
+    expanded: true,
+    children: [
+      {
+        id: 'cto',
+        label: 'Jane Doe (CTO)',
+        icon: 'person',
+        children: [
+          { id: 'lead-dev', label: 'Lead Developer', icon: 'person' },
+          { id: 'senior-dev', label: 'Senior Developer', icon: 'person' },
+          { id: 'junior-dev', label: 'Junior Developer', icon: 'person' }
+        ]
+      },
+      {
+        id: 'cfo',
+        label: 'Bob Johnson (CFO)',
+        icon: 'person',
+        children: [
+          { id: 'accountant', label: 'Accountant', icon: 'person' },
+          { id: 'financial-analyst', label: 'Financial Analyst', icon: 'person' }
+        ]
+      },
+      {
+        id: 'cmo',
+        label: 'Alice Williams (CMO)',
+        icon: 'person',
+        children: [
+          { id: 'marketing-specialist', label: 'Marketing Specialist', icon: 'person' },
+          { id: 'content-creator', label: 'Content Creator', icon: 'person' }
+        ]
+      }
+    ]
+  }
+];
+```
+
+### Large Dataset
+
+For large hierarchical datasets, the Node Explorer maintains performance through efficient rendering:
+
+<Canvas of={LargeDataset} />
+
+```javascript
+// Generate a large dataset programmatically
+const generateLargeDataset = (depth = 3, breadth = 4) => {
+  let id = 0;
+  const generateNodes = (currentDepth, prefix = '') => {
+    if (currentDepth <= 0) return [];
+    
+    return Array.from({ length: breadth }, (_, i) => {
+      id++;
+      const nodeId = `node${id}`;
+      const label = `${prefix}${prefix ? '.' : ''}Item ${i + 1}`;
+      
+      return {
+        id: nodeId,
+        label,
+        expanded: currentDepth === depth, // Only expand top level by default
+        children: generateNodes(currentDepth - 1, label)
+      };
+    });
+  };
+  
+  return generateNodes(depth);
+};
+
+const largeDataset = generateLargeDataset(4, 5); // 4 levels deep, 5 children per node
+```
+
+### Lazy Loading Example
+
+For very large datasets, implement lazy loading to improve performance by loading child nodes only when needed:
+
+<Canvas of={LazyLoading} />
+
+The code example below shows how to implement lazy loading in your application:
+
+```javascript
+// Initial data structure with nodes marked for lazy loading
+const lazyLoadedNodes = [
+  {
+    id: 'root1',
+    label: 'Documents',
+    icon: 'folder',
+    expanded: true,
+    children: [
+      { 
+        id: 'lazy1', 
+        label: 'Projects', 
+        icon: 'folder',
+        isLazy: true,  // Mark as lazy loaded
+        hasChildren: true,  // Indicate it has children even though they're not loaded yet
+        expanded: false
+      },
+      { 
+        id: 'lazy2', 
+        label: 'Reports', 
+        icon: 'folder',
+        isLazy: true,
+        hasChildren: true,
+        expanded: false
+      }
+    ]
+  },
+  {
+    id: 'root2',
+    label: 'Images',
+    icon: 'folder',
+    isLazy: true,
+    hasChildren: true,
+    expanded: false
+  }
+];
+
+// Set up the component
+const explorer = document.getElementById('my-explorer');
+explorer.setAttribute('nodes', JSON.stringify(lazyLoadedNodes));
+
+// Listen for load-children events to dynamically load content
+explorer.addEventListener('load-children', (e) => {
+  const nodeId = e.detail.nodeId;
+  const node = e.detail.node;
+  
+  console.log(`Loading children for node: ${node.label} (${nodeId})`);
+  
+  // Simulate loading data from a server (or fetch real data)
+  fetchChildrenForNode(nodeId).then(childNodes => {
+    // Use the API method to update the node with its children
+    explorer.setNodeChildren(nodeId, childNodes);
+  });
+});
+
+// Example function to fetch children - replace with your data source
+function fetchChildrenForNode(nodeId) {
+  return new Promise(resolve => {
+    // This would be your API call in a real application
+    setTimeout(() => {
+      // Generate different children based on the node ID
+      let childNodes;
+      
+      switch(nodeId) {
+        case 'lazy1': // Projects folder
+          childNodes = [
+            { id: 'project1', label: 'Web Application', icon: 'web' },
+            { id: 'project2', label: 'Mobile App', icon: 'phone_android' },
+            { id: 'project3', label: 'Desktop App', icon: 'desktop_windows' }
+          ];
+          break;
+          
+        case 'lazy2': // Reports folder
+          childNodes = [
+            { id: 'report1', label: 'Q1 Report.pdf', icon: 'picture_as_pdf' },
+            { id: 'report2', label: 'Q2 Report.pdf', icon: 'picture_as_pdf' },
+            { id: 'report3', label: 'Annual Review.docx', icon: 'description' }
+          ];
+          break;
+          
+        case 'root2': // Images folder
+          childNodes = [
+            { id: 'image1', label: 'Screenshot.png', icon: 'image' },
+            { id: 'image2', label: 'Profile.jpg', icon: 'image' },
+            { id: 'image3', label: 'Logo.svg', icon: 'image' }
+          ];
+          break;
+          
+        default:
+          // Default children if no specific match
+          childNodes = [
+            { id: `${nodeId}-child1`, label: 'Item 1', icon: 'insert_drive_file' },
+            { id: `${nodeId}-child2`, label: 'Item 2', icon: 'insert_drive_file' },
+            { id: `${nodeId}-child3`, label: 'Item 3', icon: 'insert_drive_file' }
+          ];
+      }
+      
+      resolve(childNodes);
+    }, 1000); // Simulate network delay
+  });
+}
+```
+
+> **Note**: In this example, the component will display a loading indicator while waiting for children to be loaded. If no response is received within a timeout period (default: 10 seconds), it will show an error message that can be clicked to retry.
+
+## Features
+
+### Themes and Styling
+
+The Node Explorer supports multiple built-in themes that can be set through the `theme` attribute:
+
+<Canvas of={DarkTheme} />
+
+```javascript
+// Apply the dark theme
+const explorer = document.getElementById('my-explorer');
+explorer.setAttribute('theme', 'dark');
+```
+
+<Canvas of={MinimalTheme} />
+
+```javascript
+// Apply the minimal theme
+explorer.setAttribute('theme', 'minimal');
+```
+
+<Canvas of={HighContrastTheme} />
+
+```javascript
+// Apply the high contrast theme for accessibility
+explorer.setAttribute('theme', 'high-contrast');
+```
+
+You can also customize individual CSS properties:
+
+```css
+odyssey-node-explorer {
+  --primary-color: #635BFF;      /* Accent color */
+  --primary-light: rgba(99, 91, 255, 0.08); /* Lighter accent */
+  --gray-light: #F7FAFC;         /* Background for headers */
+  --gray-border: #E8E8E8;        /* Border colors */
+  --hover-bg: #F5F7FA;           /* Hover background */
+  --text-secondary: #697386;     /* Secondary text color */
+  --text-primary: #1A1F36;       /* Primary text color */
+  --transition-duration: 200ms;  /* Animation speed */
+  --connector-width: 2px;        /* Width of the connector lines */
+  --connector-color: #E8E8E8;    /* Color of connector lines */
+}
+```
+
+### Drag and Drop
+
+The Node Explorer supports drag and drop functionality out of the box. Nodes can be:
+- Moved as children of other nodes
+- Positioned before or after existing nodes
+- Rearranged within the same parent
+
+<Canvas of={DisabledDragDrop} />
+
+```javascript
+// Disable drag and drop when needed
+explorer.setAttribute('allow-drag-drop', 'false');
+
+// Listen for drop events when enabled
+explorer.addEventListener('drop', (e) => {
+  console.log('Node dropped', e.detail);
+  // e.detail contains:
+  // - sourceId: The ID of the node being moved
+  // - targetId: The ID of the target node
+  // - position: 'before', 'after', or 'inside'
+  // - originalEvent: The original DOM event
+});
+```
+
+### Multiple Selection
+
+The Node Explorer supports selecting multiple nodes using keyboard modifiers:
+
+<Canvas of={MultiSelectEnabled} />
+
+```javascript
+// Enable multi-selection
+explorer.setAttribute('allow-multi-select', 'true');
+
+// Get all selected nodes
+explorer.addEventListener('node-selected', (e) => {
+  // Get the primary selected node
+  const selectedNode = e.detail.node;
+  console.log('Selected node:', selectedNode);
+  
+  // Get all selected nodes (only useful with multi-select enabled)
+  const allSelectedNodes = explorer.getSelectedNodes();
+  console.log('All selected nodes:', allSelectedNodes);
+});
+```
+
+### Keyboard Navigation
+
+The Node Explorer has comprehensive keyboard navigation support:
+
+- **Tab**: Focus on the tree view
+- **Arrow keys**: Navigate between nodes
+  - **Up/Down**: Move to previous/next node
+  - **Left/Right**: Collapse/expand nodes or navigate up/down the hierarchy
+- **Enter/Space**: Select a focused node
+- **Home/End**: Jump to first/last visible node
+- **Ctrl/Cmd + Click**: Toggle multi-selection when allow-multi-select is enabled
+- **Shift + Click**: Select a range of nodes when allow-multi-select is enabled
+
+```javascript
+// Programmatically focus a node
+explorer.focusNode('node1');
+```
+
+### API Methods
+
+The Node Explorer provides numerous API methods for programmatic control:
+
+```javascript
+const explorer = document.getElementById('my-explorer');
+
+// Node expansion
+explorer.expandNode('node1');
+explorer.collapseNode('node1');
+
+// Node selection
+explorer.selectNode('node1');
+const selectedNode = explorer.getSelectedNode();
+const selectedNodes = explorer.getSelectedNodes(); // For multi-select
+
+// Node management
+explorer.addNode('parent1', { id: 'new1', label: 'New Node' });
+explorer.removeNode('node1');
+explorer.moveNode('source1', 'target1', 'inside');
+
+// Node lookup
+const node = explorer.findNodeById('node1');
+
+// Properties
+explorer.allowDragDrop = false; // Disable drag-drop
+explorer.allowMultiSelect = true; // Enable multi-select
+explorer.theme = 'dark'; // Change theme
+```
+
+## API Reference
+
+### Properties
+
+| Property           | Attribute            | Type            | Default   | Description                                                 |
+|--------------------|----------------------|-----------------|-----------|-------------------------------------------------------------|
+| `nodes`            | `nodes`              | `string` (JSON) | `'[]'`    | A JSON string representation of the tree nodes structure    |
+| `allowDragDrop`    | `allow-drag-drop`    | `boolean`       | `true`    | Enable or disable drag and drop functionality               |
+| `allowMultiSelect` | `allow-multi-select` | `boolean`       | `false`   | Enable or disable multi-selection of nodes                  |
+| `theme`            | `theme`              | `string`        | `'light'` | Theme variant ('light', 'dark', 'minimal', 'high-contrast') |
+
+### Methods
+
+| Method | Parameters | Return Type | Description |
+|--------|------------|-------------|-------------|
+| `expandNode` | `(id: string)` | `boolean` | Expands a node by its ID |
+| `collapseNode` | `(id: string)` | `boolean` | Collapses a node by its ID |
+| `selectNode` | `(id: string)` | `boolean` | Programmatically selects a node |
+| `getSelectedNode` | - | `ExplorerNode \| null` | Returns the currently selected node |
+| `getSelectedNodes` | - | `ExplorerNode[]` | Returns all selected nodes (for multi-select) |
+| `findNodeById` | `(id: string)` | `ExplorerNode \| undefined` | Finds and returns a node by its ID |
+| `addNode` | `(parentId: string \| null, node: ExplorerNode)` | `boolean` | Adds a new node as a child of parentId or at root if parentId is null |
+| `removeNode` | `(id: string)` | `boolean` | Removes a node from the tree |
+| `moveNode` | `(sourceId: string, targetId: string, position: 'before' \| 'after' \| 'inside')` | `boolean` | Moves a node to a new position |
+| `focusNode` | `(id: string)` | `void` | Sets keyboard focus to the specified node |
+| `setNodeChildren` | `(nodeId: string, children: ExplorerNode[], allChildrenLoaded: boolean = true)` | `boolean` | Sets children for a lazy-loaded node |
+| `appendNodeChildren` | `(nodeId: string, additionalChildren: ExplorerNode[], allChildrenLoaded: boolean = true)` | `boolean` | Adds more children to an already loaded node (useful for pagination) |
+| `markNodeAsLazy` | `(nodeId: string, hasChildren: boolean = true)` | `boolean` | Marks a node as lazy-loaded |
+
+### Events
+
+| Event Name | Detail Type | Description |
+|------------|-------------|-------------|
+| `load-children` | `{ nodeId: string, node: ExplorerNode }` | Fired when a lazy-loaded node is expanded and needs its children |
+| `node-selected` | `{ node: ExplorerNode, originalEvent?: Event }` | Fired when a node is selected |
+| `nodes-selected` | `{ nodes: ExplorerNode[], originalEvent?: Event }` | Fired when multiple nodes are selected (when multi-select is enabled) |
+| `nodes-changed` | `{ nodes: ExplorerNode[] }` | Fired when nodes structure changes (drag-drop, expand/collapse) |
+| `node-expanded` | `{ nodeId: string, node: ExplorerNode }` | Fired when a node is expanded |
+| `node-collapsed` | `{ nodeId: string, node: ExplorerNode }` | Fired when a node is collapsed |
+| `drag-start` | `{ sourceId: string, originalEvent: DragEvent }` | Fired when a drag operation starts |
+| `drag-over` | `{ targetId: string, position: 'before' \| 'after' \| 'inside', originalEvent: DragEvent }` | Fired during a drag operation |
+| `drag-leave` | `{ targetId: string, originalEvent: DragEvent }` | Fired when a drag operation leaves a target |
+| `drop` | `{ sourceId: string, targetId: string, position: 'before' \| 'after' \| 'inside', originalEvent: DragEvent }` | Fired when a node is dropped |
+
+### CSS Custom Properties
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `--primary-color` | `#635BFF` | Accent color for selected items and indicators |
+| `--primary-light` | `rgba(99, 91, 255, 0.08)` | Lighter variant of the accent color |
+| `--gray-light` | `#F7FAFC` | Background color for headers |
+| `--gray-border` | `#E8E8E8` | Color for borders |
+| `--hover-bg` | `#F5F7FA` | Background color when hovering over items |
+| `--text-secondary` | `#697386` | Color for secondary text |
+| `--text-primary` | `#1A1F36` | Color for primary text |
+| `--transition-duration` | `200ms` | Duration for animations |
+| `--transition-timing` | `cubic-bezier(0.4, 0, 0.2, 1)` | Timing function for animations |
+| `--node-padding` | `6px 8px` | Padding applied to node elements |
+| `--node-margin` | `2px 0` | Margin applied to node elements |
+| `--node-border-radius` | `6px` | Border radius for nodes |
+| `--node-font-size` | `13px` | Font size for node labels |
+| `--connector-width` | `2px` | Width of the connector lines between parent and child nodes |
+| `--connector-color` | `#E8E8E8` | Color of connector lines between parent and child nodes |
+| `--selection-bg` | `rgba(59, 130, 246, 0.2)` | Background color for selected nodes |
+
+## Accessibility
+
+The Node Explorer component has been built with accessibility in mind:
+
+### ARIA Attributes
+
+The component automatically uses appropriate ARIA attributes for screen reader compatibility:
+
+- `role="tree"` for the tree container
+- `role="treeitem"` for individual nodes
+- `role="group"` for collections of child nodes
+- `aria-expanded` to indicate expansion state
+- `aria-selected` to indicate selection state
+- `aria-level` to indicate the nesting level
+
+### Keyboard Navigation
+
+Full keyboard navigation support is included:
+
+- **Tab**: Focus the tree view
+- **Arrow Up/Down**: Navigate between visible nodes
+- **Arrow Right**: On collapsed node, expands it. On expanded node, moves to the first child
+- **Arrow Left**: On expanded node, collapses it. On collapsed node, moves to the parent
+- **Home**: Move to the first node in the tree
+- **End**: Move to the last visible node in the tree
+- **Enter/Space**: Select the focused node
+- **Shift+Arrow**: When multi-select is enabled, extends selection
+- **Ctrl/Cmd+Click**: When multi-select is enabled, toggles node selection
+
+### High Contrast Theme
+
+A high contrast theme is provided for users with visual impairments:
+
+<Canvas of={HighContrastTheme} />
+
+```javascript
+// Apply high contrast theme
+explorer.setAttribute('theme', 'high-contrast');
+```
+
+### Focus Management
+
+Focus is properly managed during keyboard navigation, with visible focus indicators that meet WCAG contrast requirements.
+
+```css
+/* Example of enhancing focus visibility */
+odyssey-node-explorer .node-header:focus-visible {
+  outline: 3px solid var(--primary-color);
+  outline-offset: 2px;
+}
+```
+
+## Browser Support
+
+The Node Explorer component supports all modern browsers:
+- Chrome (latest)
+- Firefox (latest)
+- Safari (latest)
+- Edge (latest)
+
+For older browsers, consider using the appropriate polyfills for web components.

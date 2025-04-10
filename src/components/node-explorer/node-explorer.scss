@@ -1,0 +1,468 @@
+// Theme variables
+$themes: (
+  light: (
+    primary-color: #635BFF,
+    primary-light: rgba(99, 91, 255, 0.08),
+    gray-light: #F7FAFC,
+    gray-border: #E8E8E8,
+    hover-bg: #F5F7FA,
+    text-secondary: #697386,
+    text-primary: #1A1F36,
+    connector-color: #E8E8E8,
+    selection-bg: rgba(59, 130, 246, 0.2),
+    background-color: #FFFFFF,
+    selected-text-color: inherit,
+    outline-focus-color: #635BFF
+  ),
+  dark: (
+    primary-color: #7B68EE,
+    primary-light: rgba(123, 104, 238, 0.15),
+    gray-light: #23252F,
+    gray-border: #3A3E4C,
+    hover-bg: #2A2D39,
+    text-secondary: #A0AEC0,
+    text-primary: #E2E8F0,
+    connector-color: #3A3E4C,
+    selection-bg: rgba(123, 104, 238, 0.2),
+    background-color: #1A1D27,
+    selected-text-color: inherit,
+    outline-focus-color: #7B68EE
+  ),
+  minimal: (
+    primary-color: #0070f3,
+    primary-light: rgba(0, 112, 243, 0.1),
+    gray-light: transparent,
+    gray-border: transparent,
+    hover-bg: rgba(0, 0, 0, 0.03),
+    text-secondary: #697386,
+    text-primary: #1A1F36,
+    connector-color: #ddd,
+    selection-bg: rgba(0, 112, 243, 0.1),
+    background-color: transparent,
+    selected-text-color: inherit,
+    outline-focus-color: #0070f3
+  ),
+  high-contrast: (
+    primary-color: #FFD700,
+    primary-light: rgba(255, 215, 0, 0.15),
+    gray-light: #000000,
+    gray-border: #FFFFFF,
+    hover-bg: #333333,
+    text-secondary: #FFFFFF,
+    text-primary: #FFFFFF,
+    connector-color: #FFFFFF,
+    selection-bg: #FFD700,
+    background-color: #000000,
+    selected-text-color: #000000,
+    outline-focus-color: #FFFFFF
+  )
+);
+
+// Common transitions
+$transition-duration: 200ms;
+$transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+
+// Node dimensions - improved for better ergonomics and readability
+$node-padding: 8px 12px; // Increased from 6px 8px
+$node-margin: 3px 0;     // Increased from 2px 0
+$node-border-radius: 6px;
+$node-font-size: 14px;   // Increased from 13px
+$connector-width: 2px;
+$spacing-unit: 8px;      // Base spacing unit for consistency
+
+// Base node explorer styles
+.node-explorer {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  
+  // Default variables (light theme)
+  --primary-color: #{map-get(map-get($themes, light), primary-color)};
+  --primary-light: #{map-get(map-get($themes, light), primary-light)};
+  --gray-light: #{map-get(map-get($themes, light), gray-light)};
+  --gray-border: #{map-get(map-get($themes, light), gray-border)};
+  --hover-bg: #{map-get(map-get($themes, light), hover-bg)};
+  --text-secondary: #{map-get(map-get($themes, light), text-secondary)};
+  --text-primary: #{map-get(map-get($themes, light), text-primary)};
+  --connector-color: #{map-get(map-get($themes, light), connector-color)};
+  --selection-bg: #{map-get(map-get($themes, light), selection-bg)};
+  --background-color: #{map-get(map-get($themes, light), background-color)};
+  --selected-text-color: #{map-get(map-get($themes, light), selected-text-color)};
+  --outline-focus-color: #{map-get(map-get($themes, light), outline-focus-color)};
+  
+  // Fixed variables with improved dimensions
+  --transition-duration: #{$transition-duration};
+  --transition-timing: #{$transition-timing};
+  --node-padding: #{$node-padding};
+  --node-margin: #{$node-margin};
+  --node-border-radius: #{$node-border-radius};
+  --node-font-size: #{$node-font-size};
+  --connector-width: #{$connector-width};
+  --spacing-unit: #{$spacing-unit};
+  
+  color: var(--text-primary);
+  background-color: var(--background-color);
+  
+  // Theme variants
+  &.dark-theme {
+    --primary-color: #{map-get(map-get($themes, dark), primary-color)};
+    --primary-light: #{map-get(map-get($themes, dark), primary-light)};
+    --gray-light: #{map-get(map-get($themes, dark), gray-light)};
+    --gray-border: #{map-get(map-get($themes, dark), gray-border)};
+    --hover-bg: #{map-get(map-get($themes, dark), hover-bg)};
+    --text-secondary: #{map-get(map-get($themes, dark), text-secondary)};
+    --text-primary: #{map-get(map-get($themes, dark), text-primary)};
+    --connector-color: #{map-get(map-get($themes, dark), connector-color)};
+    --selection-bg: #{map-get(map-get($themes, dark), selection-bg)};
+    --background-color: #{map-get(map-get($themes, dark), background-color)};
+    --selected-text-color: #{map-get(map-get($themes, dark), selected-text-color)};
+    --outline-focus-color: #{map-get(map-get($themes, dark), outline-focus-color)};
+    
+    color: var(--text-primary);
+    background-color: var(--background-color);
+    
+    .expand-toggle {
+      color: var(--text-secondary);
+      
+      &:hover {
+        color: var(--text-primary);
+      }
+    }
+    
+    .node-header:focus {
+      outline-width: 2px;
+      outline-style: solid;
+      outline-offset: 2px;
+    }
+    
+    // Fix child text color when parent is selected
+    .node.selected .node-children .node-label {
+      color: var(--text-primary);
+    }
+  }
+  
+  &.minimal-theme {
+    --primary-color: #{map-get(map-get($themes, minimal), primary-color)};
+    --primary-light: #{map-get(map-get($themes, minimal), primary-light)};
+    --gray-light: #{map-get(map-get($themes, minimal), gray-light)};
+    --gray-border: #{map-get(map-get($themes, minimal), gray-border)};
+    --hover-bg: #{map-get(map-get($themes, minimal), hover-bg)};
+    --text-secondary: #{map-get(map-get($themes, minimal), text-secondary)};
+    --text-primary: #{map-get(map-get($themes, minimal), text-primary)};
+    --connector-color: #{map-get(map-get($themes, minimal), connector-color)};
+    --selection-bg: #{map-get(map-get($themes, minimal), selection-bg)};
+    --background-color: #{map-get(map-get($themes, minimal), background-color)};
+    --selected-text-color: #{map-get(map-get($themes, minimal), selected-text-color)};
+    --outline-focus-color: #{map-get(map-get($themes, minimal), outline-focus-color)};
+    --connector-width: 1px;
+    --node-padding: 6px 10px; // Adjusted for minimal theme
+    --node-margin: 2px 0;     // Adjusted for minimal theme
+    --node-border-radius: 3px;
+    
+    .node.selected > .node-header {
+      box-shadow: inset 0 0 0 1px var(--primary-color);
+    }
+  }
+  
+  &.high-contrast-theme {
+    --primary-color: #{map-get(map-get($themes, high-contrast), primary-color)};
+    --primary-light: #{map-get(map-get($themes, high-contrast), primary-light)};
+    --gray-light: #{map-get(map-get($themes, high-contrast), gray-light)};
+    --gray-border: #{map-get(map-get($themes, high-contrast), gray-border)};
+    --hover-bg: #{map-get(map-get($themes, high-contrast), hover-bg)};
+    --text-secondary: #{map-get(map-get($themes, high-contrast), text-secondary)};
+    --text-primary: #{map-get(map-get($themes, high-contrast), text-primary)};
+    --connector-color: #{map-get(map-get($themes, high-contrast), connector-color)};
+    --selection-bg: #{map-get(map-get($themes, high-contrast), selection-bg)};
+    --background-color: #{map-get(map-get($themes, high-contrast), background-color)};
+    --selected-text-color: #{map-get(map-get($themes, high-contrast), selected-text-color)};
+    --outline-focus-color: #{map-get(map-get($themes, high-contrast), outline-focus-color)};
+    
+    color: var(--text-primary);
+    background-color: var(--background-color);
+    
+    .node-header:hover {
+      outline: 2px solid var(--primary-color);
+    }
+    
+    .node.selected > .node-header {
+      background-color: var(--primary-color);
+      color: #000000;
+    }
+    
+    .node.selected .node-label {
+      color: #000000;
+    }
+    
+    .node-header:focus {
+      outline-width: 2px;
+      outline-style: solid;
+      outline-offset: 2px;
+    }
+    
+    .expand-toggle {
+      color: var(--text-secondary);
+      
+      &:hover {
+        color: var(--text-primary);
+      }
+    }
+    
+    // Fix child text color when parent is selected
+    .node.selected .node-children .node-label {
+      color: var(--text-primary);
+    }
+    
+    // Only apply the black text color to the directly selected node
+    .node.selected > .node-header .node-label {
+      color: #000000;
+    }
+  }
+  
+  // Add multi-select visual style
+  &[allow-multi-select="true"] {
+    // Add a subtle identifier to show multi-select is enabled
+    .node-container {
+      position: relative;
+      
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background-color: var(--primary-color);
+        opacity: 0.3;
+      }
+    }
+    
+    // Show clearer selected state
+    .node.selected > .node-header {
+      font-weight: 600;
+      box-shadow: inset 2px 0 0 var(--primary-color);
+    }
+  }
+}
+
+// Multi-selection styles
+.node-explorer[allow-multi-select="true"] {
+  .node.selected {
+    position: relative;
+    
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 4px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--primary-color);
+      opacity: 0.8;
+    }
+  }
+  
+  // Keyboard selection visual feedback
+  .node-header:focus {
+    &::before {
+      content: "";
+      position: absolute;
+      right: 4px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background-color: var(--primary-color);
+      opacity: 0.6;
+    }
+  }
+}
+
+// Component elements
+.explorer-header {
+  padding: 16px;   // Increased from 12px 16px for more breathing room
+  background-color: var(--gray-light);
+  border-bottom: 1px solid var(--gray-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.explorer-title {
+  font-size: 14px; // Increased from 13px
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
+}
+
+// Drop indicators
+.drop-target {
+  background-color: var(--primary-light);
+  border-radius: var(--node-border-radius);
+}
+
+.container-drop-target {
+  background-color: var(--primary-light);
+  border: 1px dashed var(--primary-color);
+  border-radius: var(--node-border-radius);
+}
+
+.drop-indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: var(--primary-color);
+  pointer-events: none;
+  opacity: 0;
+  z-index: 10;
+}
+
+.drop-border {
+  &-inside {
+    box-shadow: inset 0 0 0 2px var(--primary-color);
+    border-radius: var(--node-border-radius);
+  }
+  
+  &-before {
+    border-top: 3px solid var(--primary-color);
+  }
+  
+  &-after {
+    border-bottom: 3px solid var(--primary-color);
+  }
+}
+
+// Node structure
+.node {
+  position: relative;
+  
+  &.selected > .node-header {
+    background-color: var(--selection-bg);
+    font-weight: 500;
+  }
+  
+  &.selected > .node-header .node-label {
+    color: var(--selected-text-color);
+  }
+  
+  // Ensure child nodes maintain proper color regardless of parent selection
+  &.selected .node-children .node {
+    // Reset any inherited selection styles for child nodes
+    &:not(.selected) > .node-header {
+      background-color: transparent;
+      font-weight: normal;
+      
+      .node-label {
+        color: var(--text-primary);
+      }
+    }
+  }
+}
+
+.node-header {
+  transition: none;
+  position: relative;
+  border-radius: var(--node-border-radius);
+  margin: var(--node-margin);
+  padding: var(--node-padding);
+  min-height: 32px;    // Added minimum height for better clickability
+  display: flex;       // Added for better vertical alignment
+  align-items: center; // Added for better vertical alignment
+  
+  &:hover {
+    background-color: var(--hover-bg);
+  }
+  
+  &:focus {
+    outline: 2px solid var(--outline-focus-color);
+    outline-offset: 1px;
+  }
+  
+  &:focus-visible {
+    outline: 2px solid var(--outline-focus-color);
+    background-color: var(--hover-bg);
+  }
+}
+
+.node-label {
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--node-font-size);
+  color: var(--text-primary);
+  line-height: 1.4;    // Added for better text readability
+}
+
+.expand-toggle {
+  color: var(--text-secondary);
+  display: inline-flex;     // Changed from inline-block for better alignment
+  align-items: center;      // Added for vertical alignment
+  justify-content: center;  // Added for horizontal alignment
+  text-align: center;
+  cursor: pointer;
+  font-size: 14px;          // Increased from 9px for better visibility
+  transform: rotate(0deg);
+  transition: transform var(--transition-duration) var(--transition-timing);
+  margin-right: 12px;       // Increased from 8px for better spacing
+  min-width: 18px;          // Added to ensure consistent sizing
+  min-height: 18px;         // Added to ensure consistent sizing
+  
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
+.node-children {
+  position: relative;
+  border-left: var(--connector-width) solid var(--connector-color);
+  margin-left: 16px;        // Increased from 12px for better hierarchy visibility
+  padding-left: 12px;       // Increased from 8px for better spacing
+  overflow: hidden;
+  transition: 
+    height var(--transition-duration) var(--transition-timing), 
+    opacity var(--transition-duration) var(--transition-timing);
+  height: 0;
+  opacity: 0;
+  will-change: height, opacity;
+  transform-origin: top;
+  pointer-events: none;
+  
+  &.expanded {
+    height: auto;
+    opacity: 1;
+    pointer-events: auto !important;
+  }
+}
+
+.node-container {
+  padding: 8px;            // Increased from 6px for better spacing
+  max-height: 100%;        // Added to ensure container fits in parent
+  overflow: auto;          // Added to enable scrolling for large trees
+}
+
+.empty-message {
+  padding: 16px;           // Increased from 12px 
+  color: var(--text-secondary);
+  font-size: var(--node-font-size);
+  text-align: center;
+}
+
+// Add responsive adjustments for smaller screens
+@media (max-width: 768px) {
+  .node-explorer {
+    --node-padding: 6px 10px; // Slightly smaller on mobile
+    --node-font-size: 13px;   // Slightly smaller on mobile
+  }
+  
+  .node-children {
+    margin-left: 12px;
+    padding-left: 8px;
+  }
+  
+  .expand-toggle {
+    margin-right: 8px;
+    font-size: 12px;
+  }
+}
