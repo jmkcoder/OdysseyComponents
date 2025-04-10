@@ -140,11 +140,10 @@ Integrate the component with React applications:
 
 ```jsx
 import React, { useEffect, useRef } from 'react';
-import '@jmkcoder/components/dist/components.bundle.css';
-import OdysseyComponents from '@jmkcoder/components/dist/index.js';
+// Simple import - automatically registers all components
+import '@jmkcoder/components';
 
-// Register the component once (typically in your app's entry point)
-OdysseyComponents.defineNodeExplorer();
+// No need to manually register components as they're registered automatically
 
 const NodeExplorerWrapper = ({ nodes, onNodeSelected, allowDragDrop = true }) => {
   const explorerRef = useRef(null);
@@ -226,11 +225,10 @@ Using the component with Vue:
 
 <script>
 import { defineComponent, onMounted, onBeforeUnmount, ref, watch } from 'vue';
-import '@jmkcoder/components/dist/components.bundle.css';
-import OdysseyComponents from '@jmkcoder/components/dist/index.js';
+// Simple import - automatically registers all components
+import '@jmkcoder/components';
 
-// Register the component
-OdysseyComponents.defineNodeExplorer();
+// No need to manually register components as they're registered automatically
 
 export default defineComponent({
   name: 'NodeExplorerVue',
@@ -314,11 +312,10 @@ Integrating with Angular applications:
 ```typescript
 // node-explorer.component.ts
 import { Component, Input, Output, EventEmitter, OnInit, ElementRef, OnChanges, SimpleChanges } from '@angular/core';
-import '@jmkcoder/components/dist/components.bundle.css';
-import OdysseyComponents from '@jmkcoder/components/dist/index.js';
+// Simple import - automatically registers all components
+import '@jmkcoder/components';
 
-// Register the custom element
-OdysseyComponents.defineNodeExplorer();
+// No need to manually register components as they're registered automatically
 
 @Component({
   selector: 'app-node-explorer',
@@ -451,15 +448,8 @@ export default defineConfig({
 ### Registering the Component
 
 ```javascript
-// Import the library default export
-import OdysseyComponents from '@jmkcoder/components/dist/index.js';
-
-// Register the components
-OdysseyComponents.registerComponents();
-
-// Or register individual components as needed
-OdysseyComponents.defineNodeExplorer();
-OdysseyComponents.defineOdysseyButton();
+// Simple import - automatically registers all components
+import '@jmkcoder/components';
 ```
 
 ### HTML Integration

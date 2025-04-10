@@ -18,11 +18,8 @@ npm install @jmkcoder/components
 ### In a module environment (with bundlers like Webpack, Rollup, Vite)
 
 ```javascript
-import { defineNodeExplorer } from '@jmkcoder/components';
-import '@jmkcoder/components/dist/components.bundle.css'; 
-
-// Register the components
-defineNodeExplorer();
+// Simple import - automatically registers all components
+import '@jmkcoder/components';
 ```
 
 ### In HTML (via CDN or local file)
