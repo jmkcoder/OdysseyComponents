@@ -1,0 +1,84 @@
+name: Publish Package to NPM
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - '.github/**'
+      - 'storybook-static/**'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build package
+        run: npm run build
+
+      - name: Get current version
+        id: current_version
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Determine version bump (patch by default)
+        id: bump
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          if [[ $COMMIT_MSG == *"#major"* ]]; then
+            echo "type=major" >> $GITHUB_OUTPUT
+          elif [[ $COMMIT_MSG == *"#minor"* ]]; then
+            echo "type=minor" >> $GITHUB_OUTPUT
+          else
+            echo "type=patch" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Bump version
+        id: version_bump
+        run: |
+          npm version ${{ steps.bump.outputs.type }} --no-git-tag-version
+          echo "new_version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Update version in package.json
+        run: |
+          echo "Bumping from ${{ steps.current_version.outputs.version }} to ${{ steps.version_bump.outputs.new_version }}"
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+          git add package.json package-lock.json
+          git commit -m "Bump version to ${{ steps.version_bump.outputs.new_version }} [skip ci]"
+          git push
+
+      - name: Publish to NPM
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_KEY }}
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.version_bump.outputs.new_version }}
+          release_name: Release v${{ steps.version_bump.outputs.new_version }}
+          draft: false
+          prerelease: false
+          body: |
+            Release of version ${{ steps.version_bump.outputs.new_version }}
+            
+            Changes in this release:
+            ${{ github.event.head_commit.message }}
