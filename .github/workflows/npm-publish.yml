@@ -86,17 +86,6 @@ jobs:
         run: |
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          
-      - name: Commit version bump
-        run: |
-          git add package.json
-          git commit -m "Bump version to ${{ steps.version_bump.outputs.new_version }}"
-          
-      - name: Push changes
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
 
       - name: Log version bump
         run: |
@@ -105,14 +94,14 @@ jobs:
       - name: Setup NPM Authentication
         run: |
           # Create a custom .npmrc file for authentication
-          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+          echo "//registry.npmjs.org/:_authToken=${secrets.NPM_PUBLISH_KEY}" > ~/.npmrc
           echo "@jmkcoder:registry=https://registry.npmjs.org/" >> ~/.npmrc
           npm config list # Print config for debugging
         env:
           NPM_TOKEN: ${{ secrets.NPM_PUBLISH_KEY }}
           
       - name: Publish to NPM
-        run: npm publish --access=public
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_KEY }}
 
