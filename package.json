@@ -1,6 +1,6 @@
 {
   "name": "@jmkcoder/components",
-  "version": "1.0.2",
+  "version": "1.0.1",
   "description": "Odyssey Web Components Library",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
@@ -15,7 +15,8 @@
     "prepare": "npm run build",
     "dev": "webpack serve --mode development",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "create-package": "npm publish --access=public"
   },
   "keywords": [
     "web-components",
