@@ -94,7 +94,7 @@ jobs:
       - name: Setup NPM Authentication
         run: |
           # Create a custom .npmrc file for authentication
-          echo "//registry.npmjs.org/:_authToken=${secrets.NPM_PUBLISH_KEY}" > ~/.npmrc
+          echo "//registry.npmjs.org/:_authToken=${{secrets.NPM_PUBLISH_KEY}}" > ~/.npmrc
           echo "@jmkcoder:registry=https://registry.npmjs.org/" >> ~/.npmrc
           npm config list # Print config for debugging
         env:
