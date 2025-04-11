@@ -15,8 +15,7 @@
     "prepare": "npm run build",
     "dev": "webpack serve --mode development",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build",
-    "publish": "node -e \"const { execSync } = require('child_process'); const latestTag = execSync('git describe --tags --abbrev=0').toString().trim().replace(/^v/, ''); console.log(`Setting version to ${latestTag}`); execSync(`npm version ${latestTag} --no-git-tag-version --allow-same-version`);\" && npm publish --tag latest"
+    "build-storybook": "storybook build"
   },
   "keywords": [
     "web-components",
