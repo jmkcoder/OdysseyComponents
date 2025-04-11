@@ -4,7 +4,7 @@ export class DragDropService {
     private draggedNode: HTMLElement | null = null;
     private dropTarget: HTMLElement | null = null;
     private dropPosition: DropPosition = 'inside';
-    private shadowRoot: ShadowRoot;
+    private rootElement: HTMLElement; // Changed from shadowRoot to rootElement
     private hostElement: HTMLElement; // Reference to host element for event dispatch
     
     // Event callbacks
@@ -20,13 +20,13 @@ export class DragDropService {
     private externalDropListeners: ((sourceId: string, targetId: string | null, position: DropPosition, event: DragEvent) => void)[] = [];
     
     constructor(
-        shadowRoot: ShadowRoot,
+        rootElement: HTMLElement, // Changed parameter type from ShadowRoot to HTMLElement
         hostElement: HTMLElement,
         onDrop: (sourceId: string, targetId: string, position: DropPosition) => void,
         onDropToRoot: (sourceId: string) => void,
         onToggleExpansion: (id: string) => void
     ) {
-        this.shadowRoot = shadowRoot;
+        this.rootElement = rootElement;
         this.hostElement = hostElement;
         this.onDrop = onDrop;
         this.onDropToRoot = onDropToRoot;
@@ -57,16 +57,17 @@ export class DragDropService {
     private dispatchCustomEvent(name: string, detail: any): void {
         const event = new CustomEvent(name, {
             bubbles: true, 
-            composed: true, // This allows the event to cross shadow DOM boundary
+            composed: true, // Keep composed true for potential future use in Shadow DOM
             detail
         });
         this.hostElement.dispatchEvent(event);
     }
 
     attachListeners(): void {
-        const nodeHeaders = this.shadowRoot.querySelectorAll('.node-header');
-        const expandToggles = this.shadowRoot.querySelectorAll('.expand-toggle');
-        const nodeContainer = this.shadowRoot.querySelector('.node-container');
+        // Updated to query the rootElement instead of shadowRoot
+        const nodeHeaders = this.rootElement.querySelectorAll('.node-header');
+        const expandToggles = this.rootElement.querySelectorAll('.expand-toggle');
+        const nodeContainer = this.rootElement.querySelector('.node-container');
         
         // Add drag start event
         nodeHeaders.forEach(header => this.attachNodeHeaderEvents(header));
@@ -306,7 +307,8 @@ export class DragDropService {
     }
     
     clearAllIndicators(): void {
-        const allHeaders = this.shadowRoot.querySelectorAll('.node-header');
+        // Updated to query the rootElement instead of shadowRoot
+        const allHeaders = this.rootElement.querySelectorAll('.node-header');
         allHeaders.forEach(h => {
             h.classList.remove('drop-target');
             h.classList.remove('drop-border-inside');
@@ -323,7 +325,7 @@ export class DragDropService {
 
         this.dropTarget = null;
 
-        const container = this.shadowRoot.querySelector('.node-container');
+        const container = this.rootElement.querySelector('.node-container');
         if (container) {
             container.classList.remove('container-drop-target');
         }

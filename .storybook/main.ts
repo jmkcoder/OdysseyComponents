@@ -13,6 +13,12 @@ const config: StorybookConfig = {
     '@storybook/addon-actions',
     '@storybook/addon-links',
     {
+      name: 'storybook-addon-sass-postcss',
+      options: {
+        test: /\.(scss|sass)$/i,
+      },
+    },
+    {
       name: '@storybook/addon-docs',
       options: {
         mdxPluginOptions: {
@@ -26,42 +32,6 @@ const config: StorybookConfig = {
   "framework": {
     "name": "@storybook/web-components-webpack5",
     "options": {}
-  },
-  webpackFinal: async (config) => {
-    const TailwindCSSPlugin = require('tailwindcss');
-    const AutoprefixerPlugin = require('autoprefixer');
-    const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-
-    config.module?.rules?.push(
-      {
-      test: /\.scss$/,
-      use: [
-        MiniCssExtractPlugin.loader,
-        'css-loader',
-        {
-        loader: 'postcss-loader',
-        options: {
-          postcssOptions: {
-          plugins: [TailwindCSSPlugin, AutoprefixerPlugin],
-          },
-        },
-        },
-        'sass-loader',
-      ],
-      },
-    );
-
-    // Remove the output path override to let Storybook use its default location
-    // This ensures iframe.html will be generated correctly
-
-    config.plugins?.push(
-      new MiniCssExtractPlugin({
-        filename: 'components.bundle.css',
-        chunkFilename: 'components.bundle.css' // This ensures chunk CSS files also use the same name
-      }),
-    );
-
-    return config;
-  },
+  }
 };
 export default config;

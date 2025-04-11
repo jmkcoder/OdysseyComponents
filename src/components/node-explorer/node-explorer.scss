@@ -1,4 +1,4 @@
-// Theme variables
+/* Theme variables */
 $themes: (
   light: (
     primary-color: #635BFF,
@@ -58,23 +58,23 @@ $themes: (
   )
 );
 
-// Common transitions
+/* Common transitions */
 $transition-duration: 200ms;
 $transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
 
-// Node dimensions - improved for better ergonomics and readability
-$node-padding: 8px 12px; // Increased from 6px 8px
-$node-margin: 3px 0;     // Increased from 2px 0
+/* Node dimensions - improved for better ergonomics and readability */
+$node-padding: 8px 12px; /* Increased from 6px 8px */
+$node-margin: 3px 0;     /* Increased from 2px 0 */
 $node-border-radius: 6px;
-$node-font-size: 14px;   // Increased from 13px
+$node-font-size: 14px;   /* Increased from 13px */
 $connector-width: 2px;
-$spacing-unit: 8px;      // Base spacing unit for consistency
+$spacing-unit: 8px;      /* Base spacing unit for consistency */
 
-// Base node explorer styles
+/* Base node explorer styles */
 .node-explorer {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   
-  // Default variables (light theme)
+  /* Default variables (light theme) */
   --primary-color: #{map-get(map-get($themes, light), primary-color)};
   --primary-light: #{map-get(map-get($themes, light), primary-light)};
   --gray-light: #{map-get(map-get($themes, light), gray-light)};
@@ -88,7 +88,7 @@ $spacing-unit: 8px;      // Base spacing unit for consistency
   --selected-text-color: #{map-get(map-get($themes, light), selected-text-color)};
   --outline-focus-color: #{map-get(map-get($themes, light), outline-focus-color)};
   
-  // Fixed variables with improved dimensions
+  /* Fixed variables with improved dimensions */
   --transition-duration: #{$transition-duration};
   --transition-timing: #{$transition-timing};
   --node-padding: #{$node-padding};
@@ -101,7 +101,7 @@ $spacing-unit: 8px;      // Base spacing unit for consistency
   color: var(--text-primary);
   background-color: var(--background-color);
   
-  // Theme variants
+  /* Theme variants */
   &.dark-theme {
     --primary-color: #{map-get(map-get($themes, dark), primary-color)};
     --primary-light: #{map-get(map-get($themes, dark), primary-light)};
@@ -133,7 +133,7 @@ $spacing-unit: 8px;      // Base spacing unit for consistency
       outline-offset: 2px;
     }
     
-    // Fix child text color when parent is selected
+    /* Fix child text color when parent is selected */
     .node.selected .node-children .node-label {
       color: var(--text-primary);
     }
@@ -153,8 +153,8 @@ $spacing-unit: 8px;      // Base spacing unit for consistency
     --selected-text-color: #{map-get(map-get($themes, minimal), selected-text-color)};
     --outline-focus-color: #{map-get(map-get($themes, minimal), outline-focus-color)};
     --connector-width: 1px;
-    --node-padding: 6px 10px; // Adjusted for minimal theme
-    --node-margin: 2px 0;     // Adjusted for minimal theme
+    --node-padding: 6px 10px; /* Adjusted for minimal theme */
+    --node-margin: 2px 0;     /* Adjusted for minimal theme */
     --node-border-radius: 3px;
     
     .node.selected > .node-header {
@@ -206,20 +206,20 @@ $spacing-unit: 8px;      // Base spacing unit for consistency
       }
     }
     
-    // Fix child text color when parent is selected
+    /* Fix child text color when parent is selected */
     .node.selected .node-children .node-label {
       color: var(--text-primary);
     }
     
-    // Only apply the black text color to the directly selected node
+    /* Only apply the black text color to the directly selected node */
     .node.selected > .node-header .node-label {
       color: #000000;
     }
   }
   
-  // Add multi-select visual style
+  /* Add multi-select visual style */
   &[allow-multi-select="true"] {
-    // Add a subtle identifier to show multi-select is enabled
+    /* Add a subtle identifier to show multi-select is enabled */
     .node-container {
       position: relative;
       
@@ -235,7 +235,7 @@ $spacing-unit: 8px;      // Base spacing unit for consistency
       }
     }
     
-    // Show clearer selected state
+    /* Show clearer selected state */
     .node.selected > .node-header {
       font-weight: 600;
       box-shadow: inset 2px 0 0 var(--primary-color);
@@ -243,7 +243,7 @@ $spacing-unit: 8px;      // Base spacing unit for consistency
   }
 }
 
-// Multi-selection styles
+/* Multi-selection styles */
 .node-explorer[allow-multi-select="true"] {
   .node.selected {
     position: relative;
@@ -261,7 +261,7 @@ $spacing-unit: 8px;      // Base spacing unit for consistency
     }
   }
   
-  // Keyboard selection visual feedback
+  /* Keyboard selection visual feedback */
   .node-header:focus {
     &::before {
       content: "";
@@ -278,9 +278,9 @@ $spacing-unit: 8px;      // Base spacing unit for consistency
   }
 }
 
-// Component elements
+/* Component elements */
 .explorer-header {
-  padding: 16px;   // Increased from 12px 16px for more breathing room
+  padding: 16px;   /* Increased from 12px 16px for more breathing room */
   background-color: var(--gray-light);
   border-bottom: 1px solid var(--gray-border);
   display: flex;
@@ -289,13 +289,13 @@ $spacing-unit: 8px;      // Base spacing unit for consistency
 }
 
 .explorer-title {
-  font-size: 14px; // Increased from 13px
+  font-size: 14px; /* Increased from 13px */
   font-weight: 500;
   color: var(--text-secondary);
   letter-spacing: 0.01em;
 }
 
-// Drop indicators
+/* Drop indicators */
 .drop-target {
   background-color: var(--primary-light);
   border-radius: var(--node-border-radius);
@@ -333,7 +333,7 @@ $spacing-unit: 8px;      // Base spacing unit for consistency
   }
 }
 
-// Node structure
+/* Node structure */
 .node {
   position: relative;
   
@@ -346,9 +346,9 @@ $spacing-unit: 8px;      // Base spacing unit for consistency
     color: var(--selected-text-color);
   }
   
-  // Ensure child nodes maintain proper color regardless of parent selection
+  /* Ensure child nodes maintain proper color regardless of parent selection */
   &.selected .node-children .node {
-    // Reset any inherited selection styles for child nodes
+    /* Reset any inherited selection styles for child nodes */
     &:not(.selected) > .node-header {
       background-color: transparent;
       font-weight: normal;
@@ -366,9 +366,9 @@ $spacing-unit: 8px;      // Base spacing unit for consistency
   border-radius: var(--node-border-radius);
   margin: var(--node-margin);
   padding: var(--node-padding);
-  min-height: 32px;    // Added minimum height for better clickability
-  display: flex;       // Added for better vertical alignment
-  align-items: center; // Added for better vertical alignment
+  min-height: 32px;    /* Added minimum height for better clickability */
+  display: flex;       /* Added for better vertical alignment */
+  align-items: center; /* Added for better vertical alignment */
   
   &:hover {
     background-color: var(--hover-bg);
@@ -392,22 +392,22 @@ $spacing-unit: 8px;      // Base spacing unit for consistency
   text-overflow: ellipsis;
   font-size: var(--node-font-size);
   color: var(--text-primary);
-  line-height: 1.4;    // Added for better text readability
+  line-height: 1.4;    /* Added for better text readability */
 }
 
 .expand-toggle {
   color: var(--text-secondary);
-  display: inline-flex;     // Changed from inline-block for better alignment
-  align-items: center;      // Added for vertical alignment
-  justify-content: center;  // Added for horizontal alignment
+  display: inline-flex;     /* Changed from inline-block for better alignment */
+  align-items: center;      /* Added for vertical alignment */
+  justify-content: center;  /* Added for horizontal alignment */
   text-align: center;
   cursor: pointer;
-  font-size: 14px;          // Increased from 9px for better visibility
+  font-size: 14px;          /* Increased from 9px for better visibility */
   transform: rotate(0deg);
   transition: transform var(--transition-duration) var(--transition-timing);
-  margin-right: 12px;       // Increased from 8px for better spacing
-  min-width: 18px;          // Added to ensure consistent sizing
-  min-height: 18px;         // Added to ensure consistent sizing
+  margin-right: 12px;       /* Increased from 8px for better spacing */
+  min-width: 18px;          /* Added to ensure consistent sizing */
+  min-height: 18px;         /* Added to ensure consistent sizing */
   
   &:hover {
     color: var(--text-primary);
@@ -417,8 +417,8 @@ $spacing-unit: 8px;      // Base spacing unit for consistency
 .node-children {
   position: relative;
   border-left: var(--connector-width) solid var(--connector-color);
-  margin-left: 16px;        // Increased from 12px for better hierarchy visibility
-  padding-left: 12px;       // Increased from 8px for better spacing
+  margin-left: 16px;        /* Increased from 12px for better hierarchy visibility */
+  padding-left: 12px;       /* Increased from 8px for better spacing */
   overflow: hidden;
   transition: 
     height var(--transition-duration) var(--transition-timing), 
@@ -437,23 +437,23 @@ $spacing-unit: 8px;      // Base spacing unit for consistency
 }
 
 .node-container {
-  padding: 8px;            // Increased from 6px for better spacing
-  max-height: 100%;        // Added to ensure container fits in parent
-  overflow: auto;          // Added to enable scrolling for large trees
+  padding: 8px;            /* Increased from 6px for better spacing */
+  max-height: 100%;        /* Added to ensure container fits in parent */
+  overflow: auto;          /* Added to enable scrolling for large trees */
 }
 
 .empty-message {
-  padding: 16px;           // Increased from 12px 
+  padding: 16px;           /* Increased from 12px */
   color: var(--text-secondary);
   font-size: var(--node-font-size);
   text-align: center;
 }
 
-// Add responsive adjustments for smaller screens
+/* Add responsive adjustments for smaller screens */
 @media (max-width: 768px) {
   .node-explorer {
-    --node-padding: 6px 10px; // Slightly smaller on mobile
-    --node-font-size: 13px;   // Slightly smaller on mobile
+    --node-padding: 6px 10px; /* Slightly smaller on mobile */
+    --node-font-size: 13px;   /* Slightly smaller on mobile */
   }
   
   .node-children {
