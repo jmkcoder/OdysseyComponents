@@ -58,7 +58,22 @@ jobs:
           npm version ${{ steps.bump.outputs.type }} --no-git-tag-version
           echo "new_version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
 
-      # Instead of pushing back to the repository, we'll just publish the version
+      - name: Configure Git
+        run: |
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+      - name: Commit version bump
+        run: |
+          git add package.json
+          git commit -m "Bump version to ${{ steps.version_bump.outputs.new_version }}"
+          
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
+
       - name: Log version bump
         run: |
           echo "Bumping from ${{ steps.current_version.outputs.version }} to ${{ steps.version_bump.outputs.new_version }}"
