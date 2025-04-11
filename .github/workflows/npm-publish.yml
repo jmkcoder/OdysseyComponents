@@ -11,7 +11,30 @@ on:
   workflow_dispatch:
 
 jobs:
+  check-commit:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Check if commit is a version bump
+        id: check
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          if [[ $COMMIT_MSG == *"Bump version to"* ]]; then
+            echo "should_run=false" >> $GITHUB_OUTPUT
+            echo "Skipping workflow for version bump commit"
+          else
+            echo "should_run=true" >> $GITHUB_OUTPUT
+            echo "Proceeding with workflow"
+
   publish:
+    needs: check-commit
+    if: needs.check-commit.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write # This ensures the action can write to the repository
