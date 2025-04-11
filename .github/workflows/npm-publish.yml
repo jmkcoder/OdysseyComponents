@@ -31,6 +31,7 @@ jobs:
           else
             echo "should_run=true" >> $GITHUB_OUTPUT
             echo "Proceeding with workflow"
+          fi
 
   publish:
     needs: check-commit
