@@ -376,13 +376,18 @@ $spacing-unit: 8px;      /* Base spacing unit for consistency */
   
   &:focus {
     outline: 2px solid var(--outline-focus-color);
-    outline-offset: 1px;
+    outline-offset: -2px; /* Pull the outline inward to avoid cutting off child borders */
+    z-index: 1;
+    box-shadow: 0 0 0 2px var(--background-color); /* Add a background-colored shadow to mask overflow */
   }
   
   &:focus-visible {
     outline: 2px solid var(--outline-focus-color);
     background-color: var(--hover-bg);
   }
+  
+  /* Touch-friendly adjustments */
+  touch-action: manipulation;
 }
 
 .node-label {
@@ -412,10 +417,15 @@ $spacing-unit: 8px;      /* Base spacing unit for consistency */
   &:hover {
     color: var(--text-primary);
   }
+  
+  /* Touch-friendly adjustments */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .node-children {
-  position: relative;
+  position: relative; /* Ensure children are properly positioned */
+  z-index: 0; /* Prevent overlap with focused node's outline */
   border-left: var(--connector-width) solid var(--connector-color);
   margin-left: 16px;        /* Increased from 12px for better hierarchy visibility */
   padding-left: 12px;       /* Increased from 8px for better spacing */
@@ -454,6 +464,8 @@ $spacing-unit: 8px;      /* Base spacing unit for consistency */
   .node-explorer {
     --node-padding: 6px 10px; /* Slightly smaller on mobile */
     --node-font-size: 13px;   /* Slightly smaller on mobile */
+    font-size: 14px;
+    padding: 8px;
   }
   
   .node-children {
@@ -464,5 +476,17 @@ $spacing-unit: 8px;      /* Base spacing unit for consistency */
   .expand-toggle {
     margin-right: 8px;
     font-size: 12px;
+    width: 30px;
+    height: 30px;
+  }
+  
+  .node {
+    padding: 10px;
+    margin: 5px 0;
+  }
+  
+  .node-header {
+    padding: 10px;
+    font-size: 16px;
   }
 }
