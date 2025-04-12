@@ -11,6 +11,9 @@ const Template = (args) => {
   if (args.theme) {
     container.setAttribute('theme', args.theme);
   }
+  if (args.hideDarkMode) {
+    container.setAttribute('hide-darkmode', '');
+  }
   return container;
 };
 
@@ -33,6 +36,7 @@ Themed.args = {
     </div>
   `,
   theme: 'dark', // Default theme for the story
+  hideDarkMode: true,
 };
 
 export const Resizable = Template.bind({});
@@ -94,5 +98,20 @@ WithNodeExplorer.args = {
         theme="light"
       ></odyssey-node-explorer>
     </div>
+  `,
+};
+
+export const CustomHeaderFooter = Template.bind({});
+CustomHeaderFooter.args = {
+  content: `
+    <header>
+      <h1>Custom Header</h1>
+    </header>
+    <div style="padding: 16px;">
+      <p>This is the main content of the sidebar.</p>
+    </div>
+    <footer>
+      <p>Custom Footer</p>
+    </footer>
   `,
 };

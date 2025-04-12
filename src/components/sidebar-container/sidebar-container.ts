@@ -4,8 +4,7 @@ import './sidebar-container.scss';
 
 class SidebarContainer extends HTMLElement {
   private resizeService!: SidebarResizeService;
-  private isCollapsed: boolean = false;
-  private isResizeEnabled: boolean = true;
+  private isResizeEnabled: boolean = false;
 
   constructor() {
     super();
@@ -18,27 +17,29 @@ class SidebarContainer extends HTMLElement {
     const wrapper = document.createElement('div');
     wrapper.className = 'sidebar-container';
 
+    const userHeader = this.querySelector('header');
+    const userFooter = this.querySelector('footer');
+
     wrapper.innerHTML = `
-      <div class="sidebar-header">
-        <h1 class="sidebar-title">Sidebar</h1>
-      </div>
+      <header class="sidebar-header">
+        ${userHeader ? userHeader.innerHTML : '<h1 class="sidebar-title">Sidebar</h1>'}
+      </header>
       <div class="sidebar-content">
       </div>
-      <div class="sidebar-footer">
-        <label class="theme-toggle">
-          <span>Dark Mode</span> 
-          <input type="checkbox" id="theme-toggle-checkbox">
-        </label>
-      </div>
+      <footer class="sidebar-footer">
+        ${userFooter ? userFooter.innerHTML : '<label class="theme-toggle"><span>Dark Mode</span><input type="checkbox" id="theme-toggle-checkbox"></label>'}
+      </footer>
       <div class="resize-handle"></div>
     `;
 
-    // Move existing children into the content area
+    // Move existing children (except header and footer) into the content area
     const contentArea = wrapper.querySelector('.sidebar-content');
     if (contentArea) {
-      while (this.firstChild) {
-        contentArea.appendChild(this.firstChild);
-      }
+      Array.from(this.children).forEach((child) => {
+        if (child.tagName.toLowerCase() !== 'header' && child.tagName.toLowerCase() !== 'footer') {
+          contentArea.appendChild(child);
+        }
+      });
     }
 
     // Clear the current content and append the wrapper
@@ -73,15 +74,21 @@ class SidebarContainer extends HTMLElement {
     this.addEventListener('expand', () => {
       console.log('Sidebar expanded');
     });
+
+    const hideDarkMode = this.hasAttribute('hide-darkmode');
+    this.toggleDarkModeSection(hideDarkMode);
   }
 
   static get observedAttributes() {
-    return ['theme'];
+    return ['theme', 'hide-darkmode'];
   }
 
   attributeChangedCallback(name: string, oldValue: string, newValue: string) {
     if (name === 'theme' && oldValue !== newValue) {
       this.applyTheme();
+    }
+    if (name === 'hide-darkmode' && oldValue !== newValue) {
+      this.toggleDarkModeSection(newValue !== null);
     }
   }
 
@@ -133,14 +140,10 @@ class SidebarContainer extends HTMLElement {
 
     const handleGesture = () => {
       if (touchEndX < touchStartX - 50) {
-        // Swipe left to close
-        this.isCollapsed = true;
         sidebarElement.classList.add('collapsed');
         this.emitEvent('collapse', { collapsed: true });
       }
       if (touchEndX > touchStartX + 50) {
-        // Swipe right to open
-        this.isCollapsed = false;
         sidebarElement.classList.remove('collapsed');
         this.emitEvent('expand', { collapsed: false });
       }
@@ -161,6 +164,13 @@ class SidebarContainer extends HTMLElement {
   private emitEvent(eventName: string, detail: any = {}) {
     const event = new CustomEvent(eventName, { detail });
     this.dispatchEvent(event);
+  }
+
+  private toggleDarkModeSection(hide: boolean) {
+    const darkModeSection = this.querySelector('.theme-toggle') as HTMLElement;
+    if (darkModeSection) {
+      darkModeSection.style.display = hide ? 'none' : '';
+    }
   }
 
   disconnectedCallback() {

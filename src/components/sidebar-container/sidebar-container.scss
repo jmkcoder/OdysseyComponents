@@ -5,7 +5,7 @@
   width: 300px;
   min-width: 80px;
   max-width: full;
-  height: 100vh; /* Full height of the viewport */
+  height: 100%; /* Full height of the viewport */
   overflow: hidden; /* Prevent overflow */
   background-color: var(--sidebar-bg, #ffffff);
   color: var(--sidebar-text, #333333);

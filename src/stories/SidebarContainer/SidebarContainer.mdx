@@ -1,5 +1,5 @@
 import { Meta, Story, Canvas, ArgsTable, Source } from '@storybook/addon-docs';
-import SidebarContainerStories, { Default, Themed, Resizable, Collapsible, WithNodeExplorer } from './SidebarContainer.stories';
+import SidebarContainerStories, { Default, Themed, Resizable, Collapsible, WithNodeExplorer, CustomHeaderFooter } from './SidebarContainer.stories';
 
 <Meta 
   title="Components/Sidebar Container/Documentation"
@@ -11,6 +11,13 @@ import SidebarContainerStories, { Default, Themed, Resizable, Collapsible, WithN
     }
   }}
 />
+
+<style jsx global>{`
+    #story--components-sidebarcontainer--default-inner {
+        position: relative;
+        height: 400px; /* Adjust the height to make the canvas smaller */
+    }
+`}</style>
 
 # Sidebar Container
 
@@ -77,6 +84,12 @@ This example demonstrates how to use the `SidebarContainer` with a tree structur
 
 <Canvas of={WithNodeExplorer} />
 
+### Custom Header and Footer Example
+
+This example demonstrates how to use custom `<header>` and `<footer>` elements inside the `SidebarContainer` component. The custom content will replace the default header and footer.
+
+<Canvas of={CustomHeaderFooter} />
+
 ## API Reference
 
 ### Properties
@@ -86,6 +99,7 @@ This example demonstrates how to use the `SidebarContainer` with a tree structur
 | `theme`            | `theme`              | `string`        | `'light'` | Theme variant ('light', 'dark', etc.)                       |
 | `resizable`        | `resizable`          | `boolean`       | `false`   | Enable or disable resizing of the sidebar                  |
 | `collapsible`      | `collapsible`        | `boolean`       | `false`   | Enable or disable collapsing of the sidebar                |
+| `hide-darkmode`    | `boolean`           | Hides the dark mode toggle section in the sidebar. Disabled by default. |
 
 ### Events
 
