@@ -108,6 +108,11 @@
   transform: translateX(20px);
 }
 
+.theme-toggle:focus {
+  outline: 2px solid #4A90E2; /* Add a blue outline for focus */
+  outline-offset: 2px; /* Add some spacing between the outline and the element */
+}
+
 .sidebar-container.collapsed {
   width: 80px;
   transform: translateX(-100%);

@@ -77,6 +77,13 @@ class SidebarContainer extends HTMLElement {
 
     const hideDarkMode = this.hasAttribute('hide-darkmode');
     this.toggleDarkModeSection(hideDarkMode);
+
+    // Add ARIA attributes for accessibility
+    this.setAttribute('role', 'complementary');
+    this.setAttribute('aria-expanded', 'true');
+
+    // Add keyboard navigation support
+    this.addEventListener('keydown', this.handleKeyboardNavigation.bind(this));
   }
 
   static get observedAttributes() {
@@ -170,6 +177,45 @@ class SidebarContainer extends HTMLElement {
     const darkModeSection = this.querySelector('.theme-toggle') as HTMLElement;
     if (darkModeSection) {
       darkModeSection.style.display = hide ? 'none' : '';
+    }
+  }
+
+  private handleKeyboardNavigation(event: KeyboardEvent) {
+    const sidebarElement = this.querySelector('.sidebar-container') as HTMLElement;
+    if (!sidebarElement) return;
+
+    switch (event.key) {
+      case 'Tab':
+        // Allow default tab behavior
+        break;
+      case 'ArrowUp':
+      case 'ArrowDown':
+        this.navigateContent(event.key === 'ArrowUp' ? -1 : 1);
+        event.preventDefault();
+        break;
+      case 'Enter':
+      case ' ': // Space key
+        this.activateFocusedElement();
+        event.preventDefault();
+        break;
+    }
+  }
+
+  private navigateContent(direction: number) {
+    const focusableElements = Array.from(
+      this.querySelectorAll('.sidebar-content a, .sidebar-content button, .sidebar-content input')
+    ) as HTMLElement[];
+
+    const currentIndex = focusableElements.findIndex((el) => el === document.activeElement);
+    const nextIndex = (currentIndex + direction + focusableElements.length) % focusableElements.length;
+
+    focusableElements[nextIndex]?.focus();
+  }
+
+  private activateFocusedElement() {
+    const activeElement = document.activeElement as HTMLElement;
+    if (activeElement && this.contains(activeElement)) {
+      activeElement.click();
     }
   }
 
