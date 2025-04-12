@@ -336,6 +336,7 @@ $spacing-unit: 8px;      /* Base spacing unit for consistency */
 /* Node structure */
 .node {
   position: relative;
+  animation: fadeIn 0.3s ease-out;
   
   &.selected > .node-header {
     background-color: var(--selection-bg);
@@ -358,6 +359,32 @@ $spacing-unit: 8px;      /* Base spacing unit for consistency */
       }
     }
   }
+}
+
+/* Add animations specific to targeted nodes */
+@keyframes fadeInTargeted {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInTargeted {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Apply animations only to the targeted node */
+.node.targeted {
+  animation: fadeInTargeted 0.3s ease-out, slideInTargeted 0.3s ease-out;
 }
 
 .node-header {
@@ -409,13 +436,15 @@ $spacing-unit: 8px;      /* Base spacing unit for consistency */
   cursor: pointer;
   font-size: 14px;          /* Increased from 9px for better visibility */
   transform: rotate(0deg);
-  transition: transform var(--transition-duration) var(--transition-timing);
+  transition: transform var(--transition-duration) var(--transition-timing),
+              color var(--transition-duration) var(--transition-timing);
   margin-right: 12px;       /* Increased from 8px for better spacing */
   min-width: 18px;          /* Added to ensure consistent sizing */
   min-height: 18px;         /* Added to ensure consistent sizing */
   
   &:hover {
     color: var(--text-primary);
+    transform: scale(1.1);
   }
   
   /* Touch-friendly adjustments */
@@ -432,17 +461,21 @@ $spacing-unit: 8px;      /* Base spacing unit for consistency */
   overflow: hidden;
   transition: 
     height var(--transition-duration) var(--transition-timing), 
-    opacity var(--transition-duration) var(--transition-timing);
+    opacity var(--transition-duration) var(--transition-timing),
+    transform var(--transition-duration) var(--transition-timing);
   height: 0;
   opacity: 0;
   will-change: height, opacity;
   transform-origin: top;
   pointer-events: none;
+  transform: translateY(0);
+  opacity: 1;
   
   &.expanded {
     height: auto;
     opacity: 1;
     pointer-events: auto !important;
+    animation: slideIn 0.3s ease-out;
   }
 }
 
@@ -488,5 +521,26 @@ $spacing-unit: 8px;      /* Base spacing unit for consistency */
   .node-header {
     padding: 10px;
     font-size: 16px;
+  }
+}
+
+/* Add smooth animations for user experience */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
 }

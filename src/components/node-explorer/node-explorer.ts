@@ -489,76 +489,54 @@ export class NodeExplorer extends HTMLElement {
         this.updateNodesAndRender();
     }
     
+    private updateNodeUI(nodeId: string): void {
+        const nodeElement = this.querySelector(`.node[data-id="${nodeId}"]`);
+        if (!nodeElement) return;
+
+        const node = this.nodeService.findNodeById(nodeId);
+        if (!node) return;
+
+        const nodeHeader = nodeElement.querySelector('.node-header');
+        if (nodeHeader) {
+            nodeHeader.setAttribute('aria-expanded', node.expanded ? 'true' : 'false');
+            nodeHeader.setAttribute('aria-selected', this.selectedNodes.has(nodeId) ? 'true' : 'false');
+        }
+
+        const childrenContainer = nodeElement.querySelector('.node-children') as HTMLElement;
+        if (childrenContainer) {
+            if (node.expanded) {
+                childrenContainer.classList.add('expanded');
+                childrenContainer.style.height = 'auto';
+                childrenContainer.style.opacity = '1';
+                childrenContainer.style.pointerEvents = 'auto';
+            } else {
+                childrenContainer.classList.remove('expanded');
+                childrenContainer.style.height = '0';
+                childrenContainer.style.opacity = '0';
+                childrenContainer.style.pointerEvents = 'none';
+            }
+        }
+    }
+
     private handleToggleExpansion(id: string): void {
         const node = this.nodeService.findNodeById(id);
         if (!node) return;
-        
+
         if (node.isLazy && !node.isLoading && !node.expanded) {
             node.isLoading = true;
             node.expanded = true;
-            
-            const currentFocusedNodeId = this.focusedNodeId;
-            
-            this.render();
-            
-            if (currentFocusedNodeId) {
-                this.focusNode(currentFocusedNodeId);
-            }
-            
-            const loadingTimeout = window.setTimeout(() => {
-                const currentNode = this.nodeService.findNodeById(id);
-                if (currentNode && currentNode.isLoading) {
-                    currentNode.isLoading = false;
-                    
-                    if (!currentNode.children || currentNode.children.length === 0) {
-                        currentNode.children = [{
-                            id: `${id}-load-error`,
-                            label: 'Failed to load. Click to retry.',
-                            icon: 'error',
-                            isRetry: true
-                        }];
-                        this.render();
-
-                        const retryNode = this.querySelector(`.node[data-id="${id}-load-error"]`);
-                        if (retryNode) {
-                            retryNode.addEventListener('click', () => {
-                                currentNode.isLoading = true;
-                                currentNode.children = [];
-                                this.render();
-                                this.dispatchNodeLoadChildrenEvent(id, currentNode);
-                            });
-                        }
-                    }
-                }
-            }, 10000);
-            
-            this._loadingTimeouts = this._loadingTimeouts || new Map();
-            this._loadingTimeouts.set(id, loadingTimeout as number);
-            
+            this.updateNodeUI(id);
             this.dispatchNodeLoadChildrenEvent(id, node);
             return;
         }
-        
+
         if (this.nodeService.toggleNodeExpansion(id)) {
-            this.animateNodeExpansion(id, node.expanded || false);
-            
+            this.updateNodeUI(id);
+
             if (node.expanded) {
                 this.dispatchNodeExpandedEvent(id, node);
             } else {
                 this.dispatchNodeCollapsedEvent(id, node);
-            }
-            
-            const nodes = this.nodeService.getNodes();
-            
-            const currentFocusedNodeId = this.focusedNodeId;
-            
-            this._skipNextRender = true;
-            this.setAttribute('nodes', JSON.stringify(nodes));
-            
-            this.render();
-            
-            if (currentFocusedNodeId) {
-                this.focusNode(currentFocusedNodeId);
             }
         }
     }
@@ -572,34 +550,41 @@ export class NodeExplorer extends HTMLElement {
         }));
     }
 
+    private shouldAnimateNode(nodeId: string): boolean {
+        const nodeElement = this.querySelector(`.node[data-id="${nodeId}"]`);
+        return !!nodeElement && !nodeElement.classList.contains('no-animation');
+    }
+
     private animateNodeExpansion(nodeId: string, isExpanding: boolean): void {
+        if (!this.shouldAnimateNode(nodeId)) return;
+
         const nodeChildren = this.querySelector(`.node-children[data-parent="${nodeId}"]`) as HTMLElement;
         if (!nodeChildren) return;
-        
+
         if (isExpanding) {
             nodeChildren.style.height = 'auto';
             nodeChildren.style.opacity = '1';
             nodeChildren.style.pointerEvents = 'auto';
             const height = nodeChildren.offsetHeight;
-            
+
             nodeChildren.style.height = '0px';
             nodeChildren.style.opacity = '0';
             nodeChildren.offsetHeight;
-            
+
             nodeChildren.style.transition = `height var(--transition-duration) var(--transition-timing), 
                                             opacity var(--transition-duration) var(--transition-timing)`;
             nodeChildren.style.height = `${height}px`;
             nodeChildren.style.opacity = '1';
-            
+
             setTimeout(() => {
                 nodeChildren.style.height = 'auto';
             }, 200);
         } else {
             const height = nodeChildren.offsetHeight;
-            
+
             nodeChildren.style.height = `${height}px`;
             nodeChildren.offsetHeight;
-            
+
             nodeChildren.style.transition = `height var(--transition-duration) var(--transition-timing), 
                                             opacity var(--transition-duration) var(--transition-timing)`;
             nodeChildren.style.height = '0px';
