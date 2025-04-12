@@ -1,5 +1,5 @@
 import { html } from 'lit';
-import  '../index';
+import  '../../index';
 
 // Default sample data structure
 const defaultNodes = [

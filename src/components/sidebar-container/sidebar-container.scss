@@ -1,0 +1,158 @@
+.sidebar-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  min-width: 80px;
+  max-width: full;
+  height: 100vh; /* Full height of the viewport */
+  overflow: hidden; /* Prevent overflow */
+  background-color: var(--sidebar-bg, #ffffff);
+  color: var(--sidebar-text, #333333);
+  border-right: 1px solid var(--sidebar-border, #e0e0e0);
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, width 0.3s ease, background-color 0.3s ease;
+}
+
+.sidebar-container.dark {
+  background-color: var(--sidebar-dark-bg, #1e293b);
+  color: var(--sidebar-dark-text, #f1f5f9);
+  border-right: 1px solid var(--sidebar-dark-border, #334155);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid var(--sidebar-border, #e0e0e0);
+}
+
+.sidebar-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin: 0;
+}
+
+.sidebar-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto; /* Make the content scrollable */
+}
+
+.sidebar-footer {
+  padding: 16px;
+  border-top: 1px solid var(--sidebar-border, #e0e0e0);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.toggle-button {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--sidebar-text, #333333);
+  transition: color 0.3s ease;
+  display: none;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: var(--toggle-bg, #ccc);
+  padding: 10px;
+  border-radius: 5px;
+}
+
+.toggle-button:hover {
+  color: var(--sidebar-hover-text, #555555);
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.theme-toggle input {
+  appearance: none;
+  width: 40px;
+  height: 20px;
+  background: var(--toggle-bg, #e0e0e0);
+  border-radius: 10px;
+  position: relative;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.theme-toggle input:checked {
+  background: var(--toggle-checked-bg, #3b82f6);
+}
+
+.theme-toggle input::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #ffffff;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+}
+
+.theme-toggle input:checked::before {
+  transform: translateX(20px);
+}
+
+.sidebar-container.collapsed {
+  width: 80px;
+  transform: translateX(-100%);
+}
+
+.sidebar-container.collapsed .sidebar-title,
+.sidebar-container.collapsed .sidebar-footer {
+  display: none;
+}
+
+.resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 5px;
+  height: 100%;
+  cursor: col-resize;
+  background-color: rgba(0, 0, 0, 0.1);
+  transition: background-color 0.2s ease;
+}
+
+.resize-handle:hover {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 768px) {
+  .sidebar-container {
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    z-index: 1000;
+    background: var(--sidebar-bg, #fff);
+  }
+
+  .toggle-button {
+    display: block;
+  }
+
+  .sidebar-content {
+    padding: 20px;
+  }
+
+  .resize-handle {
+    display: none;
+  }
+}

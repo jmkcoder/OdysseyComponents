@@ -1,0 +1,121 @@
+import { Meta, Story, Canvas, ArgsTable, Source } from '@storybook/addon-docs';
+import SidebarContainerStories, { Default, Themed, Resizable, Collapsible, WithNodeExplorer } from './SidebarContainer.stories';
+
+<Meta 
+  title="Components/Sidebar Container/Documentation"
+  of={SidebarContainerStories}
+  parameters={{
+    viewMode: 'docs',
+    previewTabs: { 
+      canvas: { hidden: true } 
+    }
+  }}
+/>
+
+# Sidebar Container
+
+<div className="tip-wrapper">
+  <span className="tip">Component Status: Stable</span>
+</div>
+
+A flexible and customizable sidebar container component for modern web applications.
+
+## Overview
+
+The Sidebar Container provides a responsive and feature-rich container for side navigation or additional content. It supports resizable, collapsible, and themable options to fit various use cases.
+
+### Key Features
+
+- **Resizable**: Adjust the width of the sidebar by dragging its edges.
+- **Collapsible**: Collapse and expand the sidebar to save space.
+- **Customizable Styling**: Extensive theming capabilities via CSS custom properties.
+- **Framework Agnostic**: Works with React, Vue, Angular, or plain JavaScript.
+- **Keyboard Accessibility**: Full keyboard navigation support.
+
+## Installation
+
+```bash
+npm install @jmkcoder/components
+```
+
+## Framework Integration
+
+### Plain HTML
+
+Using the component in plain HTML is straightforward:
+
+```html
+<sidebar-container>
+  <div style="padding: 16px;">
+    <h3>Sidebar Content</h3>
+    <p>This is an example of content inside the sidebar container.</p>
+  </div>
+</sidebar-container>
+```
+
+## Examples
+
+### Default Sidebar
+
+<Canvas of={Default} />
+
+### Themed Sidebar
+
+<Canvas of={Themed} />
+
+### Resizable Sidebar
+
+<Canvas of={Resizable} />
+
+### Collapsible Sidebar
+
+<Canvas of={Collapsible} />
+
+### Node Explorer Example
+
+This example demonstrates how to use the `SidebarContainer` with a tree structure as its content, leveraging the `odyssey-node-explorer` component.
+
+<Canvas of={WithNodeExplorer} />
+
+## API Reference
+
+### Properties
+
+| Property           | Attribute            | Type            | Default   | Description                                                 |
+|--------------------|----------------------|-----------------|-----------|-------------------------------------------------------------|
+| `theme`            | `theme`              | `string`        | `'light'` | Theme variant ('light', 'dark', etc.)                       |
+| `resizable`        | `resizable`          | `boolean`       | `false`   | Enable or disable resizing of the sidebar                  |
+| `collapsible`      | `collapsible`        | `boolean`       | `false`   | Enable or disable collapsing of the sidebar                |
+
+### Events
+
+| Event Name         | Detail Type          | Description                                                 |
+|--------------------|----------------------|-------------------------------------------------------------|
+| `resize`           | `{ width: number }`  | Fired when the sidebar is resized                           |
+| `collapse`         | `{ collapsed: boolean }` | Fired when the sidebar is collapsed                        |
+| `expand`           | `{ collapsed: boolean }` | Fired when the sidebar is expanded                         |
+| `touchstart`       | `{}`                | Fired when a touch gesture starts on the sidebar           |
+| `touchend`         | `{}`                | Fired when a touch gesture ends on the sidebar             |
+
+### CSS Custom Properties
+
+| Property           | Default              | Description                                                 |
+|--------------------|----------------------|-------------------------------------------------------------|
+| `--sidebar-bg`     | `#FFFFFF`            | Background color of the sidebar                             |
+| `--sidebar-width`  | `250px`              | Default width of the sidebar                                |
+| `--sidebar-border` | `1px solid #E8E8E8`  | Border style of the sidebar                                 |
+
+## Accessibility
+
+The Sidebar Container is built with accessibility in mind, supporting ARIA attributes and keyboard navigation.
+
+### Keyboard Navigation
+
+- **Tab**: Focus on the sidebar.
+- **Arrow keys**: Navigate within the sidebar content.
+- **Enter/Space**: Activate focused elements.
+
+### ARIA Attributes
+
+- `role="complementary"` for the sidebar container.
+- `aria-expanded` to indicate the expanded/collapsed state.
