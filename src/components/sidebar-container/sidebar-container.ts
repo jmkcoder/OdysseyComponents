@@ -43,7 +43,10 @@ class SidebarContainer extends HTMLElement {
       });
     }
 
-    this.innerHTML = contentHtml.body.innerHTML;
+    this.innerHTML = '';
+    Array.from(contentHtml.body.children).forEach((child) => {
+      this.appendChild(child);
+    });
 
     // Initialize the resize service with the web component itself
     this.resizeService = new SidebarResizeService(this);
