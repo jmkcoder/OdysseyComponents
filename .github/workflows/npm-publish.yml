@@ -34,8 +34,8 @@ jobs:
           fi
 
   publish:
-    needs: check-commit
-    if: needs.check-commit.outputs.should_run == 'true'
+  #   needs: check-commit
+  #   if: needs.check-commit.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write # This ensures the action can write to the repository
