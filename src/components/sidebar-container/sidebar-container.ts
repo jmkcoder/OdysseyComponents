@@ -36,7 +36,7 @@ class SidebarContainer extends HTMLElement {
     // Move existing children (except header and footer) into the content area
     const contentArea = this.querySelector('.sidebar-content');
     if (contentArea) {
-      Array.from(userContentDoc.children).forEach((child) => {
+      Array.from(userContentDoc.body.children).forEach((child) => {
         if (child.tagName.toLowerCase() !== 'header' && child.tagName.toLowerCase() !== 'footer') {
           contentArea.appendChild(child);
         }
