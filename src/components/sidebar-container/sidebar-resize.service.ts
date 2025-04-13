@@ -58,12 +58,16 @@ export class SidebarResizeService {
 
   public enable() {
     this.isEnabled = true;
-    this.resizeHandle?.classList.remove('disabled');
+    if (this.resizeHandle) {
+      this.resizeHandle.classList.remove('disabled');
+    }
   }
 
   public disable() {
     this.isEnabled = false;
-    this.resizeHandle?.classList.add('disabled');
+    if (this.resizeHandle) {
+      this.resizeHandle.classList.add('disabled');
+    }
   }
 
   public destroy() {

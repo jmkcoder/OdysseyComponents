@@ -8,16 +8,30 @@ export default {
 const Template = (args) => {
   const container = document.createElement('sidebar-container');
   container.innerHTML = args.content;
+
   if (args.theme) {
     container.setAttribute('theme', args.theme);
   }
+
   if (args.hideDarkMode) {
     container.setAttribute('hide-darkmode', '');
   }
+
+  if (args.collapsible) {
+    container.setAttribute('collapsible', '');
+  }
+
+  if (args.resizable) {
+    container.setAttribute('resizable', '');
+  }
+
   if (args.nodes) {
     const nodeExplorer = container.querySelector('odyssey-node-explorer');
-    nodeExplorer.setAttribute("nodes", JSON.stringify(args.nodes));
+    if (nodeExplorer) {
+      nodeExplorer.setAttribute('nodes', JSON.stringify(args.nodes));
+    }
   }
+
   return container;
 };
 
@@ -29,6 +43,10 @@ Default.args = {
       <p>This is an example of content inside the sidebar container.</p>
     </div>
   `,
+  resizable: false,
+  collapsible: false,
+  theme: 'light',
+  hideDarkMode: false,
 };
 
 export const Themed = Template.bind({});
@@ -51,6 +69,7 @@ Resizable.args = {
       <p>This sidebar can be resized by dragging its edges.</p>
     </div>
   `,
+  resizable: true,
 };
 
 export const Collapsible = Template.bind({});
@@ -61,6 +80,7 @@ Collapsible.args = {
       <p>This sidebar can be collapsed and expanded.</p>
     </div>
   `,
+  collapsible: true,
 };
 
 export const WithNodeExplorer = Template.bind({});
@@ -102,7 +122,8 @@ WithNodeExplorer.args = {
         }
       ]
     }
-  ]
+  ],
+  resizable: true,
 };
 
 export const CustomHeaderFooter = Template.bind({});
@@ -118,4 +139,6 @@ CustomHeaderFooter.args = {
       <p>Custom Footer</p>
     </footer>
   `,
+  theme: 'light',
+  hideDarkMode: false,
 };

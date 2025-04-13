@@ -1,15 +1,19 @@
+:root {
+  --sidebar-width: 300px; /* Default width of the sidebar */
+}
+
 .sidebar-container {
   position: relative;
   display: flex;
   flex-direction: column;
-  width: 300px;
+  width: var(--sidebar-width);
   min-width: 80px;
   max-width: full;
   height: 100%; /* Full height of the viewport */
   overflow: hidden; /* Prevent overflow */
   background-color: var(--sidebar-bg, #ffffff);
   color: var(--sidebar-text, #333333);
-  border-right: 1px solid var(--sidebar-border, #e0e0e0);
+  border-right: var(--sidebar-border, #e0e0e0);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease, width 0.3s ease, background-color 0.3s ease;
   border-top-right-radius: 12px;
@@ -19,7 +23,7 @@
 .sidebar-container.dark {
   background-color: var(--sidebar-dark-bg, #1e293b);
   color: var(--sidebar-dark-text, #f1f5f9);
-  border-right: 1px solid var(--sidebar-dark-border, #334155);
+  border-right: var(--sidebar-dark-border, #334155);
 }
 
 .sidebar-header {
@@ -137,6 +141,10 @@
 
 .resize-handle:hover {
   background-color: rgba(0, 0, 0, 0.3);
+}
+
+.resize-handle.disabled {
+  display: none;
 }
 
 @media (max-width: 768px) {

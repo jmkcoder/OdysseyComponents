@@ -29,7 +29,6 @@ class SidebarContainer extends HTMLElement {
       <footer class="sidebar-footer">
         ${userFooter ? userFooter.innerHTML : '<label class="theme-toggle"><span>Dark Mode</span><input type="checkbox" id="theme-toggle-checkbox"></label>'}
       </footer>
-      <div class="resize-handle"></div>
     `;
 
     const contentHtml = parser.parseFromString(content, 'text/html')
@@ -44,8 +43,7 @@ class SidebarContainer extends HTMLElement {
       });
     }
 
-    this.innerHTML = '';
-    this.appendChild(contentHtml.body);
+    this.innerHTML = contentHtml.body.innerHTML;
 
     // Initialize the resize service with the web component itself
     this.resizeService = new SidebarResizeService(this);
@@ -58,9 +56,8 @@ class SidebarContainer extends HTMLElement {
     this.applyCustomStyles();
 
     const isMobile = window.matchMedia('(max-width: 767px)').matches;
-    if (isMobile) {
-      this.isResizeEnabled = false;
-      this.resizeService.disable();
+    if (isMobile || !this.isResizeEnabled) {
+      this.disableResize();
     }
 
     // Emit collapse/expand events
@@ -84,23 +81,52 @@ class SidebarContainer extends HTMLElement {
   }
 
   static get observedAttributes() {
-    return ['theme', 'hide-darkmode'];
+    return ['theme', 'resizable', 'collapsible', 'hide-darkmode'];
+  }
+
+  disableResize() {
+    if (this.resizeService) {
+      this.isResizeEnabled = false;
+      this.resizeService.disable();
+    }
+  }
+
+  enableResize() {
+    if (this.resizeService) {
+      this.isResizeEnabled = true;
+      this.resizeService.enable();
+    }
   }
 
   attributeChangedCallback(name: string, oldValue: string, newValue: string) {
-    if (name === 'theme' && oldValue !== newValue) {
-      this.applyTheme();
-    }
-    if (name === 'hide-darkmode' && oldValue !== newValue) {
-      this.toggleDarkModeSection(newValue !== null);
+    if (oldValue === newValue) return;
+
+    switch (name) {
+      case 'theme':
+        this.applyTheme();
+        break;
+      case 'resizable':
+        this.isResizeEnabled = newValue !== null;
+        if (this.isResizeEnabled) {
+          this.enableResize();
+        } else {
+          this.disableResize();
+        }
+        break;
+      case 'collapsible':
+        const isCollapsible = newValue !== null;
+        this.toggleCollapsible(isCollapsible);
+        break;
+      case 'hide-darkmode':
+        this.toggleDarkModeSection(newValue !== null);
+        break;
     }
   }
 
   private applyTheme() {
     const theme = this.getAttribute('theme');
-    const sidebarElement = this.querySelector('.sidebar-container') as HTMLElement;
+    const sidebarElement = this as HTMLElement;
     if (!sidebarElement) {
-      console.warn('Sidebar container element not found in the DOM.');
       return;
     }
 
@@ -139,7 +165,7 @@ class SidebarContainer extends HTMLElement {
     }
 
     themeToggleCheckbox.addEventListener('change', () => {
-      const sidebarElement = this.querySelector('.sidebar-container') as HTMLElement;
+      const sidebarElement = this as HTMLElement;
       if (themeToggleCheckbox.checked) {
         sidebarElement.classList.add('dark');
       } else {
@@ -166,13 +192,13 @@ class SidebarContainer extends HTMLElement {
     sidebarElement.addEventListener('touchstart', (e) => {
       touchStartX = e.changedTouches[0].screenX;
       this.emitEvent('touchstart');
-    });
+    }, { passive: true });
 
     sidebarElement.addEventListener('touchend', (e) => {
       touchEndX = e.changedTouches[0].screenX;
       handleGesture();
       this.emitEvent('touchend');
-    });
+    }, { passive: true });
   }
 
   private emitEvent(eventName: string, detail: any = {}) {
@@ -187,8 +213,22 @@ class SidebarContainer extends HTMLElement {
     }
   }
 
+  private toggleCollapsible(isCollapsible: boolean) {
+    if (isCollapsible) {
+      this.setAttribute('aria-expanded', 'true');
+      this.addEventListener('collapse', () => {
+        this.setAttribute('aria-expanded', 'false');
+      });
+      this.addEventListener('expand', () => {
+        this.setAttribute('aria-expanded', 'true');
+      });
+    } else {
+      this.removeAttribute('aria-expanded');
+    }
+  }
+
   private handleKeyboardNavigation(event: KeyboardEvent) {
-    const sidebarElement = this.querySelector('.sidebar-container') as HTMLElement;
+    const sidebarElement = this as HTMLElement;
     if (!sidebarElement) return;
 
     switch (event.key) {
