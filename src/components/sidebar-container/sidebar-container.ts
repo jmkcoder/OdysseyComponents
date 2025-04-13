@@ -206,6 +206,12 @@ class SidebarContainer extends HTMLElement {
     this.dispatchEvent(event);
   }
 
+  private emitCollapseExpandEvent(isCollapsed: boolean) {
+    const eventName = isCollapsed ? 'collapse' : 'expand';
+    const event = new CustomEvent(eventName, { detail: { collapsed: isCollapsed } });
+    this.dispatchEvent(event);
+  }
+
   private toggleDarkModeSection(hide: boolean) {
     const darkModeSection = this.querySelector('.theme-toggle') as HTMLElement;
     if (darkModeSection) {
@@ -214,16 +220,22 @@ class SidebarContainer extends HTMLElement {
   }
 
   private toggleCollapsible(isCollapsible: boolean) {
+    const sidebarElement = this as HTMLElement;
+    if (!sidebarElement) return;
+
     if (isCollapsible) {
-      this.setAttribute('aria-expanded', 'true');
+      sidebarElement.classList.add('collapsible');
       this.addEventListener('collapse', () => {
-        this.setAttribute('aria-expanded', 'false');
+        sidebarElement.classList.add('collapsed');
+        this.emitCollapseExpandEvent(true);
       });
       this.addEventListener('expand', () => {
-        this.setAttribute('aria-expanded', 'true');
+        sidebarElement.classList.remove('collapsed');
+        this.emitCollapseExpandEvent(false);
       });
     } else {
-      this.removeAttribute('aria-expanded');
+      sidebarElement.classList.remove('collapsible');
+      sidebarElement.classList.remove('collapsed');
     }
   }
 

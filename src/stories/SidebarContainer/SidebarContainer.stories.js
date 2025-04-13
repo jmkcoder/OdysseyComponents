@@ -18,7 +18,7 @@ const Template = (args) => {
   }
 
   if (args.collapsible) {
-    container.setAttribute('collapsible', '');
+    container.setAttribute('collapsible', 'true');
   }
 
   if (args.resizable) {
@@ -141,4 +141,48 @@ CustomHeaderFooter.args = {
   `,
   theme: 'light',
   hideDarkMode: false,
+};
+
+export const ToggleButtonStory = (args) => {
+  const container = document.createElement('sidebar-container');
+  container.innerHTML = args.content;
+
+  if (args.collapsible) {
+    container.setAttribute('collapsible', 'true');
+  }
+
+  if (args.collapsed) {
+    container.setAttribute('collapsed', '');
+  }
+
+  const toggleButton = document.createElement('button');
+  toggleButton.textContent = 'Toggle Collapse';
+  toggleButton.style.margin = '16px';
+  toggleButton.addEventListener('click', () => {
+    const isCollapsed = container.hasAttribute('collapsed');
+    if (isCollapsed) {
+      container.removeAttribute('collapsed');
+      container.dispatchEvent(new CustomEvent('expand', { detail: { collapsed: false } }));
+    } else {
+      container.setAttribute('collapsed', '');
+      container.dispatchEvent(new CustomEvent('collapse', { detail: { collapsed: true } }));
+    }
+  });
+
+  const wrapper = document.createElement('div');
+  wrapper.appendChild(toggleButton);
+  wrapper.appendChild(container);
+
+  return wrapper;
+};
+
+ToggleButtonStory.args = {
+  content: `
+    <div style="padding: 16px;">
+      <h3>Toggle Button Example</h3>
+      <p>Use the button below to toggle the sidebar's collapsed state.</p>
+    </div>
+  `,
+  collapsible: true,
+  collapsed: false, // Default state for the story
 };

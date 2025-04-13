@@ -1,5 +1,5 @@
 import { Meta, Story, Canvas, ArgsTable, Source } from '@storybook/addon-docs';
-import SidebarContainerStories, { Default, Themed, Resizable, Collapsible, WithNodeExplorer, CustomHeaderFooter } from './SidebarContainer.stories';
+import SidebarContainerStories, { Default, Themed, Resizable, Collapsible, WithNodeExplorer, CustomHeaderFooter, ToggleButtonStory } from './SidebarContainer.stories';
 
 <Meta 
   title="Components/Sidebar Container/Documentation"
@@ -67,10 +67,6 @@ Using the component in plain HTML is straightforward:
 
 <Canvas of={Resizable} />
 
-### Collapsible Sidebar
-
-<Canvas of={Collapsible} />
-
 ### Node Explorer Example
 
 This example demonstrates how to use the `SidebarContainer` with a tree structure as its content, leveraging the `odyssey-node-explorer` component.
@@ -82,6 +78,47 @@ This example demonstrates how to use the `SidebarContainer` with a tree structur
 This example demonstrates how to use custom `<header>` and `<footer>` elements inside the `SidebarContainer` component. The custom content will replace the default header and footer.
 
 <Canvas of={CustomHeaderFooter} />
+
+### Collapsible Sidebar with Toggle Button
+
+This example demonstrates how to use a toggle button to programmatically collapse and expand the `SidebarContainer` component.
+
+<Canvas of={ToggleButtonStory} />
+
+This example demonstrates how to listen for the `collapse` and `expand` events and programmatically toggle the sidebar's state.
+
+### Triggering the Toggle Event
+
+To programmatically trigger the `collapse` or `expand` event, you can dispatch a custom event on the `SidebarContainer` element. This allows you to simulate the toggle behavior without directly interacting with the DOM attributes.
+
+#### Example Usage
+
+```javascript
+const sidebar = document.querySelector('sidebar-container');
+
+// Trigger the collapse event
+const collapseEvent = new CustomEvent('collapse', { detail: { collapsed: true } });
+sidebar.dispatchEvent(collapseEvent);
+
+// Trigger the expand event
+const expandEvent = new CustomEvent('expand', { detail: { collapsed: false } });
+sidebar.dispatchEvent(expandEvent);
+
+// Toggle the sidebar programmatically
+const toggleButton = document.querySelector('#toggle-button');
+toggleButton.addEventListener('click', () => {
+  const isCollapsed = sidebar.hasAttribute('collapsed');
+  if (isCollapsed) {
+    sidebar.dispatchEvent(expandEvent);
+    sidebar.removeAttribute('collapsed');
+  } else {
+    sidebar.dispatchEvent(collapseEvent);
+    sidebar.setAttribute('collapsed', '');
+  }
+});
+```
+
+This example demonstrates how to dispatch the `collapse` and `expand` events programmatically and toggle the sidebar's state using a button.
 
 ## API Reference
 
