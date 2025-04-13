@@ -504,7 +504,6 @@ export class NodeExplorer extends HTMLElement {
             const expandToggle = nodeHeader.querySelector('.expand-toggle');
             if (expandToggle) {
                 expandToggle.textContent = node.isLoading ? 'sync' : 'expand_more';
-                (expandToggle as HTMLElement).style.transform = node.expanded ? 'rotate(0deg)' : 'rotate(-90deg)';
             }
 
             const rightIcon = nodeHeader.querySelector('.loading-indicator');
