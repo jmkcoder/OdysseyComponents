@@ -10,9 +10,10 @@
   background-color: var(--sidebar-bg, #ffffff);
   color: var(--sidebar-text, #333333);
   border-right: 1px solid var(--sidebar-border, #e0e0e0);
-  border-radius: 12px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease, width 0.3s ease, background-color 0.3s ease;
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
 }
 
 .sidebar-container.dark {
@@ -147,6 +148,9 @@
     height: 100%;
     z-index: 1000;
     background: var(--sidebar-bg, #fff);
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    overflow-x: auto; /* Allow horizontal scrolling */
   }
 
   .toggle-button {

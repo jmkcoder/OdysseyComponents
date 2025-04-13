@@ -13,7 +13,6 @@ export class NodeRendererService {
         const hasChildren = node.children && node.children.length > 0;
         const mightHaveChildren = hasChildren || node.hasChildren;
         const isExpanded = node.expanded !== false;
-        const isLazy = node.isLazy === true;
         const isLoading = node.isLoading === true;
         const paddingLeft = level * 16; // Increased indentation for better hierarchy visibility
 

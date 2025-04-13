@@ -101,6 +101,10 @@ $spacing-unit: 8px;      /* Base spacing unit for consistency */
   color: var(--text-primary);
   background-color: var(--background-color);
   
+  width: auto; /* Ensure it does not fit the parent's width */
+  max-width: none; /* Remove any inherited max-width constraints */
+  overflow: visible; /* Allow nodes to grow beyond the parent container */
+  
   /* Theme variants */
   &.dark-theme {
     --primary-color: #{map-get(map-get($themes, dark), primary-color)};
@@ -337,6 +341,7 @@ $spacing-unit: 8px;      /* Base spacing unit for consistency */
 .node {
   position: relative;
   animation: fadeIn 0.3s ease-out;
+  max-width: none; /* Remove any width constraints on nodes */
   
   &.selected > .node-header {
     background-color: var(--selection-bg);
@@ -359,6 +364,26 @@ $spacing-unit: 8px;      /* Base spacing unit for consistency */
       }
     }
   }
+}
+
+/* Update scrollbar styles to be 1px */
+.node, .node-children {
+  scrollbar-width: thin; /* For Firefox */
+  scrollbar-color: var(--scrollbar-thumb, #c1c1c1) var(--scrollbar-track, #f5f5f5); /* For Firefox */
+}
+
+.node::-webkit-scrollbar, .node-children::-webkit-scrollbar {
+  width: 1px; /* Set scrollbar width to 1px */
+  height: 1px; /* Set scrollbar height to 1px for horizontal scrollbars */
+}
+
+.node::-webkit-scrollbar-thumb, .node-children::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb, #c1c1c1); /* Subtle thumb color */
+  border-radius: 4px; /* Rounded edges */
+}
+
+.node::-webkit-scrollbar-track, .node-children::-webkit-scrollbar-track {
+  background-color: var(--scrollbar-track, #f5f5f5); /* Subtle track color */
 }
 
 /* Add animations specific to targeted nodes */
@@ -396,6 +421,7 @@ $spacing-unit: 8px;      /* Base spacing unit for consistency */
   min-height: 32px;    /* Added minimum height for better clickability */
   display: flex;       /* Added for better vertical alignment */
   align-items: center; /* Added for better vertical alignment */
+  gap: 8px; /* Add spacing between the icon and text */
   
   &:hover {
     background-color: var(--hover-bg);
@@ -421,10 +447,17 @@ $spacing-unit: 8px;      /* Base spacing unit for consistency */
   user-select: none;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
   font-size: var(--node-font-size);
   color: var(--text-primary);
   line-height: 1.4;    /* Added for better text readability */
+  text-overflow: ellipsis;
+  flex: 1; /* Ensure the label takes up available space */
+}
+
+@media (min-width: 769px) {
+  .node-label {
+    text-overflow: ellipsis;
+  }
 }
 
 .expand-toggle {
@@ -499,6 +532,7 @@ $spacing-unit: 8px;      /* Base spacing unit for consistency */
     --node-font-size: 13px;   /* Slightly smaller on mobile */
     font-size: 14px;
     padding: 8px;
+    overflow-x: auto; /* Allow horizontal scrolling */
   }
   
   .node-children {
@@ -519,8 +553,18 @@ $spacing-unit: 8px;      /* Base spacing unit for consistency */
   }
   
   .node-header {
+    display: flex;
+    align-items: center;
+    gap: 6px; /* Adjust spacing for mobile */
     padding: 10px;
     font-size: 16px;
+  }
+  
+  .node-children .node-label {
+    white-space: normal; /* Ensure text wraps */
+    overflow-x: auto; /* Allow horizontal scrolling if needed */
+    text-overflow: unset; /* Disable ellipsis */
+    display: block; /* Ensure proper layout */
   }
 }
 
@@ -542,5 +586,22 @@ $spacing-unit: 8px;      /* Base spacing unit for consistency */
   to {
     transform: translateY(0);
     opacity: 1;
+  }
+}
+
+/* Loading indicator styles */
+.loading-indicator {
+  display: inline-block;
+  font-size: 16px;
+  color: var(--primary-color, #635BFF);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
   }
 }

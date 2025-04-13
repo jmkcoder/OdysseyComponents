@@ -500,6 +500,27 @@ export class NodeExplorer extends HTMLElement {
         if (nodeHeader) {
             nodeHeader.setAttribute('aria-expanded', node.expanded ? 'true' : 'false');
             nodeHeader.setAttribute('aria-selected', this.selectedNodes.has(nodeId) ? 'true' : 'false');
+
+            const expandToggle = nodeHeader.querySelector('.expand-toggle');
+            if (expandToggle) {
+                expandToggle.textContent = node.isLoading ? 'sync' : 'expand_more';
+                (expandToggle as HTMLElement).style.transform = node.expanded ? 'rotate(0deg)' : 'rotate(-90deg)';
+            }
+
+            const rightIcon = nodeHeader.querySelector('.loading-indicator');
+            if (node.isLoading) {
+                if (!rightIcon) {
+                    const newRightIcon = document.createElement('span');
+                    newRightIcon.className = 'loading-indicator material-icons animate-spin ml-2';
+                    newRightIcon.textContent = 'refresh';
+                    const nodeLabel = nodeHeader.querySelector('.node-label');
+                    if (nodeLabel) {
+                        nodeLabel.appendChild(newRightIcon); // Append right after the content
+                    }
+                }
+            } else if (rightIcon) {
+                rightIcon.remove();
+            }
         }
 
         const childrenContainer = nodeElement.querySelector('.node-children') as HTMLElement;
