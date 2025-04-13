@@ -19,9 +19,8 @@ class SidebarContainer extends HTMLElement {
     const userHeader = this.querySelector('header');
     const userFooter = this.querySelector('footer');
     const parser = new DOMParser();
-    const userContentDoc = parser.parseFromString(this.innerHTML, 'text/html');
 
-    this.innerHTML = `
+    const content = `
       <header class="sidebar-header">
         ${userHeader ? userHeader.innerHTML : '<h1 class="sidebar-title">Sidebar</h1>'}
       </header>
@@ -33,15 +32,20 @@ class SidebarContainer extends HTMLElement {
       <div class="resize-handle"></div>
     `;
 
+    const contentHtml = parser.parseFromString(content, 'text/html')
+
     // Move existing children (except header and footer) into the content area
-    const contentArea = this.querySelector('.sidebar-content');
+    const contentArea = contentHtml.querySelector('.sidebar-content');
     if (contentArea) {
-      Array.from(userContentDoc.body.children).forEach((child) => {
+      Array.from(this.children).forEach((child) => {
         if (child.tagName.toLowerCase() !== 'header' && child.tagName.toLowerCase() !== 'footer') {
           contentArea.appendChild(child);
         }
       });
     }
+
+    this.innerHTML = '';
+    this.appendChild(contentHtml.body);
 
     // Initialize the resize service with the web component itself
     this.resizeService = new SidebarResizeService(this);

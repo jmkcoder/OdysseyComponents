@@ -14,6 +14,10 @@ const Template = (args) => {
   if (args.hideDarkMode) {
     container.setAttribute('hide-darkmode', '');
   }
+  if (args.nodes) {
+    const nodeExplorer = container.querySelector('odyssey-node-explorer');
+    nodeExplorer.setAttribute("nodes", JSON.stringify(args.nodes));
+  }
   return container;
 };
 
@@ -64,41 +68,41 @@ WithNodeExplorer.args = {
   content: `
     <div style="padding: 16px;">
       <odyssey-node-explorer
-        nodes='[
-          {
-            "id": "root",
-            "label": "Root Node",
-            "icon": "folder",
-            "expanded": true,
-            "children": [
-              {
-                "id": "child1",
-                "label": "Child Node 1",
-                "icon": "folder",
-                "expanded": true,
-                "children": [
-                  { "id": "grandchild1", "label": "Grandchild Node 1", "icon": "insert_drive_file" },
-                  { "id": "grandchild2", "label": "Grandchild Node 2", "icon": "insert_drive_file" }
-                ]
-              },
-              {
-                "id": "child2",
-                "label": "Child Node 2",
-                "icon": "folder",
-                "expanded": false,
-                "children": [
-                  { "id": "grandchild3", "label": "Grandchild Node 3", "icon": "insert_drive_file" }
-                ]
-              }
-            ]
-          }
-        ]'
         allow-drag-drop="true"
         allow-multi-select="false"
         theme="light"
       ></odyssey-node-explorer>
     </div>
   `,
+  nodes: [
+    {
+      "id": "root",
+      "label": "Root Node",
+      "icon": "folder",
+      "expanded": true,
+      "children": [
+        {
+          "id": "child1",
+          "label": "Child Node 1",
+          "icon": "folder",
+          "expanded": true,
+          "children": [
+            { "id": "grandchild1", "label": "Grandchild Node 1", "icon": "insert_drive_file" },
+            { "id": "grandchild2", "label": "Grandchild Node 2", "icon": "insert_drive_file" }
+          ]
+        },
+        {
+          "id": "child2",
+          "label": "Child Node 2",
+          "icon": "folder",
+          "expanded": false,
+          "children": [
+            { "id": "grandchild3", "label": "Grandchild Node 3", "icon": "insert_drive_file" }
+          ]
+        }
+      ]
+    }
+  ]
 };
 
 export const CustomHeaderFooter = Template.bind({});
