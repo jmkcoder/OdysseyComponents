@@ -14,13 +14,14 @@ class SidebarContainer extends HTMLElement {
     if (!this.isConnected) return;
 
     // Create the surrounding structure without overwriting the slotted content
-    const wrapper = document.createElement('div');
-    wrapper.className = 'sidebar-container';
+    this.className = 'sidebar-container';
 
     const userHeader = this.querySelector('header');
     const userFooter = this.querySelector('footer');
+    const parser = new DOMParser();
+    const userContentDoc = parser.parseFromString(this.innerHTML, 'text/html');
 
-    wrapper.innerHTML = `
+    this.innerHTML = `
       <header class="sidebar-header">
         ${userHeader ? userHeader.innerHTML : '<h1 class="sidebar-title">Sidebar</h1>'}
       </header>
@@ -33,29 +34,21 @@ class SidebarContainer extends HTMLElement {
     `;
 
     // Move existing children (except header and footer) into the content area
-    const contentArea = wrapper.querySelector('.sidebar-content');
+    const contentArea = this.querySelector('.sidebar-content');
     if (contentArea) {
-      Array.from(this.children).forEach((child) => {
+      Array.from(userContentDoc.children).forEach((child) => {
         if (child.tagName.toLowerCase() !== 'header' && child.tagName.toLowerCase() !== 'footer') {
           contentArea.appendChild(child);
         }
       });
     }
 
-    // Clear the current content and append the wrapper
-    this.innerHTML = '';
-    this.appendChild(wrapper);
+    // Initialize the resize service with the web component itself
+    this.resizeService = new SidebarResizeService(this);
 
-    const sidebarElement = this.querySelector('.sidebar-container') as HTMLElement;
-    if (!sidebarElement) {
-      throw new Error("Sidebar container element not found");
-    }
-
-    // Initialize the resize service with the sidebar element
-    this.resizeService = new SidebarResizeService(sidebarElement);
     this.addThemeToggleListener();
     this.applyTheme();
-    this.addSwipeGestureListener(sidebarElement);
+    this.addSwipeGestureListener(this);
 
     // Apply custom CSS variables if provided
     this.applyCustomStyles();
@@ -102,6 +95,11 @@ class SidebarContainer extends HTMLElement {
   private applyTheme() {
     const theme = this.getAttribute('theme');
     const sidebarElement = this.querySelector('.sidebar-container') as HTMLElement;
+    if (!sidebarElement) {
+      console.warn('Sidebar container element not found in the DOM.');
+      return;
+    }
+
     sidebarElement.classList.remove('light', 'dark', 'minimal', 'high-contrast');
     if (theme) {
       sidebarElement.classList.add(theme);
@@ -131,6 +129,11 @@ class SidebarContainer extends HTMLElement {
 
   private addThemeToggleListener() {
     const themeToggleCheckbox = this.querySelector('#theme-toggle-checkbox') as HTMLInputElement;
+    if (!themeToggleCheckbox) {
+      console.warn('Theme toggle checkbox not found in the DOM.');
+      return;
+    }
+
     themeToggleCheckbox.addEventListener('change', () => {
       const sidebarElement = this.querySelector('.sidebar-container') as HTMLElement;
       if (themeToggleCheckbox.checked) {
