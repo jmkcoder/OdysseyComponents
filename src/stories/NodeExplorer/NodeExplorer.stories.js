@@ -349,6 +349,8 @@ const Template = (args) => {
         explorerElement.addEventListener('load-children', (e) => {
           const nodeId = e.detail.nodeId;
           const node = e.detail.node;
+          const isDropOperation = e.detail.isDropOperation;
+          const pendingNode = e.detail.pendingNode;
           
           console.log(`Loading children for node: ${node.label} (${nodeId})`);
           
@@ -359,6 +361,14 @@ const Template = (args) => {
             
             // Use the new setNodeChildren API method to update the node
             explorerElement.setNodeChildren(nodeId, childNodes, true);
+            
+            // If this was triggered by a drop operation, add the pending node after children are loaded
+            if (isDropOperation && pendingNode) {
+              setTimeout(() => {
+                console.log(`Adding dropped node ${pendingNode.label} to ${nodeId}`);
+                explorerElement.addNode(nodeId, pendingNode);
+              }, 100); // Small delay to ensure the children are properly rendered first
+            }
           }, 1000); // Simulate network delay
         });
       }

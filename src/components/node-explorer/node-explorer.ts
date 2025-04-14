@@ -473,7 +473,34 @@ export class NodeExplorer extends HTMLElement {
         if (!sourceNode) return;
         
         if (position === 'inside') {
-            this.nodeService.addNodeToParent(targetId, sourceNode);
+            const targetNode = this.nodeService.findNodeById(targetId);
+            
+            // Check if the target node is lazy and not expanded
+            if (targetNode && targetNode.isLazy && !targetNode.isLoading && (!targetNode.children || !targetNode.children.length)) {
+                // Store the source node temporarily
+                const tempSourceNode = {...sourceNode};
+                
+                // First load the children
+                targetNode.isLoading = true;
+                targetNode.expanded = true;
+                this.updateNodeUI(targetId);
+                
+                // Dispatch load children event - after children are loaded, the drop will be completed
+                this.dispatchEvent(new CustomEvent('load-children', {
+                    bubbles: true,
+                    composed: true,
+                    detail: { 
+                        nodeId: targetId, 
+                        node: targetNode,
+                        pendingNode: tempSourceNode,
+                        isDropOperation: true 
+                    }
+                }));
+                
+                return;
+            } else {
+                this.nodeService.addNodeToParent(targetId, sourceNode);
+            }
         } else {
             this.nodeService.addNodeBeforeOrAfter(targetId, sourceNode, position);
         }
@@ -552,6 +579,23 @@ export class NodeExplorer extends HTMLElement {
 
         if (this.nodeService.toggleNodeExpansion(id)) {
             this.updateNodeUI(id);
+
+            // Update the visual rotation of the expand toggle icon
+            const expandToggle = this.querySelector(`.expand-toggle[data-id="${id}"]`) as HTMLElement;
+            if (expandToggle) {
+                const isExpanded = node.expanded;
+                
+                // Animate the visual indicator
+                const animation = expandToggle.animate([
+                    { transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)' },
+                    { transform: isExpanded ? 'rotate(-90deg)' : 'rotate(0deg)' }
+                ], { duration: 150, easing: 'ease-out', fill: 'forwards' });
+                
+                // Ensure the transform style persists after animation
+                animation.onfinish = () => {
+                    expandToggle.style.transform = isExpanded ? 'rotate(-90deg)' : 'rotate(0deg)';
+                };
+            }
 
             if (node.expanded) {
                 this.dispatchNodeExpandedEvent(id, node);

@@ -10,6 +10,30 @@ export interface ExplorerNode {
     isRetry?: boolean; // Indicates if the node is in a retry state
 }
 
+// New interface to expose public methods of the NodeExplorer element
+export interface NodeExplorerElement extends HTMLElement {
+    // Node manipulation methods
+    expandNode(id: string): boolean;
+    collapseNode(id: string): boolean;
+    selectNode(id: string): boolean;
+    getSelectedNode(): ExplorerNode | null;
+    getSelectedNodes(): ExplorerNode[];
+    findNodeById(id: string): ExplorerNode | undefined;
+    addNode(parentId: string | null, node: ExplorerNode): boolean;
+    removeNode(id: string): boolean;
+    moveNode(sourceId: string, targetId: string, position: DropPosition): boolean;
+    
+    // Lazy loading methods
+    setNodeChildren(nodeId: string, children: ExplorerNode[], allChildrenLoaded?: boolean): boolean;
+    markNodeAsLazy(nodeId: string, hasChildren?: boolean): boolean;
+    appendNodeChildren(nodeId: string, additionalChildren: ExplorerNode[], allChildrenLoaded?: boolean): boolean;
+    
+    // Configuration properties
+    allowDragDrop: boolean;
+    allowMultiSelect: boolean;
+    theme: string;
+}
+
 export type DropPosition = 'before' | 'after' | 'inside';
 
 export interface NodeDragEvent {
@@ -51,4 +75,6 @@ export interface DragStartEvent {
 export interface NodeLoadChildrenEvent {
     nodeId: string;
     node: ExplorerNode;
+    pendingNode?: ExplorerNode; // The node that is waiting to be added after lazy loading completes
+    isDropOperation?: boolean;  // Flag indicating this is triggered by a drag and drop operation
 }
