@@ -140,8 +140,9 @@ Integrate the component with React applications:
 
 ```jsx
 import React, { useEffect, useRef } from 'react';
-// Simple import - automatically registers all components
-import '@jmkcoder/components';
+// Import both CSS and JS files
+import '@jmkcoder/components/dist/components.bundle.css';
+import '@jmkcoder/components/dist/index.js';
 
 // No need to manually register components as they're registered automatically
 
@@ -225,8 +226,9 @@ Using the component with Vue:
 
 <script>
 import { defineComponent, onMounted, onBeforeUnmount, ref, watch } from 'vue';
-// Simple import - automatically registers all components
-import '@jmkcoder/components';
+// Import both CSS and JS files
+import '@jmkcoder/components/dist/components.bundle.css';
+import '@jmkcoder/components/dist/index.js';
 
 // No need to manually register components as they're registered automatically
 
@@ -312,8 +314,9 @@ Integrating with Angular applications:
 ```typescript
 // node-explorer.component.ts
 import { Component, Input, Output, EventEmitter, OnInit, ElementRef, OnChanges, SimpleChanges } from '@angular/core';
-// Simple import - automatically registers all components
-import '@jmkcoder/components';
+// Import both CSS and JS files
+import '@jmkcoder/components/dist/components.bundle.css';
+import '@jmkcoder/components/dist/index.js';
 
 // No need to manually register components as they're registered automatically
 
@@ -448,8 +451,11 @@ export default defineConfig({
 ### Registering the Component
 
 ```javascript
-// Simple import - automatically registers all components
-import '@jmkcoder/components';
+// Import both CSS and JS files
+import '@jmkcoder/components/dist/components.bundle.css';
+import '@jmkcoder/components/dist/index.js';
+
+// The components are automatically registered
 ```
 
 ### HTML Integration
