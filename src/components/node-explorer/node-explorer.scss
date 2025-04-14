@@ -468,7 +468,6 @@ $spacing-unit: 8px;      /* Base spacing unit for consistency */
   text-align: center;
   cursor: pointer;
   font-size: 14px;          /* Increased from 9px for better visibility */
-  transform: rotate(0deg);
   transition: transform var(--transition-duration) var(--transition-timing),
               color var(--transition-duration) var(--transition-timing);
   margin-right: 12px;       /* Increased from 8px for better spacing */

@@ -2,6 +2,11 @@ import { ExplorerNode, DropPosition, NodeSelectedEvent, NodeExpandedEvent, NodeC
 import { NodeService } from './services/node.service';
 import { NodeRendererService } from './services/node-renderer.service';
 import { DragDropService } from './services/drag-drop.service';
+import { AnimationService } from './services/animation.service'; 
+import { UIUpdaterService } from './services/ui-updater.service';
+import { EventDispatcherService } from './services/event-dispatcher.service';
+import { NavigationService } from './services/navigation.service';
+import { SelectionService } from './services/selection.service';
 import { defineCustomElement } from '../../utilities/define-custom-element';
 import './node-explorer.scss';
 
@@ -9,6 +14,12 @@ export class NodeExplorer extends HTMLElement {
     private nodeService: NodeService = new NodeService();
     private nodeRendererService: NodeRendererService = new NodeRendererService();
     private dragDropService?: DragDropService;
+    private animationService: AnimationService = new AnimationService();
+    private uiUpdaterService: UIUpdaterService = new UIUpdaterService();
+    private eventDispatcherService: EventDispatcherService;
+    private navigationService: NavigationService = new NavigationService();
+    private selectionService: SelectionService = new SelectionService();
+    
     private _skipNextRender: boolean = false;
     private selectedNodeId: string | null = null;
     private selectedNodes: Set<string> = new Set();
@@ -20,6 +31,7 @@ export class NodeExplorer extends HTMLElement {
 
     constructor() {
         super();
+        this.eventDispatcherService = new EventDispatcherService(this);
         this.initializeComponent();
     }
 
@@ -229,7 +241,7 @@ export class NodeExplorer extends HTMLElement {
     private selectAllNodes(): void {
         if (!this._allowMultiSelect) return;
         
-        const visibleNodes = this.getVisibleNodesInOrder();
+        const visibleNodes = this.navigationService.getVisibleNodesInOrder(this.nodeService.getNodes());
         
         this.selectedNodes.clear();
         
@@ -270,74 +282,52 @@ export class NodeExplorer extends HTMLElement {
         return findParent(this.nodeService.getNodes(), childId);
     }
     
-    private getVisibleNodesInOrder(): ExplorerNode[] {
-        const visibleNodes: ExplorerNode[] = [];
-        
-        const processNode = (node: ExplorerNode) => {
-            visibleNodes.push(node);
-            
-            if (node.expanded && node.children && node.children.length) {
-                node.children.forEach(child => processNode(child));
-            }
-        };
-        
-        this.nodeService.getNodes().forEach(node => processNode(node));
-        
-        return visibleNodes;
-    }
-    
     private navigateToNextNode(currentNodeId: string): void {
-        const visibleNodes = this.getVisibleNodesInOrder();
-        const currentIndex = visibleNodes.findIndex(node => node.id === currentNodeId);
-        
-        if (currentIndex !== -1 && currentIndex < visibleNodes.length - 1) {
-            this.focusNode(visibleNodes[currentIndex + 1].id);
+        const nextNodeId = this.navigationService.navigateToNextNode(this, currentNodeId, this.nodeService.getNodes());
+        if (nextNodeId) {
+            this.navigationService.focusNode(this, nextNodeId);
+            this.focusedNodeId = nextNodeId;
         }
     }
     
     private navigateToPreviousNode(currentNodeId: string): void {
-        const visibleNodes = this.getVisibleNodesInOrder();
-        const currentIndex = visibleNodes.findIndex(node => node.id === currentNodeId);
-        
-        if (currentIndex > 0) {
-            this.focusNode(visibleNodes[currentIndex - 1].id);
+        const prevNodeId = this.navigationService.navigateToPreviousNode(this, currentNodeId, this.nodeService.getNodes());
+        if (prevNodeId) {
+            this.navigationService.focusNode(this, prevNodeId);
+            this.focusedNodeId = prevNodeId;
         }
     }
     
     private navigateToFirstNode(): void {
-        const visibleNodes = this.getVisibleNodesInOrder();
-        
-        if (visibleNodes.length > 0) {
-            this.focusNode(visibleNodes[0].id);
+        const firstNodeId = this.navigationService.navigateToFirstNode(this.nodeService.getNodes());
+        if (firstNodeId) {
+            this.navigationService.focusNode(this, firstNodeId);
+            this.focusedNodeId = firstNodeId;
         }
     }
     
     private navigateToLastNode(): void {
-        const visibleNodes = this.getVisibleNodesInOrder();
-        
-        if (visibleNodes.length > 0) {
-            this.focusNode(visibleNodes[visibleNodes.length - 1].id);
+        const lastNodeId = this.navigationService.navigateToLastNode(this.nodeService.getNodes());
+        if (lastNodeId) {
+            this.navigationService.focusNode(this, lastNodeId);
+            this.focusedNodeId = lastNodeId;
         }
     }
     
     private focusNode(nodeId: string): void {
-        const nodeHeader = this.querySelector(`.node-header[data-id="${nodeId}"]`) as HTMLElement;
-        
-        if (nodeHeader) {
+        if (this.navigationService.focusNode(this, nodeId)) {
             this.focusedNodeId = nodeId;
-            nodeHeader.focus();
-            
-            nodeHeader.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
     }
     
     private handleComponentFocus(): void {
         if (this.focusedNodeId) {
-            this.focusNode(this.focusedNodeId);
+            this.navigationService.focusNode(this, this.focusedNodeId);
         } else {
-            const visibleNodes = this.getVisibleNodesInOrder();
+            const visibleNodes = this.navigationService.getVisibleNodesInOrder(this.nodeService.getNodes());
             if (visibleNodes.length > 0) {
-                this.focusNode(visibleNodes[0].id);
+                this.navigationService.focusNode(this, visibleNodes[0].id);
+                this.focusedNodeId = visibleNodes[0].id;
             }
         }
     }
@@ -354,10 +344,11 @@ export class NodeExplorer extends HTMLElement {
     
     private handleComponentKeyDown(e: KeyboardEvent): void {
         if (e.key === 'Tab' && !e.shiftKey && !this.focusedNodeId) {
-            const visibleNodes = this.getVisibleNodesInOrder();
+            const visibleNodes = this.navigationService.getVisibleNodesInOrder(this.nodeService.getNodes());
             if (visibleNodes.length > 0) {
                 e.preventDefault();
-                this.focusNode(visibleNodes[0].id);
+                this.navigationService.focusNode(this, visibleNodes[0].id);
+                this.focusedNodeId = visibleNodes[0].id;
             }
         }
     }
@@ -530,7 +521,11 @@ export class NodeExplorer extends HTMLElement {
 
             const expandToggle = nodeHeader.querySelector('.expand-toggle');
             if (expandToggle) {
-                expandToggle.textContent = node.isLoading ? 'sync' : 'expand_more';
+                if (node.isLoading) {
+                    expandToggle.textContent = 'sync';
+                } else {
+                    expandToggle.textContent = node.expanded ? 'keyboard_arrow_down' : 'keyboard_arrow_right';
+                }
             }
 
             const rightIcon = nodeHeader.querySelector('.loading-indicator');
@@ -569,111 +564,69 @@ export class NodeExplorer extends HTMLElement {
         const node = this.nodeService.findNodeById(id);
         if (!node) return;
 
+        // Handle lazy loading
         if (node.isLazy && !node.isLoading && !node.expanded) {
             node.isLoading = true;
             node.expanded = true;
-            this.updateNodeUI(id);
-            this.dispatchNodeLoadChildrenEvent(id, node);
+            this.uiUpdaterService.updateNodeUI(this, id, node, this.selectedNodes);
+            this.eventDispatcherService.dispatchNodeLoadChildrenEvent(id, node);
             return;
         }
 
         if (this.nodeService.toggleNodeExpansion(id)) {
-            this.updateNodeUI(id);
+            // Update the UI
+            this.uiUpdaterService.updateNodeUI(this, id, node, this.selectedNodes);
 
-            // Update the visual rotation of the expand toggle icon
+            // Animate the expand toggle icon
             const expandToggle = this.querySelector(`.expand-toggle[data-id="${id}"]`) as HTMLElement;
             if (expandToggle) {
-                const isExpanded = node.expanded;
-                
-                // Animate the visual indicator
-                const animation = expandToggle.animate([
-                    { transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)' },
-                    { transform: isExpanded ? 'rotate(-90deg)' : 'rotate(0deg)' }
-                ], { duration: 150, easing: 'ease-out', fill: 'forwards' });
-                
-                // Ensure the transform style persists after animation
-                animation.onfinish = () => {
-                    expandToggle.style.transform = isExpanded ? 'rotate(-90deg)' : 'rotate(0deg)';
-                };
+                // Fix type error by ensuring expanded is a boolean
+                const isExpanded = !!node.expanded;
+                this.animationService.animateExpandToggle(expandToggle, isExpanded);
             }
 
+            // Dispatch appropriate events
             if (node.expanded) {
-                this.dispatchNodeExpandedEvent(id, node);
+                this.eventDispatcherService.dispatchNodeExpandedEvent(id, node);
             } else {
-                this.dispatchNodeCollapsedEvent(id, node);
+                this.eventDispatcherService.dispatchNodeCollapsedEvent(id, node);
             }
         }
     }
 
-    private dispatchNodeLoadChildrenEvent(nodeId: string, node: ExplorerNode): void {
-        const detail: NodeLoadChildrenEvent = { nodeId, node };
-        this.dispatchEvent(new CustomEvent('load-children', {
-            bubbles: true,
-            composed: true,
-            detail
-        }));
-    }
-
-    private shouldAnimateNode(nodeId: string): boolean {
-        const nodeElement = this.querySelector(`.node[data-id="${nodeId}"]`);
-        return !!nodeElement && !nodeElement.classList.contains('no-animation');
-    }
-
-    private animateNodeExpansion(nodeId: string, isExpanding: boolean): void {
-        if (!this.shouldAnimateNode(nodeId)) return;
-
-        const nodeChildren = this.querySelector(`.node-children[data-parent="${nodeId}"]`) as HTMLElement;
-        if (!nodeChildren) return;
-
-        if (isExpanding) {
-            nodeChildren.style.height = 'auto';
-            nodeChildren.style.opacity = '1';
-            nodeChildren.style.pointerEvents = 'auto';
-            const height = nodeChildren.offsetHeight;
-
-            nodeChildren.style.height = '0px';
-            nodeChildren.style.opacity = '0';
-            nodeChildren.offsetHeight;
-
-            nodeChildren.style.transition = `height var(--transition-duration) var(--transition-timing), 
-                                            opacity var(--transition-duration) var(--transition-timing)`;
-            nodeChildren.style.height = `${height}px`;
-            nodeChildren.style.opacity = '1';
-
-            setTimeout(() => {
-                nodeChildren.style.height = 'auto';
-            }, 200);
+    private handleNodeSelect(nodeId: string, originalEvent?: Event): void {
+        // Use the selection service to handle node selection logic
+        const result = this.selectionService.handleNodeSelect(
+            nodeId, 
+            this.selectedNodeId,
+            this.selectedNodes,
+            this._allowMultiSelect,
+            this.nodeService.getNodes(),
+            originalEvent
+        );
+        
+        // Update state with results from the service
+        this.selectedNodeId = result.selectedNodeId;
+        this.selectedNodes = result.selectedNodes;
+        
+        if (!result.selectedNode) return;
+        
+        // Update UI
+        this.uiUpdaterService.updateSelectionUI(this, this.selectedNodes);
+        this.uiUpdaterService.setAriaAttributes(this, this._allowMultiSelect, this.nodeService);
+        
+        // Dispatch events
+        if (this._allowMultiSelect && this.selectedNodes.size > 1) {
+            const selectedNodes = this.selectionService.getSelectedNodes(this.selectedNodes, this.nodeService.getNodes());
+            this.eventDispatcherService.dispatchMultiSelectEvent(selectedNodes);
         } else {
-            const height = nodeChildren.offsetHeight;
-
-            nodeChildren.style.height = `${height}px`;
-            nodeChildren.offsetHeight;
-
-            nodeChildren.style.transition = `height var(--transition-duration) var(--transition-timing), 
-                                            opacity var(--transition-duration) var(--transition-timing)`;
-            nodeChildren.style.height = '0px';
-            nodeChildren.style.opacity = '0';
+            this.eventDispatcherService.dispatchNodeSelectEvent(result.selectedNode, originalEvent);
         }
     }
-    
-    private dispatchNodeExpandedEvent(nodeId: string, node: ExplorerNode): void {
-        const detail: NodeExpandedEvent = { nodeId, node };
-        this.dispatchEvent(new CustomEvent('node-expanded', {
-            bubbles: true,
-            composed: true,
-            detail
-        }));
-    }
-    
-    private dispatchNodeCollapsedEvent(nodeId: string, node: ExplorerNode): void {
-        const detail: NodeCollapsedEvent = { nodeId, node };
-        this.dispatchEvent(new CustomEvent('node-collapsed', {
-            bubbles: true,
-            composed: true,
-            detail
-        }));
-    }
-    
+
+    /**
+     * Updates nodes and re-renders the component
+     */
     private updateNodesAndRender(): void {
         const nodes = this.nodeService.getNodes();
         
@@ -682,55 +635,9 @@ export class NodeExplorer extends HTMLElement {
         this._skipNextRender = true;
         this.setAttribute('nodes', JSON.stringify(nodes));
         this.render();
-    }
-    
-    private handleNodeSelect(nodeId: string, originalEvent?: Event): void {
-        const selectedNode = this.nodeService.findNodeById(nodeId);
-        if (!selectedNode) return;
         
-        const isMultiSelect = this._allowMultiSelect && originalEvent && 
-            (originalEvent instanceof MouseEvent || originalEvent instanceof KeyboardEvent) && 
-            (originalEvent.ctrlKey || originalEvent.metaKey || originalEvent.shiftKey);
-        
-        if (isMultiSelect) {
-            if (originalEvent && originalEvent.shiftKey && this.selectedNodeId) {
-                this.selectNodeRange(this.selectedNodeId, nodeId);
-            } else {
-                if (this.selectedNodes.has(nodeId)) {
-                    this.selectedNodes.delete(nodeId);
-                } else {
-                    this.selectedNodes.add(nodeId);
-                }
-                this.selectedNodeId = this.selectedNodes.size > 0 ? 
-                    Array.from(this.selectedNodes)[this.selectedNodes.size - 1] : null;
-            }
-        } else {
-            this.selectedNodes.clear();
-            this.selectedNodes.add(nodeId);
-            this.selectedNodeId = nodeId;
-        }
-        
-        this.updateSelectionUI();
-        this.setAriaAttributes();
-        this.dispatchNodeSelectEvent(selectedNode, originalEvent);
-    }
-    
-    private selectNodeRange(startNodeId: string, endNodeId: string): void {
-        const visibleNodes = this.getVisibleNodesInOrder();
-        
-        const startIndex = visibleNodes.findIndex(node => node.id === startNodeId);
-        const endIndex = visibleNodes.findIndex(node => node.id === endNodeId);
-        
-        if (startIndex === -1 || endIndex === -1) return;
-        
-        this.selectedNodes.clear();
-        
-        const minIndex = Math.min(startIndex, endIndex);
-        const maxIndex = Math.max(startIndex, endIndex);
-        
-        for (let i = minIndex; i <= maxIndex; i++) {
-            this.selectedNodes.add(visibleNodes[i].id);
-        }
+        // Dispatch node change event
+        this.eventDispatcherService.dispatchNodeChangeEvent(nodes);
     }
 
     connectedCallback() {
@@ -753,13 +660,13 @@ export class NodeExplorer extends HTMLElement {
             case 'nodes':
                 if (this._skipNextRender) {
                     this._skipNextRender = false;
-                    this.dispatchNodeChangeEvent(this.parseNodes());
+                    this.eventDispatcherService.dispatchNodeChangeEvent(this.parseNodes());
                     return;
                 }
                 const nodes = this.parseNodes();
                 this.nodeService.setNodes(nodes);
                 this.render();
-                this.dispatchNodeChangeEvent(nodes);
+                this.eventDispatcherService.dispatchNodeChangeEvent(nodes);
                 break;
                 
             case 'allow-drag-drop':
@@ -777,21 +684,13 @@ export class NodeExplorer extends HTMLElement {
                 break;
         }
     }
-    
-    private dispatchNodeChangeEvent(nodes: ExplorerNode[]): void {
-        this.dispatchEvent(new CustomEvent('nodes-changed', {
-            bubbles: true,
-            composed: true,
-            detail: { nodes }
-        }));
-    }
-    
+
     expandNode(id: string): boolean {
         const node = this.nodeService.findNodeById(id);
         if (node && !node.expanded) {
             node.expanded = true;
             this.updateNodesAndRender();
-            this.dispatchNodeExpandedEvent(id, node);
+            this.eventDispatcherService.dispatchNodeExpandedEvent(id, node);
             return true;
         }
         return false;
@@ -802,7 +701,7 @@ export class NodeExplorer extends HTMLElement {
         if (node && node.expanded) {
             node.expanded = false;
             this.updateNodesAndRender();
-            this.dispatchNodeCollapsedEvent(id, node);
+            this.eventDispatcherService.dispatchNodeCollapsedEvent(id, node);
             return true;
         }
         return false;

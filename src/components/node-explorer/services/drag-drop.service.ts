@@ -230,19 +230,8 @@ export class DragDropService {
             // Toggle the node state in the data model
             this.onToggleExpansion(id);
             
-            // Toggle the visual indicator based on the current appearance
-            const currentTransform = (toggle as HTMLElement).style.transform || '';
-            const isCurrentlyRotated = currentTransform.includes('rotate(-90deg)');
-            
-            // Animate the visual indicator
-            const animation = toggle.animate([
-                { transform: isCurrentlyRotated ? 'rotate(-90deg)' : 'rotate(0deg)' },
-                { transform: isCurrentlyRotated ? 'rotate(0deg)' : 'rotate(-90deg)' }
-            ], { duration: 150, easing: 'ease-out', fill: 'forwards' });
-
-            animation.onfinish = () => {
-                (toggle as HTMLElement).style.transform = isCurrentlyRotated ? 'rotate(0deg)' : 'rotate(-90deg)';
-            };
+            // Instead of animating rotation, we'll simply let the UI updater service
+            // handle changing the icon in the onToggleExpansion callback
         });
     }
     

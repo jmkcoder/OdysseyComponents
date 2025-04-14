@@ -26,10 +26,9 @@ export class NodeRendererService {
             <div class="drop-indicator before-indicator" style="display:none; position:absolute; left:0; right:0; height:3px; background-color:var(--primary-color); top:0;"></div>
             <div class="node-label truncate flex flex-1 items-center" data-id="${node.id}">
               ${mightHaveChildren ?
-                  `<span class="block material-icons expand-toggle flex items-center justify-center mr-3 select-none" 
-                         data-id="${node.id}" 
-                         style="transform: ${isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)'}">
-                    ${isLoading ? 'sync' : 'expand_more'}
+                  `<span class="material-icons expand-toggle flex items-center justify-center mr-3 select-none" 
+                         data-id="${node.id}">
+                    ${isLoading ? 'sync' : isExpanded ? 'keyboard_arrow_down' : 'keyboard_arrow_right'}
                   </span>` :
                   `<span class="w-[24px] mr-3"></span>`
               }
