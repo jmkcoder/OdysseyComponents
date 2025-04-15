@@ -63,18 +63,18 @@
 /* Keep the SCSS theme maps for backwards compatibility */
 $themes: (
   light: (
-    primary-color: var(--primary-color),
-    primary-light: var(--primary-light),
-    gray-light: var(--gray-light),
-    gray-border: var(--gray-border),
-    hover-bg: var(--hover-bg),
-    text-secondary: var(--text-secondary),
-    text-primary: var(--text-primary),
-    connector-color: var(--connector-color),
-    selection-bg: var(--selection-bg),
-    background-color: var(--background-color),
-    selected-text-color: var(--selected-text-color),
-    outline-focus-color: var(--outline-focus-color)
+    primary-color: #635BFF,
+    primary-light: rgba(99, 91, 255, 0.08),
+    gray-light: #F7FAFC,
+    gray-border: #E8E8E8,
+    hover-bg: #F5F7FA,
+    text-secondary: #697386,
+    text-primary: #1A1F36,
+    connector-color: #E8E8E8,
+    selection-bg: rgba(59, 130, 246, 0.2),
+    background-color: #FFFFFF,
+    selected-text-color: inherit,
+    outline-focus-color: #635BFF
   ),
   dark: (
     primary-color: var(--primary-color-dark),

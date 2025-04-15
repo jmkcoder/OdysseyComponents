@@ -6,18 +6,35 @@ export class NodeRendererService {
             return '<div class="empty-message">No items</div>';
         }
 
-        return nodes.map(node => this.renderNode(node, level, allowDragDrop)).join('');
+        // Check if any nodes at this level have children
+        const anyNodesHaveChildren = this.anyNodesHaveChildren(nodes);
+
+        return nodes.map(node => this.renderNode(node, level, allowDragDrop, anyNodesHaveChildren)).join('');
     }
     
-    private renderNode(node: ExplorerNode, level: number, allowDragDrop: boolean = true): string {
+    /**
+     * Check if any nodes in the given array have children or might have children
+     */
+    private anyNodesHaveChildren(nodes: ExplorerNode[]): boolean {
+        if (!nodes || nodes.length === 0) return false;
+        
+        return nodes.some(node => 
+            (node.children && node.children.length > 0) || node.hasChildren
+        );
+    }
+    
+    private renderNode(node: ExplorerNode, level: number, allowDragDrop: boolean = true, anyNodesHaveChildren: boolean = true): string {
         const hasChildren = node.children && node.children.length > 0;
         const mightHaveChildren = hasChildren || node.hasChildren;
         const isExpanded = node.expanded !== false;
         const isLoading = node.isLoading === true;
-        const paddingLeft = level * 16; // Increased indentation for better hierarchy visibility
+        const paddingLeft = level * 16; // Indentation for hierarchy visibility
+
+        // Keep the standard node class to ensure proper vertical connector lines
+        const nodeClass = 'node';
 
         return `
-        <div class="node" data-id="${node.id}">
+        <div class="${nodeClass}" data-id="${node.id}">
           <div class="node-header flex items-center rounded-md cursor-pointer" 
                style="padding-left: ${paddingLeft + 8}px"
                ${allowDragDrop ? 'draggable="true"' : ''}
@@ -30,7 +47,9 @@ export class NodeRendererService {
                          data-id="${node.id}">
                     ${isLoading ? 'sync' : isExpanded ? 'keyboard_arrow_down' : 'keyboard_arrow_right'}
                   </span>` :
-                  `<span class="w-[24px] mr-3"></span>`
+                  anyNodesHaveChildren ? 
+                      `<span class="expand-toggle-placeholder" style="min-width: 18px; min-height: 18px; margin-right: 12px; display: inline-block;"></span>` : 
+                      ``
               }
               ${node.icon ? `<span class="material-icons mr-2 text-lg">${node.icon}</span>` : ''}
               <span class="truncate">${node.label}</span>

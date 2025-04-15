@@ -539,31 +539,7 @@ DarkTheme.args = {
   allowDragDrop: true,
   allowMultiSelect: false,
   theme: 'dark',
-  customCSS: `
-    .dark-theme {
-      --primary-color: #7B68EE;
-      --primary-light: rgba(123, 104, 238, 0.15);
-      --gray-light: #23252F;
-      --gray-border: #3A3E4C;
-      --hover-bg: #2A2D39;
-      --text-secondary: #A0AEC0;
-      --text-primary: #E2E8F0;
-      color: var(--text-primary);
-      background-color: #1A1D27;
-    }
-    
-    .dark-theme .node-label {
-      color: var(--text-primary);
-    }
-    
-    .dark-theme .expand-toggle {
-      color: var(--text-secondary);
-    }
-    
-    .dark-theme .node.selected > .node-header {
-      background-color: rgba(123, 104, 238, 0.2);
-    }
-  `
+  customCSS: ``
 };
 DarkTheme.parameters = {
   docs: {
@@ -580,24 +556,7 @@ MinimalTheme.args = {
   allowDragDrop: true,
   allowMultiSelect: false,
   theme: 'minimal',
-  customCSS: `
-    .minimal-theme {
-      --primary-color: #0070f3;
-      --primary-light: rgba(0, 112, 243, 0.1);
-      --gray-light: transparent;
-      --gray-border: transparent;
-      --hover-bg: rgba(0, 0, 0, 0.03);
-      --connector-width: 1px;
-      --connector-color: #ddd;
-      --node-padding: 4px 6px;
-      --node-margin: 1px 0;
-      --node-border-radius: 3px;
-    }
-    
-    .minimal-theme .node-children {
-      border-left: var(--connector-width) solid var(--connector-color);
-    }
-  `
+  customCSS: ``
 };
 MinimalTheme.parameters = {
   docs: {
@@ -614,33 +573,7 @@ HighContrastTheme.args = {
   allowDragDrop: true,
   allowMultiSelect: false,
   theme: 'high-contrast',
-  customCSS: `
-    .high-contrast-theme {
-      --primary-color: #FFD700;
-      --primary-light: rgba(255, 215, 0, 0.15);
-      --gray-light: #000000;
-      --gray-border: #FFFFFF;
-      --hover-bg: #333333;
-      --text-secondary: #FFFFFF;
-      --text-primary: #FFFFFF;
-      color: var(--text-primary);
-      background-color: #000000;
-    }
-    
-    .high-contrast-theme .node-label {
-      color: var(--text-primary);
-    }
-    
-    .high-contrast-theme .node-header:hover {
-      background-color: var(--hover-bg);
-      outline: 2px solid var(--primary-color);
-    }
-    
-    .high-contrast-theme .node.selected > .node-header {
-      background-color: var(--primary-color);
-      color: #000000;
-    }
-  `
+  customCSS: ``
 };
 HighContrastTheme.parameters = {
   docs: {
