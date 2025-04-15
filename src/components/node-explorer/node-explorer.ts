@@ -28,6 +28,7 @@ export class NodeExplorer extends HTMLElement {
     private _theme: string = 'light';
     private focusedNodeId: string | null = null;
     private _loadingTimeouts: Map<string, number> = new Map();
+    private _loadingTimeout: number = 10000; // Default timeout: 10 seconds
 
     constructor() {
         super();
@@ -44,6 +45,8 @@ export class NodeExplorer extends HTMLElement {
         this._allowDragDrop = this.getAttribute('allow-drag-drop') !== 'false';
         this._allowMultiSelect = this.getAttribute('allow-multi-select') === 'true';
         this._theme = this.getAttribute('theme') || this.detectThemeFromClass() || 'light';
+        const loadingTimeoutAttr = this.getAttribute('loading-timeout');
+        this._loadingTimeout = loadingTimeoutAttr ? parseInt(loadingTimeoutAttr, 10) : this._loadingTimeout;
     }
 
     private detectThemeFromClass(): string | null {
@@ -523,24 +526,42 @@ export class NodeExplorer extends HTMLElement {
             if (expandToggle) {
                 if (node.isLoading) {
                     expandToggle.textContent = 'sync';
+                } else if (node.hasLoadingError) {
+                    expandToggle.textContent = 'error';
                 } else {
                     expandToggle.textContent = node.expanded ? 'keyboard_arrow_down' : 'keyboard_arrow_right';
                 }
             }
 
-            const rightIcon = nodeHeader.querySelector('.loading-indicator');
+            // Remove any existing indicators
+            const existingIndicator = nodeHeader.querySelector('.loading-indicator, .error-indicator');
+            if (existingIndicator) {
+                existingIndicator.remove();
+            }
+
+            const nodeLabel = nodeHeader.querySelector('.node-label');
+            if (!nodeLabel) return;
+
+            // Add appropriate indicator based on node state
             if (node.isLoading) {
-                if (!rightIcon) {
-                    const newRightIcon = document.createElement('span');
-                    newRightIcon.className = 'loading-indicator material-icons animate-spin ml-2';
-                    newRightIcon.textContent = 'refresh';
-                    const nodeLabel = nodeHeader.querySelector('.node-label');
-                    if (nodeLabel) {
-                        nodeLabel.appendChild(newRightIcon); // Append right after the content
-                    }
-                }
-            } else if (rightIcon) {
-                rightIcon.remove();
+                const loadingIcon = document.createElement('span');
+                loadingIcon.className = 'loading-indicator material-icons animate-spin ml-2';
+                loadingIcon.textContent = 'refresh';
+                nodeLabel.appendChild(loadingIcon);
+            } else if (node.hasLoadingError) {
+                const errorIcon = document.createElement('span');
+                errorIcon.className = 'error-indicator material-icons ml-2';
+                errorIcon.textContent = 'error_outline';
+                errorIcon.style.color = 'var(--odyssey-error-color, #e53935)';
+                errorIcon.title = 'Failed to load. Click to retry.';
+                
+                // Add click handler to retry loading
+                errorIcon.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.retryLoadingChildren(nodeId);
+                });
+                
+                nodeLabel.appendChild(errorIcon);
             }
         }
 
@@ -570,6 +591,7 @@ export class NodeExplorer extends HTMLElement {
             node.expanded = true;
             this.uiUpdaterService.updateNodeUI(this, id, node, this.selectedNodes);
             this.eventDispatcherService.dispatchNodeLoadChildrenEvent(id, node);
+            this.startLoadingTimeout(id);
             return;
         }
 
@@ -622,6 +644,74 @@ export class NodeExplorer extends HTMLElement {
         } else {
             this.eventDispatcherService.dispatchNodeSelectEvent(result.selectedNode, originalEvent);
         }
+    }
+
+    /**
+     * Starts a timeout for loading the children of a node
+     * Will show an error state if loading takes too long
+     */
+    private startLoadingTimeout(nodeId: string): void {
+        // Clear any existing timeout for this node
+        this.clearLoadingTimeout(nodeId);
+        
+        // Set a new timeout
+        const timeoutId = window.setTimeout(() => {
+            const node = this.nodeService.findNodeById(nodeId);
+            if (node && node.isLoading) {
+                // Mark the node as having an error
+                node.isLoading = false;
+                node.hasLoadingError = true;
+                
+                // Update the UI to show the error state
+                this.updateNodeUI(nodeId);
+                
+                // Dispatch error info through the load-children event
+                this.eventDispatcherService.dispatchNodeLoadChildrenEvent(
+                    nodeId,
+                    node,
+                    undefined,
+                    false,
+                    true, // hasError
+                    'timeout',
+                    'Loading timeout exceeded'
+                );
+            }
+        }, this._loadingTimeout);
+        
+        // Store the timeout ID
+        this._loadingTimeouts.set(nodeId, timeoutId);
+    }
+    
+    /**
+     * Clears any existing loading timeout for a node
+     */
+    private clearLoadingTimeout(nodeId: string): void {
+        const timeoutId = this._loadingTimeouts.get(nodeId);
+        if (timeoutId !== undefined) {
+            window.clearTimeout(timeoutId);
+            this._loadingTimeouts.delete(nodeId);
+        }
+    }
+
+    /**
+     * Retry loading children for a node that previously failed
+     */
+    private retryLoadingChildren(nodeId: string): void {
+        const node = this.nodeService.findNodeById(nodeId);
+        if (!node) return;
+        
+        // Reset the error state
+        node.hasLoadingError = false;
+        node.isLoading = true;
+        
+        // Update the UI to show loading state
+        this.updateNodeUI(nodeId);
+        
+        // Start a new timeout
+        this.startLoadingTimeout(nodeId);
+        
+        // Dispatch the load children event again
+        this.eventDispatcherService.dispatchNodeLoadChildrenEvent(nodeId, node);
     }
 
     /**
@@ -823,6 +913,9 @@ export class NodeExplorer extends HTMLElement {
         node.isLazy = !allChildrenLoaded; 
         node.expanded = true;
         
+        // Clear any loading timeout for this node since loading is complete
+        this.clearLoadingTimeout(nodeId);
+        
         this.updateNodesAndRender();
         return true;
     }
@@ -849,6 +942,9 @@ export class NodeExplorer extends HTMLElement {
         node.children = [...node.children, ...additionalChildren];
         node.isLazy = !allChildrenLoaded;
         node.isLoading = false;
+        
+        // Clear any loading timeout for this node since loading is complete
+        this.clearLoadingTimeout(nodeId);
         
         this.updateNodesAndRender();
         return true;

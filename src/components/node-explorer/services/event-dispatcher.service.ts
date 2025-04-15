@@ -51,12 +51,23 @@ export class EventDispatcherService {
     /**
      * Dispatches an event to load children for a node
      */
-    dispatchNodeLoadChildrenEvent(nodeId: string, node: ExplorerNode, pendingNode?: ExplorerNode, isDropOperation?: boolean): void {
+    dispatchNodeLoadChildrenEvent(
+        nodeId: string, 
+        node: ExplorerNode, 
+        pendingNode?: ExplorerNode, 
+        isDropOperation?: boolean,
+        hasError?: boolean,
+        errorType?: string,
+        errorMessage?: string
+    ): void {
         const detail: NodeLoadChildrenEvent = { 
             nodeId, 
             node,
             pendingNode,
-            isDropOperation
+            isDropOperation,
+            hasError,
+            errorType,
+            errorMessage
         };
         
         this.dispatchCustomEvent('load-children', detail);

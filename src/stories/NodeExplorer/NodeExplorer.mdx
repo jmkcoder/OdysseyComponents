@@ -715,12 +715,23 @@ const lazyLoadedNodes = [
 
 // Set up the component
 const explorer = document.getElementById('my-explorer');
+// Set a custom loading timeout of 5 seconds (5000ms) instead of the default 10 seconds
+explorer.setAttribute('loading-timeout', '5000');
 explorer.setAttribute('nodes', JSON.stringify(lazyLoadedNodes));
 
 // Listen for load-children events to dynamically load content
 explorer.addEventListener('load-children', (e) => {
   const nodeId = e.detail.nodeId;
   const node = e.detail.node;
+  const hasError = e.detail.hasError;
+  const errorType = e.detail.errorType;
+  const errorMessage = e.detail.errorMessage;
+  
+  // Check if this is an error case
+  if (hasError) {
+    console.error(`Error loading children for ${node.label}: ${errorMessage}`);
+    return;
+  }
   
   console.log(`Loading children for node: ${node.label} (${nodeId})`);
   
@@ -728,12 +739,16 @@ explorer.addEventListener('load-children', (e) => {
   fetchChildrenForNode(nodeId).then(childNodes => {
     // Use the API method to update the node with its children
     explorer.setNodeChildren(nodeId, childNodes);
+  }).catch(error => {
+    // The component will automatically show an error state if loading takes too long
+    // But you can also manually handle errors if needed
+    console.error(`Failed to load children for ${node.label}`, error);
   });
 });
 
 // Example function to fetch children - replace with your data source
 function fetchChildrenForNode(nodeId) {
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     // This would be your API call in a real application
     setTimeout(() => {
       // Generate different children based on the node ID
@@ -779,7 +794,7 @@ function fetchChildrenForNode(nodeId) {
 }
 ```
 
-> **Note**: In this example, the component will display a loading indicator while waiting for children to be loaded. If no response is received within a timeout period (default: 10 seconds), it will show an error message that can be clicked to retry.
+> **Note**: The component will display a loading indicator while waiting for children to be loaded. If no response is received within the timeout period (default: 10 seconds), it will show an error state with a retry option. Users can click on the error indicator to retry loading the children.
 
 ## Features
 
@@ -930,6 +945,7 @@ explorer.theme = 'dark'; // Change theme
 | `allowDragDrop`    | `allow-drag-drop`    | `boolean`       | `true`    | Enable or disable drag and drop functionality               |
 | `allowMultiSelect` | `allow-multi-select` | `boolean`       | `false`   | Enable or disable multi-selection of nodes                  |
 | `theme`            | `theme`              | `string`        | `'light'` | Theme variant ('light', 'dark', 'minimal', 'high-contrast') |
+| `loadingTimeout`   | `loading-timeout`    | `number`        | `10000`   | Timeout in milliseconds before showing error state for lazy-loaded nodes |
 
 ### Methods
 
@@ -948,12 +964,13 @@ explorer.theme = 'dark'; // Change theme
 | `setNodeChildren` | `(nodeId: string, children: ExplorerNode[], allChildrenLoaded: boolean = true)` | `boolean` | Sets children for a lazy-loaded node |
 | `appendNodeChildren` | `(nodeId: string, additionalChildren: ExplorerNode[], allChildrenLoaded: boolean = true)` | `boolean` | Adds more children to an already loaded node (useful for pagination) |
 | `markNodeAsLazy` | `(nodeId: string, hasChildren: boolean = true)` | `boolean` | Marks a node as lazy-loaded |
+| `retryLoadingChildren` | `(nodeId: string)` | `void` | Manually retry loading children for a node that previously encountered an error |
 
 ### Events
 
 | Event Name | Detail Type | Description |
 |------------|-------------|-------------|
-| `load-children` | `{ nodeId: string, node: ExplorerNode }` | Fired when a lazy-loaded node is expanded and needs its children |
+| `load-children` | `{ nodeId: string, node: ExplorerNode, pendingNode?: ExplorerNode, isDropOperation?: boolean, hasError?: boolean, errorType?: string, errorMessage?: string }` | Fired when a lazy-loaded node is expanded and needs its children. Contains error information if loading failed. |
 | `node-selected` | `{ node: ExplorerNode, originalEvent?: Event }` | Fired when a node is selected |
 | `nodes-selected` | `{ nodes: ExplorerNode[], originalEvent?: Event }` | Fired when multiple nodes are selected (when multi-select is enabled) |
 | `nodes-changed` | `{ nodes: ExplorerNode[] }` | Fired when nodes structure changes (drag-drop, expand/collapse) |

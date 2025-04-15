@@ -8,6 +8,7 @@ export interface ExplorerNode {
     isLoading?: boolean; // Indicates if the node's children are currently being loaded
     isLazy?: boolean; // Indicates if this node needs to load its children dynamically
     isRetry?: boolean; // Indicates if the node is in a retry state
+    hasLoadingError?: boolean; // Indicates if there was an error loading the children (e.g., timeout)
 }
 
 // New interface to expose public methods of the NodeExplorer element
@@ -77,4 +78,7 @@ export interface NodeLoadChildrenEvent {
     node: ExplorerNode;
     pendingNode?: ExplorerNode; // The node that is waiting to be added after lazy loading completes
     isDropOperation?: boolean;  // Flag indicating this is triggered by a drag and drop operation
+    hasError?: boolean;         // Indicates if this event is reporting a loading error
+    errorType?: 'timeout' | string; // The type of error that occurred
+    errorMessage?: string;      // Additional error information
 }
