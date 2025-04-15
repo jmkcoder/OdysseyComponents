@@ -86,13 +86,11 @@ Collapsible.args = {
 export const WithNodeExplorer = Template.bind({});
 WithNodeExplorer.args = {
   content: `
-    <div style="padding: 16px;">
-      <odyssey-node-explorer
-        allow-drag-drop="true"
-        allow-multi-select="false"
-        theme="light"
-      ></odyssey-node-explorer>
-    </div>
+    <odyssey-node-explorer
+      allow-drag-drop="true"
+      allow-multi-select="false"
+      theme="light"
+    ></odyssey-node-explorer>
   `,
   nodes: [
     {

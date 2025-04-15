@@ -29,6 +29,7 @@ export class NodeExplorer extends HTMLElement {
     private focusedNodeId: string | null = null;
     private _loadingTimeouts: Map<string, number> = new Map();
     private _loadingTimeout: number = 10000; // Default timeout: 10 seconds
+    private _parentThemeObserver: MutationObserver | null = null;
 
     constructor() {
         super();
@@ -44,18 +45,92 @@ export class NodeExplorer extends HTMLElement {
         
         this._allowDragDrop = this.getAttribute('allow-drag-drop') !== 'false';
         this._allowMultiSelect = this.getAttribute('allow-multi-select') === 'true';
-        this._theme = this.getAttribute('theme') || this.detectThemeFromClass() || 'light';
+        this._theme = this.getAttribute('theme') || this.detectThemeFromParentOrClass() || 'light';
         const loadingTimeoutAttr = this.getAttribute('loading-timeout');
         this._loadingTimeout = loadingTimeoutAttr ? parseInt(loadingTimeoutAttr, 10) : this._loadingTimeout;
     }
 
-    private detectThemeFromClass(): string | null {
+    private detectThemeFromParentOrClass(): string | null {
+        // First check if the component itself has a theme class
         if (this.classList.contains('dark-theme')) return 'dark';
+        if (this.classList.contains('light-theme')) return 'light';
         if (this.classList.contains('minimal-theme')) return 'minimal';
         if (this.classList.contains('high-contrast-theme')) return 'high-contrast';
-        if (this.classList.contains('light-theme')) return 'light';
         
+        // If not, check parent elements for theme indicators
+        let parent = this.parentElement;
+        while (parent) {
+            // Check for sidebar-container with theme
+            if (parent.classList.contains('sidebar-container')) {
+                // Check for theme classes
+                if (parent.classList.contains('dark')) return 'dark';
+                else if (parent.classList.contains('light')) return 'light';
+                else if (parent.classList.contains('minimal')) return 'minimal';
+                else if (parent.classList.contains('high-contrast')) return 'high-contrast';
+                else return 'light'; // No theme found on sidebar-container
+            }
+            
+            // Check for any other parent with theme classes
+            if (parent.classList.contains('dark-theme')) return 'dark';
+            if (parent.classList.contains('light-theme')) return 'light'; 
+            if (parent.classList.contains('dark-mode')) return 'dark';
+            if (parent.classList.contains('light-mode')) return 'light';
+            if (parent.classList.contains('minimal-theme')) return 'minimal';
+            if (parent.classList.contains('high-contrast-theme')) return 'high-contrast';
+            
+            // Check for theme attribute on any parent
+            const parentTheme = parent.getAttribute('theme');
+            if (parentTheme) return parentTheme;
+            
+            parent = parent.parentElement;
+        }
+        
+        // If no theme is found, return null (will default to light)
         return null;
+    }
+
+    private observeParentThemeChanges(): void {
+        // If we already have an observer, disconnect it
+        if (this._parentThemeObserver) {
+            this._parentThemeObserver.disconnect();
+            this._parentThemeObserver = null;
+        }
+        
+        // Find the closest parent sidebar-container or any relevant parent
+        let targetParent: Element | null = this.closest('.sidebar-container') || this.parentElement;
+        
+        if (!targetParent) return;
+        
+        // Create a new observer to watch for class and attribute changes
+        this._parentThemeObserver = new MutationObserver((mutations) => {
+            let shouldUpdateTheme = false;
+            
+            for (const mutation of mutations) {
+                if (
+                    (mutation.type === 'attributes' && 
+                     (mutation.attributeName === 'class' || mutation.attributeName === 'theme')) ||
+                    mutation.type === 'childList'
+                ) {
+                    shouldUpdateTheme = true;
+                    break;
+                }
+            }
+            
+            if (shouldUpdateTheme) {
+                const detectedTheme = this.detectThemeFromParentOrClass();
+                if (detectedTheme && detectedTheme !== this._theme) {
+                    this.theme = detectedTheme; // This will trigger the setter which updates the attribute
+                }
+            }
+        });
+        
+        // Start observing
+        this._parentThemeObserver.observe(targetParent, {
+            attributes: true,
+            attributeFilter: ['class', 'theme'],
+            childList: true,
+            subtree: false
+        });
     }
 
     private addMaterialIcons(): void {
@@ -733,9 +808,21 @@ export class NodeExplorer extends HTMLElement {
     connectedCallback() {
         this.initializeComponent();
         this.render();
+        this.observeParentThemeChanges();
     }
 
     disconnectedCallback() {
+        if (this._parentThemeObserver) {
+            this._parentThemeObserver.disconnect();
+            this._parentThemeObserver = null;
+        }
+        
+        // Clear all loading timeouts
+        for (const [nodeId, timeoutId] of this._loadingTimeouts.entries()) {
+            window.clearTimeout(timeoutId);
+        }
+        this._loadingTimeouts.clear();
+        
         this.innerHTML = '';
     }
 

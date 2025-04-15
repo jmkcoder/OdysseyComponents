@@ -1,30 +1,101 @@
+/* Theme variables - aligned with node-explorer themes */
 :root {
-  --sidebar-width: 300px; /* Default width of the sidebar */
+  /* Light theme variables */
+  --sidebar-width: 300px;
+  --sidebar-bg: #FFFFFF;
+  --sidebar-text: #1A1F36;
+  --sidebar-text-secondary: #697386;
+  --sidebar-border: #E8E8E8;
+  --sidebar-hover-bg: #F5F7FA;
+  --sidebar-selection-bg: rgba(59, 130, 246, 0.2);
+  --sidebar-primary-color: #635BFF;
+  --sidebar-primary-light: rgba(99, 91, 255, 0.08);
+  --sidebar-outline-focus: #635BFF;
+  --toggle-bg: #E8E8E8;
+  --toggle-checked-bg: #635BFF;
+  --sidebar-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  
+  /* Dark theme variables */
+  --sidebar-dark-bg: #1A1D27;
+  --sidebar-dark-text: #E2E8F0;
+  --sidebar-dark-text-secondary: #A0AEC0;
+  --sidebar-dark-border: #3A3E4C;
+  --sidebar-dark-hover-bg: #2A2D39;
+  --sidebar-dark-selection-bg: rgba(123, 104, 238, 0.2);
+  --sidebar-dark-primary-color: #7B68EE;
+  --sidebar-dark-primary-light: rgba(123, 104, 238, 0.15);
+  --sidebar-dark-outline-focus: #7B68EE;
+  --toggle-dark-bg: #3A3E4C;
+  --toggle-dark-checked-bg: #7B68EE;
+  --sidebar-dark-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  
+  /* Minimal theme variables */
+  --sidebar-minimal-bg: transparent;
+  --sidebar-minimal-text: #1A1F36;
+  --sidebar-minimal-text-secondary: #697386;
+  --sidebar-minimal-border: transparent;
+  --sidebar-minimal-hover-bg: rgba(0, 0, 0, 0.03);
+  --sidebar-minimal-selection-bg: rgba(0, 112, 243, 0.1);
+  --sidebar-minimal-primary-color: #0070f3;
+  --sidebar-minimal-primary-light: rgba(0, 112, 243, 0.1);
+  --sidebar-minimal-outline-focus: #0070f3;
+  --toggle-minimal-bg: rgba(0, 0, 0, 0.1);
+  --toggle-minimal-checked-bg: #0070f3;
+  --sidebar-minimal-shadow: none;
+  
+  /* High contrast theme variables */
+  --sidebar-high-contrast-bg: #000000;
+  --sidebar-high-contrast-text: #FFFFFF;
+  --sidebar-high-contrast-text-secondary: #FFFFFF;
+  --sidebar-high-contrast-border: #FFFFFF;
+  --sidebar-high-contrast-hover-bg: #333333;
+  --sidebar-high-contrast-selection-bg: #FFD700;
+  --sidebar-high-contrast-primary-color: #FFD700;
+  --sidebar-high-contrast-primary-light: rgba(255, 215, 0, 0.15);
+  --sidebar-high-contrast-outline-focus: #FFFFFF;
+  --toggle-high-contrast-bg: #FFFFFF;
+  --toggle-high-contrast-checked-bg: #FFD700;
+  --sidebar-high-contrast-shadow: 0 4px 8px rgba(255, 255, 255, 0.3);
 }
 
 .sidebar-container {
   position: relative;
   display: flex;
   flex-direction: column;
-  width: fit-content; /* Changed from var(--sidebar-width) to fit-content */
-  min-width: 200px; /* Ensures a reasonable minimum width */
-  max-width: full; /* Uses the variable as max width instead */
-  height: 100%; /* Full height of the viewport */
-  min-height: fit-content; /* Ensure it fits the content */
-  overflow: hidden; /* Prevent overflow */
-  background-color: var(--sidebar-bg, #ffffff);
-  color: var(--sidebar-text, #333333);
-  border-right: var(--sidebar-border, #e0e0e0);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  width: fit-content;
+  min-width: 200px;
+  max-width: full;
+  height: 100%;
+  min-height: fit-content;
+  overflow: hidden;
+  background-color: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  border-right: 1px solid var(--sidebar-border);
+  box-shadow: var(--sidebar-shadow);
   transition: transform 0.3s ease, width 0.3s ease, background-color 0.3s ease;
   border-top-right-radius: 12px;
   border-bottom-right-radius: 12px;
 }
 
 .sidebar-container.dark {
-  background-color: var(--sidebar-dark-bg, #1e293b);
-  color: var(--sidebar-dark-text, #f1f5f9);
-  border-right: var(--sidebar-dark-border, #334155);
+  background-color: var(--sidebar-dark-bg);
+  color: var(--sidebar-dark-text);
+  border-right: 1px solid var(--sidebar-dark-border);
+  box-shadow: var(--sidebar-dark-shadow);
+}
+
+.sidebar-container.minimal {
+  background-color: var(--sidebar-minimal-bg);
+  color: var(--sidebar-minimal-text);
+  border-right: 1px solid var(--sidebar-minimal-border);
+  box-shadow: var(--sidebar-minimal-shadow);
+}
+
+.sidebar-container.high-contrast {
+  background-color: var(--sidebar-high-contrast-bg);
+  color: var(--sidebar-high-contrast-text);
+  border-right: 1px solid var(--sidebar-high-contrast-border);
+  box-shadow: var(--sidebar-high-contrast-shadow);
 }
 
 .sidebar-header {
@@ -32,7 +103,19 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px;
-  border-bottom: 1px solid var(--sidebar-border, #e0e0e0);
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+.dark .sidebar-header {
+  border-bottom: 1px solid var(--sidebar-dark-border);
+}
+
+.minimal .sidebar-header {
+  border-bottom: 1px solid var(--sidebar-minimal-border);
+}
+
+.high-contrast .sidebar-header {
+  border-bottom: 1px solid var(--sidebar-high-contrast-border);
 }
 
 .sidebar-title {
@@ -44,15 +127,27 @@
 .sidebar-content {
   flex: 1;
   padding: 16px;
-  overflow-y: auto; /* Make the content scrollable */
+  overflow-y: auto;
 }
 
 .sidebar-footer {
   padding: 16px;
-  border-top: 1px solid var(--sidebar-border, #e0e0e0);
+  border-top: 1px solid var(--sidebar-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.dark .sidebar-footer {
+  border-top: 1px solid var(--sidebar-dark-border);
+}
+
+.minimal .sidebar-footer {
+  border-top: 1px solid var(--sidebar-minimal-border);
+}
+
+.high-contrast .sidebar-footer {
+  border-top: 1px solid var(--sidebar-high-contrast-border);
 }
 
 .toggle-button {
@@ -60,19 +155,46 @@
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
-  color: var(--sidebar-text, #333333);
+  color: var(--sidebar-text);
   transition: color 0.3s ease;
   display: none;
   position: absolute;
   top: 10px;
   left: 10px;
-  background: var(--toggle-bg, #ccc);
+  background: var(--toggle-bg);
   padding: 10px;
   border-radius: 5px;
 }
 
+.dark .toggle-button {
+  color: var(--sidebar-dark-text);
+  background: var(--toggle-dark-bg);
+}
+
+.minimal .toggle-button {
+  color: var(--sidebar-minimal-text);
+  background: var(--toggle-minimal-bg);
+}
+
+.high-contrast .toggle-button {
+  color: var(--sidebar-high-contrast-text);
+  background: var(--toggle-high-contrast-bg);
+}
+
 .toggle-button:hover {
-  color: var(--sidebar-hover-text, #555555);
+  color: var(--sidebar-primary-color);
+}
+
+.dark .toggle-button:hover {
+  color: var(--sidebar-dark-primary-color);
+}
+
+.minimal .toggle-button:hover {
+  color: var(--sidebar-minimal-primary-color);
+}
+
+.high-contrast .toggle-button:hover {
+  color: var(--sidebar-high-contrast-primary-color);
 }
 
 .theme-toggle {
@@ -86,7 +208,7 @@
   appearance: none;
   width: 40px;
   height: 20px;
-  background: var(--toggle-bg, #e0e0e0);
+  background: var(--toggle-bg);
   border-radius: 10px;
   position: relative;
   outline: none;
@@ -94,8 +216,32 @@
   transition: background 0.3s ease;
 }
 
+.dark .theme-toggle input {
+  background: var(--toggle-dark-bg);
+}
+
+.minimal .theme-toggle input {
+  background: var(--toggle-minimal-bg);
+}
+
+.high-contrast .theme-toggle input {
+  background: var(--toggle-high-contrast-bg);
+}
+
 .theme-toggle input:checked {
-  background: var(--toggle-checked-bg, #3b82f6);
+  background: var(--toggle-checked-bg);
+}
+
+.dark .theme-toggle input:checked {
+  background: var(--toggle-dark-checked-bg);
+}
+
+.minimal .theme-toggle input:checked {
+  background: var(--toggle-minimal-checked-bg);
+}
+
+.high-contrast .theme-toggle input:checked {
+  background: var(--toggle-high-contrast-checked-bg);
 }
 
 .theme-toggle input::before {
@@ -115,8 +261,20 @@
 }
 
 .theme-toggle:focus {
-  outline: 2px solid #4A90E2; /* Add a blue outline for focus */
-  outline-offset: 2px; /* Add some spacing between the outline and the element */
+  outline: 2px solid var(--sidebar-outline-focus);
+  outline-offset: 2px;
+}
+
+.dark .theme-toggle:focus {
+  outline: 2px solid var(--sidebar-dark-outline-focus);
+}
+
+.minimal .theme-toggle:focus {
+  outline: 2px solid var(--sidebar-minimal-outline-focus);
+}
+
+.high-contrast .theme-toggle:focus {
+  outline: 2px solid var(--sidebar-high-contrast-outline-focus);
 }
 
 .sidebar-container.collapsed {
@@ -140,8 +298,32 @@
   transition: background-color 0.2s ease;
 }
 
+.dark .resize-handle {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.high-contrast .resize-handle {
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
 .resize-handle:hover {
-  background-color: rgba(0, 0, 0, 0.3);
+  background-color: var(--sidebar-primary-color);
+  opacity: 0.3;
+}
+
+.dark .resize-handle:hover {
+  background-color: var(--sidebar-dark-primary-color);
+  opacity: 0.3;
+}
+
+.minimal .resize-handle:hover {
+  background-color: var(--sidebar-minimal-primary-color);
+  opacity: 0.3;
+}
+
+.high-contrast .resize-handle:hover {
+  background-color: var(--sidebar-high-contrast-primary-color);
+  opacity: 0.7;
 }
 
 .resize-handle.disabled {
@@ -152,7 +334,7 @@
 @media (min-width: 769px) and (max-width: 1024px) {
   .sidebar-container {
     min-width: 180px;
-    width: fit-content; /* Changed to fit-content */
+    width: fit-content;
   }
 }
 
@@ -163,12 +345,12 @@
     top: 0;
     left: 0;
     height: 100%;
-    min-height: 100%; /* Full height on mobile */
+    min-height: 100%;
     z-index: 1000;
-    background: var(--sidebar-bg, #fff);
+    background: var(--sidebar-bg);
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
-    overflow-x: auto; /* Allow horizontal scrolling */
+    overflow-x: auto;
   }
 
   .toggle-button {

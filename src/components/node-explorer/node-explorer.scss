@@ -1,60 +1,122 @@
-/* Theme variables */
+/* Theme variables - aligned with sidebar-container themes */
+:root {
+  /* Importing the same variables used in sidebar-container */
+  --node-explorer-width: 300px;
+  
+  /* Use the same color variables as sidebar-container for consistency */
+  --primary-color: var(--sidebar-primary-color, #635BFF);
+  --primary-light: var(--sidebar-primary-light, rgba(99, 91, 255, 0.08));
+  --gray-light: var(--sidebar-bg, #FFFFFF);
+  --gray-border: var(--sidebar-border, #E8E8E8);
+  --hover-bg: var(--sidebar-hover-bg, #F5F7FA);
+  --text-secondary: var(--sidebar-text-secondary, #697386);
+  --text-primary: var(--sidebar-text, #1A1F36);
+  --connector-color: var(--sidebar-border, #E8E8E8);
+  --selection-bg: var(--sidebar-selection-bg, rgba(59, 130, 246, 0.2));
+  --background-color: var(--sidebar-bg, #FFFFFF);
+  --selected-text-color: inherit;
+  --outline-focus-color: var(--sidebar-outline-focus, #635BFF);
+  
+  /* Dark theme */
+  --primary-color-dark: var(--sidebar-dark-primary-color, #7B68EE);
+  --primary-light-dark: var(--sidebar-dark-primary-light, rgba(123, 104, 238, 0.15));
+  --gray-light-dark: var(--sidebar-dark-bg, #1A1D27);
+  --gray-border-dark: var(--sidebar-dark-border, #3A3E4C);
+  --hover-bg-dark: var(--sidebar-dark-hover-bg, #2A2D39);
+  --text-secondary-dark: var(--sidebar-dark-text-secondary, #A0AEC0);
+  --text-primary-dark: var(--sidebar-dark-text, #E2E8F0);
+  --connector-color-dark: var(--sidebar-dark-border, #3A3E4C);
+  --selection-bg-dark: var(--sidebar-dark-selection-bg, rgba(123, 104, 238, 0.2));
+  --background-color-dark: var(--sidebar-dark-bg, #1A1D27);
+  --selected-text-color-dark: inherit;
+  --outline-focus-color-dark: var(--sidebar-dark-outline-focus, #7B68EE);
+  
+  /* Minimal theme */
+  --primary-color-minimal: var(--sidebar-minimal-primary-color, #0070f3);
+  --primary-light-minimal: var(--sidebar-minimal-primary-light, rgba(0, 112, 243, 0.1));
+  --gray-light-minimal: var(--sidebar-minimal-bg, transparent);
+  --gray-border-minimal: var(--sidebar-minimal-border, transparent);
+  --hover-bg-minimal: var(--sidebar-minimal-hover-bg, rgba(0, 0, 0, 0.03));
+  --text-secondary-minimal: var(--sidebar-minimal-text-secondary, #697386);
+  --text-primary-minimal: var(--sidebar-minimal-text, #1A1F36);
+  --connector-color-minimal: var(--sidebar-minimal-border, #ddd);
+  --selection-bg-minimal: var(--sidebar-minimal-selection-bg, rgba(0, 112, 243, 0.1));
+  --background-color-minimal: var(--sidebar-minimal-bg, transparent);
+  --selected-text-color-minimal: inherit;
+  --outline-focus-color-minimal: var(--sidebar-minimal-outline-focus, #0070f3);
+  
+  /* High contrast theme */
+  --primary-color-high-contrast: var(--sidebar-high-contrast-primary-color, #FFD700);
+  --primary-light-high-contrast: var(--sidebar-high-contrast-primary-light, rgba(255, 215, 0, 0.15));
+  --gray-light-high-contrast: var(--sidebar-high-contrast-bg, #000000);
+  --gray-border-high-contrast: var(--sidebar-high-contrast-border, #FFFFFF);
+  --hover-bg-high-contrast: var(--sidebar-high-contrast-hover-bg, #333333);
+  --text-secondary-high-contrast: var(--sidebar-high-contrast-text-secondary, #FFFFFF);
+  --text-primary-high-contrast: var(--sidebar-high-contrast-text, #FFFFFF);
+  --connector-color-high-contrast: var(--sidebar-high-contrast-border, #FFFFFF);
+  --selection-bg-high-contrast: var(--sidebar-high-contrast-selection-bg, #FFD700);
+  --background-color-high-contrast: var(--sidebar-high-contrast-bg, #000000);
+  --selected-text-color-high-contrast: #000000;
+  --outline-focus-color-high-contrast: var(--sidebar-high-contrast-outline-focus, #FFFFFF);
+}
+
+/* Keep the SCSS theme maps for backwards compatibility */
 $themes: (
   light: (
-    primary-color: #635BFF,
-    primary-light: rgba(99, 91, 255, 0.08),
-    gray-light: #F7FAFC,
-    gray-border: #E8E8E8,
-    hover-bg: #F5F7FA,
-    text-secondary: #697386,
-    text-primary: #1A1F36,
-    connector-color: #E8E8E8,
-    selection-bg: rgba(59, 130, 246, 0.2),
-    background-color: #FFFFFF,
-    selected-text-color: inherit,
-    outline-focus-color: #635BFF
+    primary-color: var(--primary-color),
+    primary-light: var(--primary-light),
+    gray-light: var(--gray-light),
+    gray-border: var(--gray-border),
+    hover-bg: var(--hover-bg),
+    text-secondary: var(--text-secondary),
+    text-primary: var(--text-primary),
+    connector-color: var(--connector-color),
+    selection-bg: var(--selection-bg),
+    background-color: var(--background-color),
+    selected-text-color: var(--selected-text-color),
+    outline-focus-color: var(--outline-focus-color)
   ),
   dark: (
-    primary-color: #7B68EE,
-    primary-light: rgba(123, 104, 238, 0.15),
-    gray-light: #23252F,
-    gray-border: #3A3E4C,
-    hover-bg: #2A2D39,
-    text-secondary: #A0AEC0,
-    text-primary: #E2E8F0,
-    connector-color: #3A3E4C,
-    selection-bg: rgba(123, 104, 238, 0.2),
-    background-color: #1A1D27,
-    selected-text-color: inherit,
-    outline-focus-color: #7B68EE
+    primary-color: var(--primary-color-dark),
+    primary-light: var(--primary-light-dark),
+    gray-light: var(--gray-light-dark),
+    gray-border: var(--gray-border-dark),
+    hover-bg: var(--hover-bg-dark),
+    text-secondary: var(--text-secondary-dark),
+    text-primary: var(--text-primary-dark),
+    connector-color: var(--connector-color-dark),
+    selection-bg: var(--selection-bg-dark),
+    background-color: var(--background-color-dark),
+    selected-text-color: var(--selected-text-color-dark),
+    outline-focus-color: var(--outline-focus-color-dark)
   ),
   minimal: (
-    primary-color: #0070f3,
-    primary-light: rgba(0, 112, 243, 0.1),
-    gray-light: transparent,
-    gray-border: transparent,
-    hover-bg: rgba(0, 0, 0, 0.03),
-    text-secondary: #697386,
-    text-primary: #1A1F36,
-    connector-color: #ddd,
-    selection-bg: rgba(0, 112, 243, 0.1),
-    background-color: transparent,
-    selected-text-color: inherit,
-    outline-focus-color: #0070f3
+    primary-color: var(--primary-color-minimal),
+    primary-light: var(--primary-light-minimal),
+    gray-light: var(--gray-light-minimal),
+    gray-border: var(--gray-border-minimal),
+    hover-bg: var(--hover-bg-minimal),
+    text-secondary: var(--text-secondary-minimal),
+    text-primary: var(--text-primary-minimal),
+    connector-color: var(--connector-color-minimal),
+    selection-bg: var(--selection-bg-minimal),
+    background-color: var(--background-color-minimal),
+    selected-text-color: var(--selected-text-color-minimal),
+    outline-focus-color: var(--outline-focus-color-minimal)
   ),
   high-contrast: (
-    primary-color: #FFD700,
-    primary-light: rgba(255, 215, 0, 0.15),
-    gray-light: #000000,
-    gray-border: #FFFFFF,
-    hover-bg: #333333,
-    text-secondary: #FFFFFF,
-    text-primary: #FFFFFF,
-    connector-color: #FFFFFF,
-    selection-bg: #FFD700,
-    background-color: #000000,
-    selected-text-color: #000000,
-    outline-focus-color: #FFFFFF
+    primary-color: var(--primary-color-high-contrast),
+    primary-light: var(--primary-light-high-contrast),
+    gray-light: var(--gray-light-high-contrast),
+    gray-border: var(--gray-border-high-contrast),
+    hover-bg: var(--hover-bg-high-contrast),
+    text-secondary: var(--text-secondary-high-contrast),
+    text-primary: var(--text-primary-high-contrast),
+    connector-color: var(--connector-color-high-contrast),
+    selection-bg: var(--selection-bg-high-contrast),
+    background-color: var(--background-color-high-contrast),
+    selected-text-color: var(--selected-text-color-high-contrast),
+    outline-focus-color: var(--outline-focus-color-high-contrast)
   )
 );
 
