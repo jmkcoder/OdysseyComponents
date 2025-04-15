@@ -6,10 +6,11 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  width: var(--sidebar-width);
-  min-width: 80px;
-  max-width: full;
+  width: fit-content; /* Changed from var(--sidebar-width) to fit-content */
+  min-width: 200px; /* Ensures a reasonable minimum width */
+  max-width: full; /* Uses the variable as max width instead */
   height: 100%; /* Full height of the viewport */
+  min-height: fit-content; /* Ensure it fits the content */
   overflow: hidden; /* Prevent overflow */
   background-color: var(--sidebar-bg, #ffffff);
   color: var(--sidebar-text, #333333);
@@ -147,6 +148,14 @@
   display: none;
 }
 
+/* Tablet specific styles */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .sidebar-container {
+    min-width: 180px;
+    width: fit-content; /* Changed to fit-content */
+  }
+}
+
 @media (max-width: 768px) {
   .sidebar-container {
     width: 100%;
@@ -154,6 +163,7 @@
     top: 0;
     left: 0;
     height: 100%;
+    min-height: 100%; /* Full height on mobile */
     z-index: 1000;
     background: var(--sidebar-bg, #fff);
     border-top-right-radius: 0;
