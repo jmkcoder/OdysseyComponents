@@ -6,92 +6,120 @@ import { UIUpdaterService } from './services/ui-updater.service';
 import { EventDispatcherService } from './services/event-dispatcher.service';
 import { NavigationService } from './services/navigation.service';
 import { SelectionService } from './services/selection.service';
+import { ThemeService } from './services/theme.service';
+import { LoadingService } from './services/loading.service';
+import { EventHandlerService } from './services/event-handler.service';
 import { defineCustomElement } from '../../utilities/define-custom-element';
 import './node-explorer.scss';
 
+/**
+ * NodeExplorer is a custom element for displaying and interacting with hierarchical data
+ * This component supports drag and drop, lazy loading, multi-select, keyboard navigation,
+ * and theming.
+ */
 export class NodeExplorer extends HTMLElement {
-    private nodeService: NodeService = new NodeService();
-    private dragDropService?: DragDropService;
-    private animationService: AnimationService = new AnimationService();
-    private uiUpdaterService: UIUpdaterService = new UIUpdaterService();
+    // Core services
+    private nodeService: NodeService;
+    private uiUpdaterService: UIUpdaterService;
     private eventDispatcherService: EventDispatcherService;
-    private navigationService: NavigationService = new NavigationService();
-    private selectionService: SelectionService = new SelectionService();
+    private navigationService: NavigationService;
+    private selectionService: SelectionService;
     
+    // Additional services
+    private dragDropService?: DragDropService;
+    private animationService: AnimationService;
+    private themeService: ThemeService;
+    private loadingService: LoadingService;
+    private eventHandlerService: EventHandlerService;
+    
+    // Component state
     private _skipNextRender: boolean = false;
     private selectedNodeId: string | null = null;
     private selectedNodes: Set<string> = new Set();
+    private focusedNodeId: string | null = null;
+    
+    // Component configuration
     private _allowDragDrop: boolean = true;
     private _allowMultiSelect: boolean = false;
-    private _theme: string = 'light';
-    private focusedNodeId: string | null = null;
-    private _loadingTimeouts: Map<string, number> = new Map();
     private _loadingTimeout: number = 10000; // Default timeout: 10 seconds
-    private _parentThemeObserver: MutationObserver | null = null;
+    private _initialized: boolean = false;
 
     constructor() {
         super();
+        
+        // Initialize base services
+        this.nodeService = new NodeService();
+        this.uiUpdaterService = new UIUpdaterService();
+        this.animationService = new AnimationService();
+        this.navigationService = new NavigationService();
+        this.selectionService = new SelectionService();
         this.eventDispatcherService = new EventDispatcherService(this);
-        this.initializeComponent();
+        
+        // Initialize dependent services
+        this.themeService = new ThemeService(this.uiUpdaterService);
+        this.loadingService = new LoadingService(
+            this.eventDispatcherService, 
+            this.uiUpdaterService, 
+            this.nodeService
+        );
+        
+        // Initialize event handler service which coordinates other services
+        this.eventHandlerService = new EventHandlerService(
+            this.nodeService,
+            this.eventDispatcherService,
+            this.uiUpdaterService,
+            this.selectionService,
+            this.navigationService,
+            this.loadingService
+        );
+        
+        // DO NOT initialize with attributes in the constructor
+        // This will cause the "Failed to execute 'createElement'" error
+        // Initialization will happen in connectedCallback
     }
 
+    /**
+     * Initialize component state from attributes
+     */
     private initializeComponent(): void {
+        // Only initialize once to prevent duplicate initialization
+        if (this._initialized) return;
+        this._initialized = true;
+        
         this.uiUpdaterService.addMaterialIcons();
         
+        // Configure component from attributes
+        this._allowDragDrop = this.getAttribute('allow-drag-drop') !== 'false';
+        this._allowMultiSelect = this.getAttribute('allow-multi-select') === 'true';
+        
+        // Set loading timeout if provided
+        const loadingTimeoutAttr = this.getAttribute('loading-timeout');
+        if (loadingTimeoutAttr) {
+            this._loadingTimeout = parseInt(loadingTimeoutAttr, 10);
+            this.loadingService.setLoadingTimeout(this._loadingTimeout);
+        }
+        
+        // Parse nodes after all other configs are set
         const nodes = this.parseNodes();
         this.nodeService = new NodeService(nodes);
         
-        this._allowDragDrop = this.getAttribute('allow-drag-drop') !== 'false';
-        this._allowMultiSelect = this.getAttribute('allow-multi-select') === 'true';
-        this._theme = this.getAttribute('theme') || this.uiUpdaterService.detectThemeFromParentOrClass(this) || 'light';
-        const loadingTimeoutAttr = this.getAttribute('loading-timeout');
-        this._loadingTimeout = loadingTimeoutAttr ? parseInt(loadingTimeoutAttr, 10) : this._loadingTimeout;
+        // Re-initialize event handler service with new node service
+        this.eventHandlerService = new EventHandlerService(
+            this.nodeService,
+            this.eventDispatcherService,
+            this.uiUpdaterService,
+            this.selectionService,
+            this.navigationService,
+            this.loadingService
+        );
+        
+        // Initialize theme last to ensure proper rendering
+        this.themeService.initializeTheme(this);
     }
 
-    private observeParentThemeChanges(): void {
-        // If we already have an observer, disconnect it
-        if (this._parentThemeObserver) {
-            this._parentThemeObserver.disconnect();
-            this._parentThemeObserver = null;
-        }
-        
-        // Find the closest parent sidebar-container or any relevant parent
-        let targetParent: Element | null = this.closest('.sidebar-container') || this.parentElement;
-        
-        if (!targetParent) return;
-        
-        // Create a new observer to watch for class and attribute changes
-        this._parentThemeObserver = new MutationObserver((mutations) => {
-            let shouldUpdateTheme = false;
-            
-            for (const mutation of mutations) {
-                if (
-                    (mutation.type === 'attributes' && 
-                     (mutation.attributeName === 'class' || mutation.attributeName === 'theme')) ||
-                    mutation.type === 'childList'
-                ) {
-                    shouldUpdateTheme = true;
-                    break;
-                }
-            }
-            
-            if (shouldUpdateTheme) {
-                const detectedTheme = this.uiUpdaterService.detectThemeFromParentOrClass(this);
-                if (detectedTheme && detectedTheme !== this._theme) {
-                    this.theme = detectedTheme; // This will trigger the setter which updates the attribute
-                }
-            }
-        });
-        
-        // Start observing
-        this._parentThemeObserver.observe(targetParent, {
-            attributes: true,
-            attributeFilter: ['class', 'theme'],
-            childList: true,
-            subtree: false
-        });
-    }
-
+    /**
+     * Parse nodes from the 'nodes' attribute
+     */
     private parseNodes(): ExplorerNode[] {
         try {
             const nodesAttr = this.getAttribute('nodes');
@@ -102,6 +130,9 @@ export class NodeExplorer extends HTMLElement {
         }
     }
 
+    /**
+     * Render the explorer component
+     */
     render(): void {
         const nodes = this.nodeService.getNodes();
         
@@ -111,16 +142,26 @@ export class NodeExplorer extends HTMLElement {
             nodes,
             this._allowMultiSelect,
             this._allowDragDrop,
-            this._theme
+            this.themeService.getTheme()
         );
 
+        // Set up drag-drop functionality if enabled
         if (this._allowDragDrop) {
             this.dragDropService = new DragDropService(
                 this,
                 this,
-                this.handleNodeDrop.bind(this),
-                this.handleDropToRoot.bind(this),
-                this.handleToggleExpansion.bind(this)
+                (sourceId, targetId, position) => 
+                    this.eventHandlerService.handleNodeDrop(
+                        sourceId, 
+                        targetId, 
+                        position, 
+                        this, 
+                        this.selectedNodes
+                    ),
+                (sourceId) => 
+                    this.eventHandlerService.handleDropToRoot(sourceId, this),
+                (id) => 
+                    this.eventHandlerService.handleToggleExpansion(id, this, this.selectedNodes)
             );
             
             this.dragDropService.attachListeners();
@@ -128,14 +169,30 @@ export class NodeExplorer extends HTMLElement {
             this.attachExpandToggleListeners();
         }
         
+        // Set up selection and keyboard navigation
         this.attachNodeSelectionListeners();
-        this.navigationService.attachKeyboardNavigation(this, this.handleComponentFocus.bind(this), this.handleComponentKeyDown.bind(this));
+        this.navigationService.attachKeyboardNavigation(
+            this, 
+            () => {
+                this.focusedNodeId = this.eventHandlerService.handleComponentFocus(this, this.focusedNodeId);
+            },
+            (e) => {
+                this.focusedNodeId = this.eventHandlerService.handleComponentKeyDown(e, this.focusedNodeId, this);
+            }
+        );
+        
+        // Restore any previous selection state
         this.selectionService.restoreSelectionState(this, this.selectedNodes);
         
         this.tabIndex = 0;
-        this.addEventListener('focus', this.handleComponentFocus.bind(this));
+        this.addEventListener('focus', () => {
+            this.focusedNodeId = this.eventHandlerService.handleComponentFocus(this, this.focusedNodeId);
+        });
     }
 
+    /**
+     * Attach click event listeners to expand/collapse toggles
+     */
     private attachExpandToggleListeners(): void {
         const expandToggles = this.querySelectorAll('.expand-toggle');
         
@@ -146,11 +203,14 @@ export class NodeExplorer extends HTMLElement {
                 const id = (toggle as HTMLElement).getAttribute('data-id');
                 if (!id) return;
                 
-                this.handleToggleExpansion(id);
+                this.eventHandlerService.handleToggleExpansion(id, this, this.selectedNodes);
             });
         });
     }
     
+    /**
+     * Attach click event listeners for node selection
+     */
     private attachNodeSelectionListeners(): void {
         const nodeElements = this.querySelectorAll('.node');
         nodeElements.forEach(nodeEl => {
@@ -163,7 +223,18 @@ export class NodeExplorer extends HTMLElement {
                 const isExpandToggle = target.closest('.expand-toggle');
                 
                 if (nodeId && !isExpandToggle) {
-                    this.handleNodeSelect(nodeId, e);
+                    const result = this.eventHandlerService.handleNodeSelect(
+                        nodeId, 
+                        this.selectedNodeId, 
+                        this.selectedNodes, 
+                        this._allowMultiSelect, 
+                        this,
+                        e
+                    );
+                    
+                    this.selectedNodeId = result.selectedNodeId;
+                    this.selectedNodes = result.selectedNodes;
+                    
                     this.focusedNodeId = nodeId;
                     this.navigationService.focusNode(this, nodeId);
                 }
@@ -177,335 +248,35 @@ export class NodeExplorer extends HTMLElement {
                     this.focusedNodeId = nodeHeader.dataset.id || null;
                 });
                 
-                nodeHeader.addEventListener('keydown', this.handleNodeKeyDown.bind(this));
+                nodeHeader.addEventListener('keydown', (e: KeyboardEvent) => {
+                    this.eventHandlerService.handleNodeKeyDown(
+                        e,
+                        this,
+                        this.selectedNodeId,
+                        this.selectedNodes,
+                        this._allowMultiSelect
+                    );
+                });
             }
         });
     }
-    
-    private handleNodeKeyDown(e: KeyboardEvent): void {
-        const nodeHeader = e.currentTarget as HTMLElement;
-        const nodeId = nodeHeader.dataset.id;
-        if (!nodeId) return;
-        
-        const node = this.nodeService.findNodeById(nodeId);
-        if (!node) return;
-        
-        this.navigationService.handleNodeKeyDown(
-            e, 
-            nodeId, 
-            node, 
-            this,
-            this.nodeService,
-            this.handleToggleExpansion.bind(this),
-            this.handleNodeSelect.bind(this),
-            this.selectAllNodes.bind(this)
-        );
-    }
 
-    private selectAllNodes(): void {
-        if (!this._allowMultiSelect) return;
-        
-        const visibleNodes = this.navigationService.getVisibleNodesInOrder(this.nodeService.getNodes());
-        
-        this.selectedNodes.clear();
-        
-        visibleNodes.forEach(node => {
-            this.selectedNodes.add(node.id);
-        });
-        
-        if (visibleNodes.length > 0) {
-            this.selectedNodeId = visibleNodes[visibleNodes.length - 1].id;
-        }
-        
-        this.uiUpdaterService.updateSelectionUI(this, this.selectedNodes);
-        this.uiUpdaterService.setAriaAttributes(this, this._allowMultiSelect, this.nodeService);
-        
-        if (visibleNodes.length > 0) {
-            this.eventDispatcherService.dispatchMultiSelectEvent(this.getSelectedNodes());
-        }
-    }
-    
-    private handleComponentFocus(): void {
-        if (this.focusedNodeId) {
-            this.navigationService.focusNode(this, this.focusedNodeId);
-        } else {
-            const visibleNodes = this.navigationService.getVisibleNodesInOrder(this.nodeService.getNodes());
-            if (visibleNodes.length > 0) {
-                this.navigationService.focusNode(this, visibleNodes[0].id);
-                this.focusedNodeId = visibleNodes[0].id;
-            }
-        }
-    }
-    
-    private handleComponentKeyDown(e: KeyboardEvent): void {
-        if (e.key === 'Tab' && !e.shiftKey && !this.focusedNodeId) {
-            const visibleNodes = this.navigationService.getVisibleNodesInOrder(this.nodeService.getNodes());
-            if (visibleNodes.length > 0) {
-                e.preventDefault();
-                this.navigationService.focusNode(this, visibleNodes[0].id);
-                this.focusedNodeId = visibleNodes[0].id;
-            }
-        }
-    }
-    
-    private handleNodeDrop(sourceId: string, targetId: string, position: DropPosition): void {
-        // Check if target is a descendant of source (circular reference)
-        if (this.isDescendant(sourceId, targetId)) {
-            return;
-        }
-        
-        const sourceNode = this.nodeService.findAndRemoveNode(sourceId);
-        if (!sourceNode) return;
-        
-        if (position === 'inside') {
-            const targetNode = this.nodeService.findNodeById(targetId);
-            
-            // Check if the target node is lazy and not expanded
-            if (targetNode && targetNode.isLazy && !targetNode.isLoading && (!targetNode.children || !targetNode.children.length)) {
-                // Store the source node temporarily
-                const tempSourceNode = {...sourceNode};
-                
-                // First load the children
-                targetNode.isLoading = true;
-                targetNode.expanded = true;
-                this.uiUpdaterService.updateNodeUI(this, targetId, targetNode, this.selectedNodes);
-                
-                // Dispatch load children event - after children are loaded, the drop will be completed
-                this.eventDispatcherService.dispatchNodeLoadChildrenEvent(
-                    targetId, 
-                    targetNode,
-                    tempSourceNode,
-                    true
-                );
-                
-                return;
-            } else {
-                this.nodeService.addNodeToParent(targetId, sourceNode);
-            }
-        } else {
-            this.nodeService.addNodeBeforeOrAfter(targetId, sourceNode, position);
-        }
-        
-        this.updateNodesAndRender();
-    }
-    
-    private handleDropToRoot(sourceId: string): void {
-        const sourceNode = this.nodeService.findAndRemoveNode(sourceId);
-        if (!sourceNode) return;
-        
-        this.nodeService.addNodeToRoot(sourceNode);
-        this.updateNodesAndRender();
-    }
-
-    private handleToggleExpansion(id: string): void {
-        const node = this.nodeService.findNodeById(id);
-        if (!node) return;
-
-        // Handle lazy loading
-        if (node.isLazy && !node.isLoading && !node.expanded) {
-            node.isLoading = true;
-            node.expanded = true;
-            this.uiUpdaterService.updateNodeUI(this, id, node, this.selectedNodes);
-            this.eventDispatcherService.dispatchNodeLoadChildrenEvent(id, node);
-            this.startLoadingTimeout(id);
-            return;
-        }
-
-        if (this.nodeService.toggleNodeExpansion(id)) {
-            // Update the UI
-            this.uiUpdaterService.updateNodeUI(this, id, node, this.selectedNodes);
-
-            // Animate the expand toggle icon
-            const expandToggle = this.querySelector(`.expand-toggle[data-id="${id}"]`) as HTMLElement;
-            if (expandToggle) {
-                // Fix type error by ensuring expanded is a boolean
-                const isExpanded = !!node.expanded;
-                this.animationService.animateExpandToggle(expandToggle, isExpanded);
-            }
-
-            // Dispatch appropriate events
-            if (node.expanded) {
-                this.eventDispatcherService.dispatchNodeExpandedEvent(id, node);
-            } else {
-                this.eventDispatcherService.dispatchNodeCollapsedEvent(id, node);
-            }
-        }
-    }
-
-    private handleNodeSelect(nodeId: string, originalEvent?: Event): void {
-        // Use the selection service to handle node selection logic
-        const result = this.selectionService.handleNodeSelect(
-            nodeId, 
-            this.selectedNodeId,
-            this.selectedNodes,
-            this._allowMultiSelect,
-            this.nodeService.getNodes(),
-            originalEvent
-        );
-        
-        // Update state with results from the service
-        this.selectedNodeId = result.selectedNodeId;
-        this.selectedNodes = result.selectedNodes;
-        
-        if (!result.selectedNode) return;
-        
-        // Update UI
-        this.uiUpdaterService.updateSelectionUI(this, this.selectedNodes);
-        this.uiUpdaterService.setAriaAttributes(this, this._allowMultiSelect, this.nodeService);
-        
-        // Dispatch events
-        if (this._allowMultiSelect && this.selectedNodes.size > 1) {
-            const selectedNodes = this.selectionService.getSelectedNodes(this.selectedNodes, this.nodeService.getNodes());
-            this.eventDispatcherService.dispatchMultiSelectEvent(selectedNodes);
-        } else {
-            this.eventDispatcherService.dispatchNodeSelectEvent(result.selectedNode, originalEvent);
-        }
-    }
-
-    /**
-     * Starts a timeout for loading the children of a node
-     * Will show an error state if loading takes too long
-     */
-    private startLoadingTimeout(nodeId: string): void {
-        // Clear any existing timeout for this node
-        this.clearLoadingTimeout(nodeId);
-        
-        // Set a new timeout
-        const timeoutId = window.setTimeout(() => {
-            const node = this.nodeService.findNodeById(nodeId);
-            if (node && node.isLoading) {
-                // Mark the node as having an error
-                node.isLoading = false;
-                node.hasLoadingError = true;
-                
-                // Update the UI to show the error state
-                this.uiUpdaterService.updateNodeUI(this, nodeId, node, this.selectedNodes);
-                
-                // Dispatch error info through the load-children event
-                this.eventDispatcherService.dispatchNodeLoadChildrenEvent(
-                    nodeId,
-                    node,
-                    undefined,
-                    false,
-                    true, // hasError
-                    'timeout',
-                    'Loading timeout exceeded'
-                );
-            }
-        }, this._loadingTimeout);
-        
-        // Store the timeout ID
-        this._loadingTimeouts.set(nodeId, timeoutId);
-    }
-    
-    /**
-     * Clears any existing loading timeout for a node
-     */
-    private clearLoadingTimeout(nodeId: string): void {
-        const timeoutId = this._loadingTimeouts.get(nodeId);
-        if (timeoutId !== undefined) {
-            window.clearTimeout(timeoutId);
-            this._loadingTimeouts.delete(nodeId);
-        }
-    }
-
-    /**
-     * Retry loading children for a node that previously failed
-     */
-    private retryLoadingChildren(nodeId: string): void {
-        const node = this.nodeService.findNodeById(nodeId);
-        if (!node) return;
-        
-        // Reset the error state
-        node.hasLoadingError = false;
-        node.isLoading = true;
-        
-        // Update the UI to show loading state
-        this.uiUpdaterService.updateNodeUI(this, nodeId, node, this.selectedNodes);
-        
-        // Start a new timeout
-        this.startLoadingTimeout(nodeId);
-        
-        // Dispatch the load children event again
-        this.eventDispatcherService.dispatchNodeLoadChildrenEvent(nodeId, node);
-    }
-
-    /**
-     * Updates nodes and re-renders the component
-     */
-    private updateNodesAndRender(): void {
-        const nodes = this.nodeService.getNodes();
-        
-        this.nodeService.ensureExpandedStateConsistency();
-        
-        this._skipNextRender = true;
-        this.setAttribute('nodes', JSON.stringify(nodes));
-        this.render();
-        
-        // Dispatch node change event
-        this.eventDispatcherService.dispatchNodeChangeEvent(nodes);
-    }
-
-    private isDescendant(ancestorId: string, nodeId: string): boolean {
-        // If it's the same node, it's not considered a descendant
-        if (ancestorId === nodeId) return false;
-        
-        // Find the node by ID
-        const potentialAncestor = this.nodeService.findNodeById(ancestorId);
-        if (!potentialAncestor || !potentialAncestor.children) return false;
-        
-        // Check if any of the children match the nodeId
-        for (const child of potentialAncestor.children) {
-            if (child.id === nodeId) return true;
-            
-            // Recursively check child's descendants
-            if (this.isDescendant(child.id, nodeId)) return true;
-        }
-        
-        return false;
-    }
-
-    /**
-     * Internal handler for the load-children event
-     * This handles adding the dropped node after children are loaded
-     */
-    private handleLazyLoadingEvent(e: CustomEvent): void {
-        const { nodeId, isDropPending, pendingNode } = e.detail;
-        
-        // Only handle events that have a pending drop operation
-        if (isDropPending && pendingNode) {
-            // Set a timeout to ensure the node children are properly rendered first
-            setTimeout(() => {
-                // Add the dropped node to the target
-                this.addNode(nodeId, pendingNode);
-            }, 100);
-        }
-    }
+    // Lifecycle methods
 
     connectedCallback() {
         this.initializeComponent();
-        this.applyThemeClass(); // Apply theme class when component is connected
         this.render();
-        this.observeParentThemeChanges();
+        this.themeService.observeParentThemeChanges(this);
     }
 
     disconnectedCallback() {
-        if (this._parentThemeObserver) {
-            this._parentThemeObserver.disconnect();
-            this._parentThemeObserver = null;
-        }
-        
-        // Clear all loading timeouts
-        for (const [nodeId, timeoutId] of this._loadingTimeouts.entries()) {
-            window.clearTimeout(timeoutId);
-        }
-        this._loadingTimeouts.clear();
-        
+        this.themeService.disconnectObserver();
+        this.loadingService.clearAllTimeouts();
         this.innerHTML = '';
     }
 
     static get observedAttributes() {
-        return ['nodes', 'allow-drag-drop', 'allow-multi-select', 'theme'];
+        return ['nodes', 'allow-drag-drop', 'allow-multi-select', 'theme', 'loading-timeout'];
     }
 
     attributeChangedCallback(name: string, oldValue: string, newValue: string) {
@@ -534,30 +305,14 @@ export class NodeExplorer extends HTMLElement {
                 break;
                 
             case 'theme':
-                this._theme = newValue || 'light';
-                this.applyThemeClass();
+                this.themeService.setTheme(this, newValue || 'light');
                 this.render();
                 break;
-        }
-    }
-    
-    /**
-     * Apply the appropriate theme class based on the current theme value
-     */
-    private applyThemeClass(): void {
-        // Remove all existing theme classes
-        this.classList.remove('light-theme', 'dark-theme', 'minimal-theme', 'high-contrast-theme');
-        
-        // Apply the appropriate theme class with suffix
-        if (this._theme === 'dark') {
-            this.classList.add('dark-theme');
-        } else if (this._theme === 'minimal') {
-            this.classList.add('minimal-theme');
-        } else if (this._theme === 'high-contrast') {
-            this.classList.add('high-contrast-theme');
-        } else {
-            // Default to light theme
-            this.classList.add('light-theme');
+                
+            case 'loading-timeout':
+                this._loadingTimeout = newValue ? parseInt(newValue, 10) : 10000;
+                this.loadingService.setLoadingTimeout(this._loadingTimeout);
+                break;
         }
     }
 
@@ -567,7 +322,7 @@ export class NodeExplorer extends HTMLElement {
         const node = this.nodeService.findNodeById(id);
         if (node && !node.expanded) {
             node.expanded = true;
-            this.updateNodesAndRender();
+            this.eventHandlerService.updateNodesAndRender(this);
             this.eventDispatcherService.dispatchNodeExpandedEvent(id, node);
             return true;
         }
@@ -578,7 +333,7 @@ export class NodeExplorer extends HTMLElement {
         const node = this.nodeService.findNodeById(id);
         if (node && node.expanded) {
             node.expanded = false;
-            this.updateNodesAndRender();
+            this.eventHandlerService.updateNodesAndRender(this);
             this.eventDispatcherService.dispatchNodeCollapsedEvent(id, node);
             return true;
         }
@@ -588,7 +343,16 @@ export class NodeExplorer extends HTMLElement {
     selectNode(id: string): boolean {
         const node = this.nodeService.findNodeById(id);
         if (node) {
-            this.handleNodeSelect(id);
+            const result = this.eventHandlerService.handleNodeSelect(
+                id, 
+                this.selectedNodeId, 
+                this.selectedNodes, 
+                this._allowMultiSelect, 
+                this
+            );
+            
+            this.selectedNodeId = result.selectedNodeId;
+            this.selectedNodes = result.selectedNodes;
             return true;
         }
         return false;
@@ -614,12 +378,12 @@ export class NodeExplorer extends HTMLElement {
     addNode(parentId: string | null, node: ExplorerNode): boolean {
         if (parentId === null) {
             this.nodeService.addNodeToRoot(node);
-            this.updateNodesAndRender();
+            this.eventHandlerService.updateNodesAndRender(this);
             return true;
         } else {
             const success = this.nodeService.addNodeToParent(parentId, node);
             if (success) {
-                this.updateNodesAndRender();
+                this.eventHandlerService.updateNodesAndRender(this);
             }
             return success;
         }
@@ -633,7 +397,7 @@ export class NodeExplorer extends HTMLElement {
         
         const removedNode = this.nodeService.findAndRemoveNode(id);
         if (removedNode) {
-            this.updateNodesAndRender();
+            this.eventHandlerService.updateNodesAndRender(this);
             return true;
         }
         return false;
@@ -653,11 +417,13 @@ export class NodeExplorer extends HTMLElement {
         }
         
         if (success) {
-            this.updateNodesAndRender();
+            this.eventHandlerService.updateNodesAndRender(this);
         }
         
         return success;
     }
+    
+    // Configuration properties with getters/setters
     
     get allowDragDrop(): boolean {
         return this._allowDragDrop;
@@ -682,17 +448,15 @@ export class NodeExplorer extends HTMLElement {
     }
     
     get theme(): string {
-        return this._theme;
+        return this.themeService.getTheme();
     }
     
     set theme(value: string) {
-        if (this._theme !== value) {
-            this._theme = value;
-            this.setAttribute('theme', value);
-            this.applyThemeClass(); // Apply theme class when theme property is set
-        }
+        this.themeService.setTheme(this, value);
     }
 
+    // API methods for handling lazy-loaded content
+    
     setNodeChildren(nodeId: string, children: ExplorerNode[], allChildrenLoaded: boolean = true): boolean {
         const node = this.nodeService.findNodeById(nodeId);
         if (!node) return false;
@@ -703,13 +467,13 @@ export class NodeExplorer extends HTMLElement {
         node.expanded = true;
         
         // Clear any loading timeout for this node since loading is complete
-        this.clearLoadingTimeout(nodeId);
+        this.loadingService.clearLoadingTimeout(nodeId);
         
         // Get event details before updating and rendering
         const pendingEvents = this.findPendingLoadEvents(nodeId);
         
         // Update the nodes and render the component
-        this.updateNodesAndRender();
+        this.eventHandlerService.updateNodesAndRender(this);
         
         // Handle any pending dropped nodes after the children are loaded
         if (pendingEvents.length > 0) {
@@ -751,7 +515,7 @@ export class NodeExplorer extends HTMLElement {
         node.isLazy = true;
         node.hasChildren = hasChildren;
         
-        this.updateNodesAndRender();
+        this.eventHandlerService.updateNodesAndRender(this);
         return true;
     }
     
@@ -768,9 +532,9 @@ export class NodeExplorer extends HTMLElement {
         node.isLoading = false;
         
         // Clear any loading timeout for this node since loading is complete
-        this.clearLoadingTimeout(nodeId);
+        this.loadingService.clearLoadingTimeout(nodeId);
         
-        this.updateNodesAndRender();
+        this.eventHandlerService.updateNodesAndRender(this);
         return true;
     }
 }
