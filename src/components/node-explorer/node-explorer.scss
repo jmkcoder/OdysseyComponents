@@ -282,6 +282,19 @@ $spacing-unit: 8px;      /* Base spacing unit for consistency */
       color: #000000;
     }
   }
+
+  .node-container {
+    background-color: var(--background-color);
+    color: var(--text-primary);
+  }
+  
+  .node {
+    background-color: transparent;
+  }
+  
+  .node-header {
+    color: var(--text-primary);
+  }
   
   /* Add multi-select visual style */
   &[allow-multi-select="true"] {

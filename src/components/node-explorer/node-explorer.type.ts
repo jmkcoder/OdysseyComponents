@@ -55,6 +55,7 @@ export interface NodeSelectedEvent {
 
 export interface NodesSelectedEvent {
     nodes: ExplorerNode[];
+    originalEvent?: Event;
     count: number;
 }
 

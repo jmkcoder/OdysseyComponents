@@ -1,125 +1,203 @@
 import { ExplorerNode } from '../node-explorer.type';
-import { NavigationService } from './navigation.service';
 
 /**
- * Service for handling node selection operations
+ * Service responsible for handling node selection logic
  */
 export class SelectionService {
-    private navigationService = new NavigationService();
-
     /**
-     * Handles selection of a node with support for multi-select
+     * Handle node selection and return the updated selection state
      */
     handleNodeSelect(
-        nodeId: string, 
-        selectedNodeId: string | null,
+        nodeId: string,
+        currentSelectedNodeId: string | null,
         selectedNodes: Set<string>,
         allowMultiSelect: boolean,
-        nodes: ExplorerNode[], 
+        allNodes: ExplorerNode[],
         originalEvent?: Event
-    ): { 
-        selectedNodeId: string | null, 
-        selectedNodes: Set<string>,
-        selectedNode: ExplorerNode | undefined 
+    ): {
+        selectedNodeId: string | null;
+        selectedNodes: Set<string>;
+        selectedNode: ExplorerNode | undefined;
     } {
-        const selectedNode = this.findNodeById(nodeId, nodes);
-        if (!selectedNode) return { selectedNodeId, selectedNodes, selectedNode: undefined };
-        
-        const isMultiSelect = allowMultiSelect && originalEvent && 
-            (originalEvent instanceof MouseEvent || originalEvent instanceof KeyboardEvent) && 
-            (originalEvent.ctrlKey || originalEvent.metaKey || originalEvent.shiftKey);
-        
-        const newSelectedNodes = new Set(selectedNodes);
-        
-        if (isMultiSelect) {
-            if (originalEvent && originalEvent.shiftKey && selectedNodeId) {
-                this.selectNodeRange(selectedNodeId, nodeId, newSelectedNodes, nodes);
-            } else {
-                if (newSelectedNodes.has(nodeId)) {
-                    newSelectedNodes.delete(nodeId);
-                } else {
-                    newSelectedNodes.add(nodeId);
-                }
-                selectedNodeId = newSelectedNodes.size > 0 ? 
-                    Array.from(newSelectedNodes)[newSelectedNodes.size - 1] : null;
+        const node = this.findNodeById(nodeId, allNodes);
+        if (!node) {
+            return {
+                selectedNodeId: currentSelectedNodeId,
+                selectedNodes,
+                selectedNode: undefined
+            };
+        }
+
+        // Handle multi-select with shift key
+        if (allowMultiSelect && originalEvent && originalEvent instanceof MouseEvent && originalEvent.shiftKey && currentSelectedNodeId) {
+            if (currentSelectedNodeId === nodeId) {
+                // Nothing to do if selecting the same node
+                return {
+                    selectedNodeId: currentSelectedNodeId,
+                    selectedNodes,
+                    selectedNode: node
+                };
             }
+
+            // Select range of nodes between current selection and target
+            const visibleNodes = this.getVisibleNodesInOrder(allNodes);
+            const nodeIds = visibleNodes.map(n => n.id);
+            
+            const currentIdx = nodeIds.indexOf(currentSelectedNodeId);
+            const targetIdx = nodeIds.indexOf(nodeId);
+            
+            if (currentIdx !== -1 && targetIdx !== -1) {
+                const startIdx = Math.min(currentIdx, targetIdx);
+                const endIdx = Math.max(currentIdx, targetIdx);
+                
+                // Create a new Set to not mutate the original
+                const newSelectedNodes = new Set<string>(selectedNodes);
+                
+                // Add all nodes in range to selection
+                for (let i = startIdx; i <= endIdx; i++) {
+                    newSelectedNodes.add(nodeIds[i]);
+                }
+                
+                return {
+                    selectedNodeId: nodeId,
+                    selectedNodes: newSelectedNodes,
+                    selectedNode: node
+                };
+            }
+        }
+        
+        // Handle multi-select with ctrl/cmd key
+        if (allowMultiSelect && originalEvent && originalEvent instanceof MouseEvent && (originalEvent.ctrlKey || originalEvent.metaKey)) {
+            // Create a new Set to not mutate the original
+            const newSelectedNodes = new Set<string>(selectedNodes);
+            
+            // Toggle selection for this node
+            if (newSelectedNodes.has(nodeId)) {
+                newSelectedNodes.delete(nodeId);
+                
+                // If the selected node was deselected, find another to be the primary selected
+                if (nodeId === currentSelectedNodeId) {
+                    const remainingSelected = Array.from(newSelectedNodes);
+                    const newSelectedNodeId = remainingSelected.length > 0 ? remainingSelected[0] : null;
+                    const newSelectedNode = newSelectedNodeId ? this.findNodeById(newSelectedNodeId, allNodes) : undefined;
+                    
+                    return {
+                        selectedNodeId: newSelectedNodeId,
+                        selectedNodes: newSelectedNodes,
+                        selectedNode: newSelectedNode
+                    };
+                }
+                
+                return {
+                    selectedNodeId: currentSelectedNodeId,
+                    selectedNodes: newSelectedNodes,
+                    selectedNode: node
+                };
+            } else {
+                // Add this node to selection
+                newSelectedNodes.add(nodeId);
+                
+                return {
+                    selectedNodeId: nodeId,
+                    selectedNodes: newSelectedNodes,
+                    selectedNode: node
+                };
+            }
+        }
+        
+        // Regular single selection
+        if (allowMultiSelect) {
+            // Clear multi-select if not using modifier keys
+            return {
+                selectedNodeId: nodeId,
+                selectedNodes: new Set<string>([nodeId]),
+                selectedNode: node
+            };
         } else {
-            newSelectedNodes.clear();
-            newSelectedNodes.add(nodeId);
-            selectedNodeId = nodeId;
-        }
-        
-        return { 
-            selectedNodeId, 
-            selectedNodes: newSelectedNodes,
-            selectedNode 
-        };
-    }
-    
-    /**
-     * Selects all nodes in the visible tree
-     */
-    selectAllNodes(nodes: ExplorerNode[]): Set<string> {
-        const visibleNodes = this.navigationService.getVisibleNodesInOrder(nodes);
-        const selectedNodes = new Set<string>();
-        
-        visibleNodes.forEach(node => {
-            selectedNodes.add(node.id);
-        });
-        
-        return selectedNodes;
-    }
-    
-    /**
-     * Selects a range of nodes between two node IDs
-     */
-    selectNodeRange(startNodeId: string, endNodeId: string, selectedNodes: Set<string>, nodes: ExplorerNode[]): void {
-        const visibleNodes = this.navigationService.getVisibleNodesInOrder(nodes);
-        
-        const startIndex = visibleNodes.findIndex(node => node.id === startNodeId);
-        const endIndex = visibleNodes.findIndex(node => node.id === endNodeId);
-        
-        if (startIndex === -1 || endIndex === -1) return;
-        
-        selectedNodes.clear();
-        
-        const minIndex = Math.min(startIndex, endIndex);
-        const maxIndex = Math.max(startIndex, endIndex);
-        
-        for (let i = minIndex; i <= maxIndex; i++) {
-            selectedNodes.add(visibleNodes[i].id);
+            // Single select mode - always just select one node
+            return {
+                selectedNodeId: nodeId,
+                selectedNodes: new Set<string>([nodeId]),
+                selectedNode: node
+            };
         }
     }
     
     /**
-     * Gets selected nodes from the node collection
+     * Get all selected nodes as an array of ExplorerNode objects
      */
-    getSelectedNodes(selectedNodeIds: Set<string>, nodes: ExplorerNode[]): ExplorerNode[] {
+    getSelectedNodes(selectedNodeIds: Set<string>, allNodes: ExplorerNode[]): ExplorerNode[] {
         return Array.from(selectedNodeIds)
-            .map(id => this.findNodeById(id, nodes))
+            .map(id => this.findNodeById(id, allNodes))
             .filter((node): node is ExplorerNode => node !== undefined);
     }
     
     /**
-     * Finds a node by its ID
+     * Restore the selection state in the DOM
      */
-    findNodeById(id: string, nodes: ExplorerNode[]): ExplorerNode | undefined {
-        // Recursive function to find node in tree
-        const findNode = (nodes: ExplorerNode[], id: string): ExplorerNode | undefined => {
-            for (const node of nodes) {
-                if (node.id === id) {
-                    return node;
-                }
+    restoreSelectionState(rootElement: HTMLElement, selectedNodeIds: Set<string>): void {
+        // Clear all selections first
+        const allNodes = rootElement.querySelectorAll('.node');
+        allNodes.forEach(node => {
+            node.classList.remove('selected');
+            
+            const header = node.querySelector('.node-header');
+            if (header) {
+                header.setAttribute('aria-selected', 'false');
+            }
+        });
+        
+        // Apply selections
+        selectedNodeIds.forEach(nodeId => {
+            const nodeElement = rootElement.querySelector(`.node[data-id="${nodeId}"]`);
+            if (nodeElement) {
+                nodeElement.classList.add('selected');
                 
-                if (node.children && node.children.length > 0) {
-                    const found = findNode(node.children, id);
-                    if (found) return found;
+                const header = nodeElement.querySelector('.node-header');
+                if (header) {
+                    header.setAttribute('aria-selected', 'true');
                 }
             }
+        });
+    }
+    
+    /**
+     * Find a node by its ID in the tree
+     */
+    private findNodeById(id: string, nodes: ExplorerNode[]): ExplorerNode | undefined {
+        for (const node of nodes) {
+            if (node.id === id) {
+                return node;
+            }
             
-            return undefined;
+            if (node.children) {
+                const childResult = this.findNodeById(id, node.children);
+                if (childResult) {
+                    return childResult;
+                }
+            }
+        }
+        
+        return undefined;
+    }
+    
+    /**
+     * Get all visible nodes in document order
+     */
+    private getVisibleNodesInOrder(nodes: ExplorerNode[]): ExplorerNode[] {
+        const result: ExplorerNode[] = [];
+        
+        const traverseVisible = (nodeList: ExplorerNode[]) => {
+            for (const node of nodeList) {
+                result.push(node);
+                
+                if (node.expanded && node.children) {
+                    traverseVisible(node.children);
+                }
+            }
         };
         
-        return findNode(nodes, id);
+        traverseVisible(nodes);
+        return result;
     }
 }

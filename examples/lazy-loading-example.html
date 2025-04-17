@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Node Explorer Lazy Loading Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        
+        .explorer-container {
+            height: 400px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        
+        .code-explanation {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        
+        pre {
+            background-color: #eee;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Node Explorer - Lazy Loading Example</h1>
+    
+    <p>This example demonstrates how to properly implement lazy loading in the Node Explorer component.</p>
+    
+    <div class="explorer-container">
+        <odyssey-node-explorer id="lazy-explorer"></odyssey-node-explorer>
+    </div>
+    
+    <div class="code-explanation">
+        <h3>Key Implementation Points:</h3>
+        <ol>
+            <li>Mark nodes as lazy with <code>isLazy: true</code> and <code>hasChildren: true</code></li>
+            <li>Listen for the <code>load-children</code> event</li>
+            <li>When the event fires, fetch the children (async operation)</li>
+            <li>Call <code>setNodeChildren(nodeId, children)</code> to update the node with its children</li>
+        </ol>
+    </div>
+    
+    <pre><code>
+// Define initial nodes with lazy-loaded items
+const lazyNodes = [
+  {
+    id: 'root',
+    label: 'Documents',
+    icon: 'folder',
+    expanded: true,
+    children: [
+      { 
+        id: 'projects', 
+        label: 'Projects', 
+        icon: 'folder',
+        isLazy: true,     // Mark as lazy-loadable
+        hasChildren: true, // Indicate it has children even when not loaded
+        expanded: false
+      },
+      { 
+        id: 'reports', 
+        label: 'Reports', 
+        icon: 'folder',
+        isLazy: true,
+        hasChildren: true,
+        expanded: false
+      }
+    ]
+  }
+];
+
+// Set up event listener to handle lazy loading
+explorer.addEventListener('load-children', (e) => {
+  const { nodeId, node } = e.detail;
+  console.log(`Loading children for node: ${node.label} (${nodeId})`);
+  
+  // Simulate loading data from server (with a timeout to simulate network delay)
+  setTimeout(() => {
+    // Get the children for this specific node
+    const children = getChildrenForNode(nodeId);
+    
+    // Update the node with its children
+    explorer.setNodeChildren(nodeId, children);
+  }, 1000);
+});
+
+function getChildrenForNode(nodeId) {
+  // Return different children based on the node ID
+  switch(nodeId) {
+    case 'projects':
+      return [
+        { id: 'project1', label: 'Web App', icon: 'description' },
+        { id: 'project2', label: 'Mobile App', icon: 'phone_android' }
+      ];
+    case 'reports':
+      return [
+        { id: 'report1', label: 'Q1 Report', icon: 'picture_as_pdf' },
+        { id: 'report2', label: 'Q2 Report', icon: 'picture_as_pdf' }
+      ];
+    default:
+      return [
+        { id: `${nodeId}-child1`, label: 'Child 1', icon: 'insert_drive_file' },
+        { id: `${nodeId}-child2`, label: 'Child 2', icon: 'insert_drive_file' }
+      ];
+  }
+}
+    </code></pre>
+
+    <!-- Load the library -->
+    <script src="../dist/index.js"></script>
+
+    <script>
+        // Initialize the example
+        document.addEventListener('DOMContentLoaded', () => {
+            const explorer = document.getElementById('lazy-explorer');
+            
+            // Define initial nodes with lazy-loaded items
+            const lazyNodes = [
+                {
+                    id: 'root',
+                    label: 'Documents',
+                    icon: 'folder',
+                    expanded: true,
+                    children: [
+                        { 
+                            id: 'projects', 
+                            label: 'Projects', 
+                            icon: 'folder',
+                            isLazy: true,     // Mark as lazy-loadable
+                            hasChildren: true, // Indicate it has children even when not loaded
+                            expanded: false
+                        },
+                        { 
+                            id: 'reports', 
+                            label: 'Reports', 
+                            icon: 'folder',
+                            isLazy: true,
+                            hasChildren: true,
+                            expanded: false
+                        }
+                    ]
+                },
+                {
+                    id: 'images',
+                    label: 'Images',
+                    icon: 'image',
+                    isLazy: true,
+                    hasChildren: true,
+                    expanded: false
+                }
+            ];
+            
+            // Set the initial nodes
+            explorer.setAttribute('nodes', JSON.stringify(lazyNodes));
+            
+            // IMPORTANT: Set up event listener for lazy loading
+            // This is where most implementations fail - they don't listen for the 'load-children' event
+            explorer.addEventListener('load-children', (e) => {
+                const { nodeId, node } = e.detail;
+                console.log(`Loading children for node: ${node.label} (${nodeId})`);
+                
+                // Simulate loading data from server (with a timeout to simulate network delay)
+                setTimeout(() => {
+                    // Get the children for this specific node
+                    const children = getChildrenForNode(nodeId);
+                    
+                    // Update the node with its children
+                    explorer.setNodeChildren(nodeId, children);
+                    
+                    // NOTE: The component now handles adding dropped nodes internally
+                    // You don't need to check for isDropPending or pendingNode anymore!
+                }, 1000);
+            });
+            
+            function getChildrenForNode(nodeId) {
+                // Return different children based on the node ID
+                switch(nodeId) {
+                    case 'projects':
+                        return [
+                            { id: 'project1', label: 'Web App', icon: 'description' },
+                            { id: 'project2', label: 'Mobile App', icon: 'phone_android' },
+                            { 
+                                id: 'archived', 
+                                label: 'Archived Projects', 
+                                icon: 'folder',
+                                isLazy: true,
+                                hasChildren: true
+                            }
+                        ];
+                    case 'reports':
+                        return [
+                            { id: 'report1', label: 'Q1 Report', icon: 'picture_as_pdf' },
+                            { id: 'report2', label: 'Q2 Report', icon: 'picture_as_pdf' }
+                        ];
+                    case 'images':
+                        return [
+                            { id: 'image1', label: 'Vacation.jpg', icon: 'image' },
+                            { id: 'image2', label: 'Profile.png', icon: 'image' }
+                        ];
+                    case 'archived':
+                        return [
+                            { id: 'old-project1', label: 'Legacy App', icon: 'description' },
+                            { id: 'old-project2', label: 'Prototype', icon: 'description' }
+                        ];
+                    default:
+                        return [
+                            { id: `${nodeId}-child1`, label: 'Child 1', icon: 'insert_drive_file' },
+                            { id: `${nodeId}-child2`, label: 'Child 2', icon: 'insert_drive_file' }
+                        ];
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

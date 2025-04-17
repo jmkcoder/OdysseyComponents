@@ -1,6 +1,5 @@
-import { ExplorerNode, DropPosition, NodeSelectedEvent, NodeExpandedEvent, NodeCollapsedEvent, NodeLoadChildrenEvent } from './node-explorer.type';
+import { ExplorerNode, DropPosition } from './node-explorer.type';
 import { NodeService } from './services/node.service';
-import { NodeRendererService } from './services/node-renderer.service';
 import { DragDropService } from './services/drag-drop.service';
 import { AnimationService } from './services/animation.service'; 
 import { UIUpdaterService } from './services/ui-updater.service';
@@ -12,7 +11,6 @@ import './node-explorer.scss';
 
 export class NodeExplorer extends HTMLElement {
     private nodeService: NodeService = new NodeService();
-    private nodeRendererService: NodeRendererService = new NodeRendererService();
     private dragDropService?: DragDropService;
     private animationService: AnimationService = new AnimationService();
     private uiUpdaterService: UIUpdaterService = new UIUpdaterService();
@@ -38,55 +36,16 @@ export class NodeExplorer extends HTMLElement {
     }
 
     private initializeComponent(): void {
-        this.addMaterialIcons();
+        this.uiUpdaterService.addMaterialIcons();
         
         const nodes = this.parseNodes();
         this.nodeService = new NodeService(nodes);
         
         this._allowDragDrop = this.getAttribute('allow-drag-drop') !== 'false';
         this._allowMultiSelect = this.getAttribute('allow-multi-select') === 'true';
-        this._theme = this.getAttribute('theme') || this.detectThemeFromParentOrClass() || 'light';
+        this._theme = this.getAttribute('theme') || this.uiUpdaterService.detectThemeFromParentOrClass(this) || 'light';
         const loadingTimeoutAttr = this.getAttribute('loading-timeout');
         this._loadingTimeout = loadingTimeoutAttr ? parseInt(loadingTimeoutAttr, 10) : this._loadingTimeout;
-    }
-
-    private detectThemeFromParentOrClass(): string | null {
-        // First check if the component itself has a theme class
-        if (this.classList.contains('dark-theme')) return 'dark';
-        if (this.classList.contains('light-theme')) return 'light';
-        if (this.classList.contains('minimal-theme')) return 'minimal';
-        if (this.classList.contains('high-contrast-theme')) return 'high-contrast';
-        
-        // If not, check parent elements for theme indicators
-        let parent = this.parentElement;
-        while (parent) {
-            // Check for sidebar-container with theme
-            if (parent.classList.contains('sidebar-container')) {
-                // Check for theme classes
-                if (parent.classList.contains('dark')) return 'dark';
-                else if (parent.classList.contains('light')) return 'light';
-                else if (parent.classList.contains('minimal')) return 'minimal';
-                else if (parent.classList.contains('high-contrast')) return 'high-contrast';
-                else return 'light'; // No theme found on sidebar-container
-            }
-            
-            // Check for any other parent with theme classes
-            if (parent.classList.contains('dark-theme')) return 'dark';
-            if (parent.classList.contains('light-theme')) return 'light'; 
-            if (parent.classList.contains('dark-mode')) return 'dark';
-            if (parent.classList.contains('light-mode')) return 'light';
-            if (parent.classList.contains('minimal-theme')) return 'minimal';
-            if (parent.classList.contains('high-contrast-theme')) return 'high-contrast';
-            
-            // Check for theme attribute on any parent
-            const parentTheme = parent.getAttribute('theme');
-            if (parentTheme) return parentTheme;
-            
-            parent = parent.parentElement;
-        }
-        
-        // If no theme is found, return null (will default to light)
-        return null;
     }
 
     private observeParentThemeChanges(): void {
@@ -117,7 +76,7 @@ export class NodeExplorer extends HTMLElement {
             }
             
             if (shouldUpdateTheme) {
-                const detectedTheme = this.detectThemeFromParentOrClass();
+                const detectedTheme = this.uiUpdaterService.detectThemeFromParentOrClass(this);
                 if (detectedTheme && detectedTheme !== this._theme) {
                     this.theme = detectedTheme; // This will trigger the setter which updates the attribute
                 }
@@ -133,16 +92,6 @@ export class NodeExplorer extends HTMLElement {
         });
     }
 
-    private addMaterialIcons(): void {
-        if (!document.head.querySelector('#material-icons-styles')) {
-            const globalLinkElem = document.createElement('link');
-            globalLinkElem.rel = 'stylesheet';
-            globalLinkElem.href = 'https://fonts.googleapis.com/icon?family=Material+Icons';
-            globalLinkElem.id = 'material-icons-styles';
-            document.head.insertBefore(globalLinkElem, document.head.firstChild);
-        }
-    }
-
     private parseNodes(): ExplorerNode[] {
         try {
             const nodesAttr = this.getAttribute('nodes');
@@ -156,27 +105,14 @@ export class NodeExplorer extends HTMLElement {
     render(): void {
         const nodes = this.nodeService.getNodes();
         
-        const template = document.createElement('template');
-        template.innerHTML = this.nodeRendererService.renderExplorer(
-            nodes, 
-            this._allowMultiSelect, 
-            this._allowDragDrop
+        // Use UI updater service to handle DOM creation and updating
+        this.uiUpdaterService.renderExplorer(
+            this,
+            nodes,
+            this._allowMultiSelect,
+            this._allowDragDrop,
+            this._theme
         );
-
-        this.innerHTML = '';
-
-        this.appendChild(template.content.cloneNode(true));
-
-        const nodeExplorer = this.querySelector('.node-explorer');
-        if (nodeExplorer) {
-            nodeExplorer.classList.remove('light-theme', 'dark-theme', 'minimal-theme', 'high-contrast-theme');
-            
-            if (this._theme !== 'light') {
-                nodeExplorer.classList.add(`${this._theme}-theme`);
-            } else {
-                nodeExplorer.classList.add('light-theme');
-            }
-        }
 
         if (this._allowDragDrop) {
             this.dragDropService = new DragDropService(
@@ -193,8 +129,8 @@ export class NodeExplorer extends HTMLElement {
         }
         
         this.attachNodeSelectionListeners();
-        this.attachKeyboardNavigation();
-        this.restoreSelectionState();
+        this.navigationService.attachKeyboardNavigation(this, this.handleComponentFocus.bind(this), this.handleComponentKeyDown.bind(this));
+        this.selectionService.restoreSelectionState(this, this.selectedNodes);
         
         this.tabIndex = 0;
         this.addEventListener('focus', this.handleComponentFocus.bind(this));
@@ -229,7 +165,7 @@ export class NodeExplorer extends HTMLElement {
                 if (nodeId && !isExpandToggle) {
                     this.handleNodeSelect(nodeId, e);
                     this.focusedNodeId = nodeId;
-                    this.focusNode(nodeId);
+                    this.navigationService.focusNode(this, nodeId);
                 }
             });
             
@@ -254,66 +190,16 @@ export class NodeExplorer extends HTMLElement {
         const node = this.nodeService.findNodeById(nodeId);
         if (!node) return;
         
-        switch (e.key) {
-            case 'Enter':
-            case ' ': 
-                e.preventDefault();
-                this.handleNodeSelect(nodeId, e);
-                break;
-                
-            case 'a': 
-                if ((e.ctrlKey || e.metaKey) && this._allowMultiSelect) {
-                    e.preventDefault();
-                    this.selectAllNodes();
-                }
-                break;
-                
-            case 'ArrowRight':
-                e.preventDefault();
-                if (node.children && node.children.length) {
-                    if (!node.expanded) {
-                        this.handleToggleExpansion(nodeId);
-                    } else {
-                        const firstChild = node.children[0];
-                        if (firstChild) {
-                            this.focusNode(firstChild.id);
-                        }
-                    }
-                }
-                break;
-                
-            case 'ArrowLeft':
-                e.preventDefault();
-                if (node.expanded && node.children && node.children.length) {
-                    this.handleToggleExpansion(nodeId);
-                } else {
-                    const parentId = this.findParentNodeId(nodeId);
-                    if (parentId) {
-                        this.focusNode(parentId);
-                    }
-                }
-                break;
-                
-            case 'ArrowDown':
-                e.preventDefault();
-                this.navigateToNextNode(nodeId);
-                break;
-                
-            case 'ArrowUp':
-                e.preventDefault();
-                this.navigateToPreviousNode(nodeId);
-                break;
-                
-            case 'Home':
-                e.preventDefault();
-                this.navigateToFirstNode();
-                break;
-                
-            case 'End':
-                e.preventDefault();
-                this.navigateToLastNode();
-                break;
-        }
+        this.navigationService.handleNodeKeyDown(
+            e, 
+            nodeId, 
+            node, 
+            this,
+            this.nodeService,
+            this.handleToggleExpansion.bind(this),
+            this.handleNodeSelect.bind(this),
+            this.selectAllNodes.bind(this)
+        );
     }
 
     private selectAllNodes(): void {
@@ -331,70 +217,11 @@ export class NodeExplorer extends HTMLElement {
             this.selectedNodeId = visibleNodes[visibleNodes.length - 1].id;
         }
         
-        this.updateSelectionUI();
-        this.setAriaAttributes();
+        this.uiUpdaterService.updateSelectionUI(this, this.selectedNodes);
+        this.uiUpdaterService.setAriaAttributes(this, this._allowMultiSelect, this.nodeService);
         
         if (visibleNodes.length > 0) {
-            this.dispatchMultiSelectEvent(this.getSelectedNodes());
-        }
-    }
-    
-    private findParentNodeId(childId: string): string | null {
-        const findParent = (nodes: ExplorerNode[], id: string, parentId: string | null = null): string | null => {
-            for (const node of nodes) {
-                if (node.id === id) {
-                    return parentId;
-                }
-                
-                if (node.children && node.children.length) {
-                    const foundParentId = findParent(node.children, id, node.id);
-                    if (foundParentId !== null) {
-                        return foundParentId;
-                    }
-                }
-            }
-            
-            return null;
-        };
-        
-        return findParent(this.nodeService.getNodes(), childId);
-    }
-    
-    private navigateToNextNode(currentNodeId: string): void {
-        const nextNodeId = this.navigationService.navigateToNextNode(this, currentNodeId, this.nodeService.getNodes());
-        if (nextNodeId) {
-            this.navigationService.focusNode(this, nextNodeId);
-            this.focusedNodeId = nextNodeId;
-        }
-    }
-    
-    private navigateToPreviousNode(currentNodeId: string): void {
-        const prevNodeId = this.navigationService.navigateToPreviousNode(this, currentNodeId, this.nodeService.getNodes());
-        if (prevNodeId) {
-            this.navigationService.focusNode(this, prevNodeId);
-            this.focusedNodeId = prevNodeId;
-        }
-    }
-    
-    private navigateToFirstNode(): void {
-        const firstNodeId = this.navigationService.navigateToFirstNode(this.nodeService.getNodes());
-        if (firstNodeId) {
-            this.navigationService.focusNode(this, firstNodeId);
-            this.focusedNodeId = firstNodeId;
-        }
-    }
-    
-    private navigateToLastNode(): void {
-        const lastNodeId = this.navigationService.navigateToLastNode(this.nodeService.getNodes());
-        if (lastNodeId) {
-            this.navigationService.focusNode(this, lastNodeId);
-            this.focusedNodeId = lastNodeId;
-        }
-    }
-    
-    private focusNode(nodeId: string): void {
-        if (this.navigationService.focusNode(this, nodeId)) {
-            this.focusedNodeId = nodeId;
+            this.eventDispatcherService.dispatchMultiSelectEvent(this.getSelectedNodes());
         }
     }
     
@@ -410,16 +237,6 @@ export class NodeExplorer extends HTMLElement {
         }
     }
     
-    private attachKeyboardNavigation(): void {
-        const explorerContainer = this.querySelector('.node-explorer');
-        if (explorerContainer) {
-            (explorerContainer as HTMLElement).tabIndex = 0;
-            explorerContainer.addEventListener('keydown', this.handleComponentKeyDown.bind(this) as EventListener);
-        }
-        
-        this.setAriaAttributes();
-    }
-    
     private handleComponentKeyDown(e: KeyboardEvent): void {
         if (e.key === 'Tab' && !e.shiftKey && !this.focusedNodeId) {
             const visibleNodes = this.navigationService.getVisibleNodesInOrder(this.nodeService.getNodes());
@@ -429,112 +246,6 @@ export class NodeExplorer extends HTMLElement {
                 this.focusedNodeId = visibleNodes[0].id;
             }
         }
-    }
-    
-    private setAriaAttributes(): void {
-        const container = this.querySelector('.node-container');
-        if (container) {
-            container.setAttribute('role', 'tree');
-            container.setAttribute('aria-multiselectable', this._allowMultiSelect ? 'true' : 'false');
-        }
-        
-        const nodes = this.querySelectorAll('.node');
-        nodes.forEach(node => {
-            const nodeId = (node as HTMLElement).dataset.id;
-            if (!nodeId) return;
-            
-            const nodeHeader = node.querySelector('.node-header');
-            if (nodeHeader) {
-                nodeHeader.setAttribute('role', 'treeitem');
-                
-                if (this.selectedNodes.has(nodeId)) {
-                    nodeHeader.setAttribute('aria-selected', 'true');
-                } else {
-                    nodeHeader.setAttribute('aria-selected', 'false');
-                }
-                
-                const foundNode = this.nodeService.findNodeById(nodeId);
-                if (foundNode) {
-                    if (foundNode.children && foundNode.children.length > 0) {
-                        nodeHeader.setAttribute('aria-expanded', foundNode.expanded ? 'true' : 'false');
-                    }
-                }
-                
-                const level = this.getNodeLevel(nodeId);
-                nodeHeader.setAttribute('aria-level', level.toString());
-            }
-            
-            const childrenContainer = node.querySelector('.node-children');
-            if (childrenContainer) {
-                childrenContainer.setAttribute('role', 'group');
-            }
-        });
-    }
-    
-    private getNodeLevel(nodeId: string): number {
-        let level = 1;
-        let currentId = nodeId;
-        let parentId = this.findParentNodeId(currentId);
-        
-        while (parentId !== null) {
-            level++;
-            currentId = parentId;
-            parentId = this.findParentNodeId(currentId);
-        }
-        
-        return level;
-    }
-    
-    private updateSelectionUI(): void {
-        const allNodes = this.querySelectorAll('.node');
-        allNodes.forEach(node => {
-            node.classList.remove('selected');
-            
-            const header = node.querySelector('.node-header');
-            if (header) {
-                header.setAttribute('aria-selected', 'false');
-            }
-        });
-        
-        this.selectedNodes.forEach(nodeId => {
-            const nodeElement = this.querySelector(`.node[data-id="${nodeId}"]`);
-            if (nodeElement) {
-                nodeElement.classList.add('selected');
-                
-                const header = nodeElement.querySelector('.node-header');
-                if (header) {
-                    header.setAttribute('aria-selected', 'true');
-                }
-            }
-        });
-    }
-    
-    private restoreSelectionState(): void {
-        this.updateSelectionUI();
-    }
-    
-    private dispatchNodeSelectEvent(node: ExplorerNode, originalEvent?: Event): void {
-        const detail: NodeSelectedEvent = { 
-            node,
-            originalEvent
-        };
-        
-        this.dispatchEvent(new CustomEvent('node-selected', {
-            bubbles: true,
-            composed: true,
-            detail
-        }));
-    }
-    
-    private dispatchMultiSelectEvent(nodes: ExplorerNode[]): void {
-        this.dispatchEvent(new CustomEvent('nodes-selected', {
-            bubbles: true,
-            composed: true,
-            detail: {
-                nodes,
-                count: nodes.length
-            }
-        }));
     }
     
     private handleNodeDrop(sourceId: string, targetId: string, position: DropPosition): void {
@@ -557,19 +268,15 @@ export class NodeExplorer extends HTMLElement {
                 // First load the children
                 targetNode.isLoading = true;
                 targetNode.expanded = true;
-                this.updateNodeUI(targetId);
+                this.uiUpdaterService.updateNodeUI(this, targetId, targetNode, this.selectedNodes);
                 
                 // Dispatch load children event - after children are loaded, the drop will be completed
-                this.dispatchEvent(new CustomEvent('load-children', {
-                    bubbles: true,
-                    composed: true,
-                    detail: { 
-                        nodeId: targetId, 
-                        node: targetNode,
-                        pendingNode: tempSourceNode,
-                        isDropOperation: true 
-                    }
-                }));
+                this.eventDispatcherService.dispatchNodeLoadChildrenEvent(
+                    targetId, 
+                    targetNode,
+                    tempSourceNode,
+                    true
+                );
                 
                 return;
             } else {
@@ -588,77 +295,6 @@ export class NodeExplorer extends HTMLElement {
         
         this.nodeService.addNodeToRoot(sourceNode);
         this.updateNodesAndRender();
-    }
-    
-    private updateNodeUI(nodeId: string): void {
-        const nodeElement = this.querySelector(`.node[data-id="${nodeId}"]`);
-        if (!nodeElement) return;
-
-        const node = this.nodeService.findNodeById(nodeId);
-        if (!node) return;
-
-        const nodeHeader = nodeElement.querySelector('.node-header');
-        if (nodeHeader) {
-            nodeHeader.setAttribute('aria-expanded', node.expanded ? 'true' : 'false');
-            nodeHeader.setAttribute('aria-selected', this.selectedNodes.has(nodeId) ? 'true' : 'false');
-
-            const expandToggle = nodeHeader.querySelector('.expand-toggle');
-            if (expandToggle) {
-                if (node.isLoading) {
-                    expandToggle.textContent = 'sync';
-                } else if (node.hasLoadingError) {
-                    expandToggle.textContent = 'error';
-                } else {
-                    expandToggle.textContent = node.expanded ? 'keyboard_arrow_down' : 'keyboard_arrow_right';
-                }
-            }
-
-            // Remove any existing indicators
-            const existingIndicator = nodeHeader.querySelector('.loading-indicator, .error-indicator');
-            if (existingIndicator) {
-                existingIndicator.remove();
-            }
-
-            const nodeLabel = nodeHeader.querySelector('.node-label');
-            if (!nodeLabel) return;
-
-            // Add appropriate indicator based on node state
-            if (node.isLoading) {
-                const loadingIcon = document.createElement('span');
-                loadingIcon.className = 'loading-indicator material-icons animate-spin ml-2';
-                loadingIcon.textContent = 'refresh';
-                nodeLabel.appendChild(loadingIcon);
-            } else if (node.hasLoadingError) {
-                const errorIcon = document.createElement('span');
-                errorIcon.className = 'error-indicator material-icons ml-2';
-                errorIcon.textContent = 'error_outline';
-                errorIcon.style.color = 'var(--odyssey-error-color, #e53935)';
-                errorIcon.title = 'Failed to load. Click to retry.';
-                
-                // Add click handler to retry loading
-                errorIcon.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.retryLoadingChildren(nodeId);
-                });
-                
-                nodeLabel.appendChild(errorIcon);
-            }
-        }
-
-        const childrenContainer = nodeElement.querySelector('.node-children') as HTMLElement;
-        if (childrenContainer) {
-            if (node.expanded) {
-                childrenContainer.classList.add('expanded');
-                childrenContainer.style.height = 'auto';
-                childrenContainer.style.opacity = '1';
-                childrenContainer.style.pointerEvents = 'auto';
-            } else {
-                childrenContainer.classList.remove('expanded');
-                childrenContainer.style.height = '0';
-                childrenContainer.style.opacity = '0';
-                childrenContainer.style.pointerEvents = 'none';
-            }
-        }
     }
 
     private handleToggleExpansion(id: string): void {
@@ -743,7 +379,7 @@ export class NodeExplorer extends HTMLElement {
                 node.hasLoadingError = true;
                 
                 // Update the UI to show the error state
-                this.updateNodeUI(nodeId);
+                this.uiUpdaterService.updateNodeUI(this, nodeId, node, this.selectedNodes);
                 
                 // Dispatch error info through the load-children event
                 this.eventDispatcherService.dispatchNodeLoadChildrenEvent(
@@ -785,7 +421,7 @@ export class NodeExplorer extends HTMLElement {
         node.isLoading = true;
         
         // Update the UI to show loading state
-        this.updateNodeUI(nodeId);
+        this.uiUpdaterService.updateNodeUI(this, nodeId, node, this.selectedNodes);
         
         // Start a new timeout
         this.startLoadingTimeout(nodeId);
@@ -829,8 +465,26 @@ export class NodeExplorer extends HTMLElement {
         return false;
     }
 
+    /**
+     * Internal handler for the load-children event
+     * This handles adding the dropped node after children are loaded
+     */
+    private handleLazyLoadingEvent(e: CustomEvent): void {
+        const { nodeId, isDropPending, pendingNode } = e.detail;
+        
+        // Only handle events that have a pending drop operation
+        if (isDropPending && pendingNode) {
+            // Set a timeout to ensure the node children are properly rendered first
+            setTimeout(() => {
+                // Add the dropped node to the target
+                this.addNode(nodeId, pendingNode);
+            }, 100);
+        }
+    }
+
     connectedCallback() {
         this.initializeComponent();
+        this.applyThemeClass(); // Apply theme class when component is connected
         this.render();
         this.observeParentThemeChanges();
     }
@@ -881,10 +535,33 @@ export class NodeExplorer extends HTMLElement {
                 
             case 'theme':
                 this._theme = newValue || 'light';
+                this.applyThemeClass();
                 this.render();
                 break;
         }
     }
+    
+    /**
+     * Apply the appropriate theme class based on the current theme value
+     */
+    private applyThemeClass(): void {
+        // Remove all existing theme classes
+        this.classList.remove('light-theme', 'dark-theme', 'minimal-theme', 'high-contrast-theme');
+        
+        // Apply the appropriate theme class with suffix
+        if (this._theme === 'dark') {
+            this.classList.add('dark-theme');
+        } else if (this._theme === 'minimal') {
+            this.classList.add('minimal-theme');
+        } else if (this._theme === 'high-contrast') {
+            this.classList.add('high-contrast-theme');
+        } else {
+            // Default to light theme
+            this.classList.add('light-theme');
+        }
+    }
+
+    // Public API methods
 
     expandNode(id: string): boolean {
         const node = this.nodeService.findNodeById(id);
@@ -1012,6 +689,7 @@ export class NodeExplorer extends HTMLElement {
         if (this._theme !== value) {
             this._theme = value;
             this.setAttribute('theme', value);
+            this.applyThemeClass(); // Apply theme class when theme property is set
         }
     }
 
@@ -1027,8 +705,43 @@ export class NodeExplorer extends HTMLElement {
         // Clear any loading timeout for this node since loading is complete
         this.clearLoadingTimeout(nodeId);
         
+        // Get event details before updating and rendering
+        const pendingEvents = this.findPendingLoadEvents(nodeId);
+        
+        // Update the nodes and render the component
         this.updateNodesAndRender();
+        
+        // Handle any pending dropped nodes after the children are loaded
+        if (pendingEvents.length > 0) {
+            pendingEvents.forEach(event => {
+                const { pendingNode } = event.detail;
+                if (pendingNode) {
+                    this.addNode(nodeId, pendingNode);
+                }
+            });
+        }
+        
         return true;
+    }
+    
+    /**
+     * Find any pending load-children events for a specific node ID
+     */
+    private findPendingLoadEvents(nodeId: string): CustomEvent[] {
+        // We use a custom approach to find events that are waiting for this node
+        // by checking the latest event that was dispatched
+        const pendingEvents: CustomEvent[] = [];
+        
+        // Get load-children events from event dispatcher service if available
+        const lastEvent = this.eventDispatcherService.getLastLoadChildrenEvent();
+        if (lastEvent && 
+            lastEvent.detail.nodeId === nodeId && 
+            lastEvent.detail.isDropPending && 
+            lastEvent.detail.pendingNode) {
+            pendingEvents.push(lastEvent as CustomEvent);
+        }
+        
+        return pendingEvents;
     }
     
     markNodeAsLazy(nodeId: string, hasChildren: boolean = true): boolean {

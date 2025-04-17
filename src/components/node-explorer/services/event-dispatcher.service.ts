@@ -1,93 +1,136 @@
-import { ExplorerNode, NodeSelectedEvent, NodeExpandedEvent, NodeCollapsedEvent, NodeLoadChildrenEvent } from '../node-explorer.type';
+import { ExplorerNode, NodeSelectedEvent, NodeExpandedEvent, NodeCollapsedEvent, NodeChangeEvent, NodesSelectedEvent, DragStartEvent, NodeLoadChildrenEvent } from '../node-explorer.type';
 
 /**
- * Service responsible for dispatching custom events
+ * Service responsible for dispatching custom events from the node explorer
  */
 export class EventDispatcherService {
-    private element: HTMLElement;
-
-    constructor(element: HTMLElement) {
-        this.element = element;
+    private eventTarget: HTMLElement;
+    private lastLoadChildrenEvent: CustomEvent | null = null;
+    
+    constructor(eventTarget: HTMLElement) {
+        this.eventTarget = eventTarget;
     }
-
+    
     /**
-     * Dispatches a node selected event
+     * Returns the last load-children event that was dispatched
+     */
+    getLastLoadChildrenEvent(): CustomEvent | null {
+        return this.lastLoadChildrenEvent;
+    }
+    
+    /**
+     * Dispatches a node select event
      */
     dispatchNodeSelectEvent(node: ExplorerNode, originalEvent?: Event): void {
-        const detail: NodeSelectedEvent = { 
-            node,
-            originalEvent
-        };
-        
-        this.dispatchCustomEvent('node-selected', detail);
-    }
-    
-    /**
-     * Dispatches an event when multiple nodes are selected
-     */
-    dispatchMultiSelectEvent(nodes: ExplorerNode[]): void {
-        this.dispatchCustomEvent('nodes-selected', {
-            nodes,
-            count: nodes.length
+        const selectEvent = new CustomEvent<NodeSelectedEvent>('node-selected', {
+            bubbles: true,
+            composed: true,
+            detail: {
+                node,
+                originalEvent
+            }
         });
+        
+        this.eventTarget.dispatchEvent(selectEvent);
     }
     
     /**
-     * Dispatches an event when a node is expanded
+     * Dispatches a multi-select event
+     */
+    dispatchMultiSelectEvent(nodes: ExplorerNode[], originalEvent?: Event): void {
+        const multiSelectEvent = new CustomEvent<NodesSelectedEvent>('nodes-selected', {
+            bubbles: true,
+            composed: true,
+            detail: {
+                nodes,
+                originalEvent,
+                count: nodes.length
+            }
+        });
+        
+        this.eventTarget.dispatchEvent(multiSelectEvent);
+    }
+    
+    /**
+     * Dispatches a node expanded event
      */
     dispatchNodeExpandedEvent(nodeId: string, node: ExplorerNode): void {
-        const detail: NodeExpandedEvent = { nodeId, node };
-        this.dispatchCustomEvent('node-expanded', detail);
+        const expandEvent = new CustomEvent<NodeExpandedEvent>('node-expanded', {
+            bubbles: true,
+            composed: true,
+            detail: {
+                nodeId,
+                node
+            }
+        });
+        
+        this.eventTarget.dispatchEvent(expandEvent);
     }
     
     /**
-     * Dispatches an event when a node is collapsed
+     * Dispatches a node collapsed event
      */
     dispatchNodeCollapsedEvent(nodeId: string, node: ExplorerNode): void {
-        const detail: NodeCollapsedEvent = { nodeId, node };
-        this.dispatchCustomEvent('node-collapsed', detail);
+        const collapseEvent = new CustomEvent<NodeCollapsedEvent>('node-collapsed', {
+            bubbles: true,
+            composed: true,
+            detail: {
+                nodeId,
+                node
+            }
+        });
+        
+        this.eventTarget.dispatchEvent(collapseEvent);
     }
     
     /**
-     * Dispatches an event to load children for a node
+     * Dispatches a nodes change event
+     */
+    dispatchNodeChangeEvent(nodes: ExplorerNode[]): void {
+        const changeEvent = new CustomEvent<NodeChangeEvent>('nodes-changed', {
+            bubbles: true,
+            composed: true,
+            detail: {
+                nodes
+            }
+        });
+        
+        this.eventTarget.dispatchEvent(changeEvent);
+    }
+    
+    /**
+     * Dispatches a node load children event
      */
     dispatchNodeLoadChildrenEvent(
         nodeId: string, 
-        node: ExplorerNode, 
-        pendingNode?: ExplorerNode, 
-        isDropOperation?: boolean,
-        hasError?: boolean,
+        node: ExplorerNode,
+        pendingNode?: ExplorerNode,
+        isDropPending: boolean = false,
+        hasError: boolean = false,
         errorType?: string,
         errorMessage?: string
     ): void {
-        const detail: NodeLoadChildrenEvent = { 
-            nodeId, 
-            node,
-            pendingNode,
-            isDropOperation,
-            hasError,
-            errorType,
-            errorMessage
-        };
-        
-        this.dispatchCustomEvent('load-children', detail);
-    }
-    
-    /**
-     * Dispatches an event when nodes structure changes
-     */
-    dispatchNodeChangeEvent(nodes: ExplorerNode[]): void {
-        this.dispatchCustomEvent('nodes-changed', { nodes });
-    }
-    
-    /**
-     * Generic method to dispatch a custom event
-     */
-    private dispatchCustomEvent(name: string, detail: any): void {
-        this.element.dispatchEvent(new CustomEvent(name, {
+        const loadChildrenEvent = new CustomEvent('load-children', {
             bubbles: true,
             composed: true,
-            detail
-        }));
+            detail: {
+                nodeId,
+                node,
+                pendingNode, // Renamed from sourceNode for clarity
+                isDropPending,
+                hasError,
+                error: hasError ? {
+                    type: errorType || 'unknown',
+                    message: errorMessage || 'Unknown error loading children'
+                } : undefined
+            }
+        });
+        
+        // Store the event for later reference if it's a drop operation
+        if (isDropPending && pendingNode) {
+            this.lastLoadChildrenEvent = loadChildrenEvent;
+        }
+        
+        this.eventTarget.dispatchEvent(loadChildrenEvent);
     }
 }
