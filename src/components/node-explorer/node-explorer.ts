@@ -538,6 +538,11 @@ export class NodeExplorer extends HTMLElement {
     }
     
     private handleNodeDrop(sourceId: string, targetId: string, position: DropPosition): void {
+        // Check if target is a descendant of source (circular reference)
+        if (this.isDescendant(sourceId, targetId)) {
+            return;
+        }
+        
         const sourceNode = this.nodeService.findAndRemoveNode(sourceId);
         if (!sourceNode) return;
         
@@ -803,6 +808,25 @@ export class NodeExplorer extends HTMLElement {
         
         // Dispatch node change event
         this.eventDispatcherService.dispatchNodeChangeEvent(nodes);
+    }
+
+    private isDescendant(ancestorId: string, nodeId: string): boolean {
+        // If it's the same node, it's not considered a descendant
+        if (ancestorId === nodeId) return false;
+        
+        // Find the node by ID
+        const potentialAncestor = this.nodeService.findNodeById(ancestorId);
+        if (!potentialAncestor || !potentialAncestor.children) return false;
+        
+        // Check if any of the children match the nodeId
+        for (const child of potentialAncestor.children) {
+            if (child.id === nodeId) return true;
+            
+            // Recursively check child's descendants
+            if (this.isDescendant(child.id, nodeId)) return true;
+        }
+        
+        return false;
     }
 
     connectedCallback() {
