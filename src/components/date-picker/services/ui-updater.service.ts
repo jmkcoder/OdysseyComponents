@@ -1,8 +1,9 @@
 import { CalendarService } from './calendar.service';
+import { DatePickerSelectionMode } from './date-picker-service-manager';
 import { InternationalizationService } from './internationalization.service';
 
 /**
- * Calendar view mode enum - represents different calendar view states
+ * Calendar view modes
  */
 export enum CalendarViewMode {
   DAYS = 'days',
@@ -11,96 +12,99 @@ export enum CalendarViewMode {
 }
 
 /**
- * Service responsible for UI updates and rendering
+ * Service for updating the date picker UI
  */
 export class UIUpdaterService {
+  private _materialIconsAdded = false;
+  
   /**
-   * Add Material Icons stylesheet if not already present
+   * Add Material Icons if not already added
    */
   addMaterialIcons(): void {
-    if (!document.querySelector('link[href*="material-icons"]')) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'https://fonts.googleapis.com/icon?family=Material+Icons';
-      document.head.appendChild(link);
+    if (this._materialIconsAdded) return;
+    
+    // Check if already loaded
+    const existingLink = document.querySelector('link[href*="material-icons"]');
+    if (existingLink) {
+      this._materialIconsAdded = true;
+      return;
     }
+    
+    // Add link to Material Icons
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/icon?family=Material+Icons';
+    document.head.appendChild(link);
+    
+    this._materialIconsAdded = true;
   }
   
   /**
-   * Render the complete date picker
+   * Render the date picker input field
    */
   renderDatePicker(
-    hostElement: HTMLElement,
-    selectedDate: Date | null,
+    element: HTMLElement,
+    selectedValue: string | Date | null,
     disabled: boolean,
     required: boolean,
     i18nService: InternationalizationService,
     calendarService: CalendarService,
     theme: string,
-    onToggleCalendar: () => void
+    onToggle: () => void
   ): void {
-    // Add theme class to host element
-    hostElement.classList.add('odyssey-date-picker');
-    hostElement.setAttribute('data-theme', theme);
+    // Clear any existing content
+    element.innerHTML = '';
     
-    // Create input wrapper
-    const inputWrapper = document.createElement('div');
-    inputWrapper.className = 'date-picker-input-wrapper';
+    // Create input container
+    const inputContainer = document.createElement('div');
+    inputContainer.classList.add('date-picker-input-wrapper');
     
     // Create input field
     const input = document.createElement('input');
     input.type = 'text';
-    input.className = 'date-picker-input';
-    input.readOnly = true;
-    input.placeholder = disabled ? '' : i18nService.translate('selectDate');
+    input.readOnly = true; // Make it read-only to prevent direct editing
+    input.classList.add('date-picker-input');
     input.disabled = disabled;
     input.required = required;
+    input.ariaLabel = 'Select date';
     
-    // Set input value if date is selected
-    if (selectedDate) {
-      input.value = i18nService.formatDate(selectedDate);
+    // Format and set the input value
+    if (selectedValue !== null) {
+      if (selectedValue instanceof Date) {
+        input.value = i18nService.formatDate(selectedValue);
+      } else {
+        input.value = selectedValue;
+      }
     }
     
     // Create calendar icon
-    const icon = document.createElement('span');
-    icon.className = 'date-picker-icon material-icons';
-    icon.textContent = 'calendar_today';
+    const iconSpan = document.createElement('span');
+    iconSpan.classList.add('date-picker-icon', 'material-icons');
+    iconSpan.textContent = 'calendar_today';
     
-    // Add input events
-    if (!disabled) {
-      inputWrapper.addEventListener('click', onToggleCalendar);
-      input.addEventListener('keydown', (e: KeyboardEvent) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onToggleCalendar();
-        }
-      });
+    // Add click event to input to toggle calendar
+    input.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!disabled) {
+        onToggle();
+      }
+    });
+    
+    // Append elements to input container
+    inputContainer.appendChild(input);
+    inputContainer.appendChild(iconSpan);
+    
+    // Append input container to element
+    element.appendChild(inputContainer);
+    
+    // Add theme as data attribute
+    if (theme) {
+      element.setAttribute('data-theme', theme);
     }
     
-    // Add required ARIA attributes for accessibility
-    input.setAttribute('aria-label', i18nService.translate('dateInput'));
-    input.setAttribute('role', 'textbox');
-    
-    if (required) {
-      input.setAttribute('aria-required', 'true');
-    }
-    
-    // Add components to the DOM
-    inputWrapper.appendChild(input);
-    inputWrapper.appendChild(icon);
-    
-    // Add dialog container (will be populated later)
-    const dialogContainer = document.createElement('div');
-    dialogContainer.className = 'date-picker-dialog';
-    dialogContainer.setAttribute('role', 'dialog');
-    dialogContainer.setAttribute('aria-modal', 'true');
-    dialogContainer.setAttribute('aria-label', i18nService.translate('calendar'));
-    dialogContainer.tabIndex = -1;
-    
-    // Clear host element and append new content
-    hostElement.innerHTML = '';
-    hostElement.appendChild(inputWrapper);
-    hostElement.appendChild(dialogContainer);
+    // Add base class
+    element.classList.add('odyssey-date-picker');
   }
   
   /**
@@ -115,744 +119,715 @@ export class UIUpdaterService {
     isOpen: boolean,
     i18nService: InternationalizationService,
     calendarService: CalendarService,
-    eventHandlers: {
+    handlers: {
       onPrevMonth: () => void;
       onNextMonth: () => void;
       onSelectDate: (date: Date) => void;
       onToday: () => void;
       onClear: () => void;
       onClose: () => void;
+      onViewModeChange?: (mode: CalendarViewMode) => void; // New handler for view mode changes
+      yearRangeStart?: number; // Optional parameter for year range start
     },
-    viewMode: CalendarViewMode = CalendarViewMode.DAYS
+    viewMode: CalendarViewMode = CalendarViewMode.DAYS,
+    selectionMode: DatePickerSelectionMode = DatePickerSelectionMode.SINGLE,
+    startDate: Date | null = null,
+    endDate: Date | null = null,
+    isSelectingRange: boolean = false
   ): void {
-    // Get dialog element
-    const dialog = this.getDialog(container);
-    if (!dialog) return;
+    // Find or create dialog
+    let dialog = container.querySelector('.date-picker-dialog') as HTMLDivElement;
     
-    // Update visibility using class instead of inline style
+    if (!dialog) {
+      dialog = document.createElement('div');
+      dialog.classList.add('date-picker-dialog');
+      dialog.setAttribute('role', 'dialog');
+      dialog.setAttribute('aria-label', 'Date picker');
+      dialog.setAttribute('tabindex', '-1');
+      container.appendChild(dialog);
+    }
+    
+    // Update dialog visibility
     if (isOpen) {
       dialog.classList.add('open');
     } else {
       dialog.classList.remove('open');
     }
     
-    // If not open, no need to render the calendar
+    // If not open, no need to update content
     if (!isOpen) return;
     
-    // Start building the dialog content
-    const content = document.createElement('div');
+    // Clear dialog content
+    dialog.innerHTML = '';
     
     // Create header
     const header = document.createElement('div');
-    header.className = 'date-picker-header';
+    header.classList.add('date-picker-header');
     
-    // Previous button (function depends on view mode)
-    const prevBtn = document.createElement('button');
-    prevBtn.className = 'date-picker-nav-btn';
+    // Create navigation components
+    const prevButton = document.createElement('button');
+    prevButton.type = 'button';
+    prevButton.classList.add('date-picker-nav-btn');
+    prevButton.ariaLabel = 'Previous';
+    prevButton.innerHTML = '<span class="material-icons">chevron_left</span>';
+    prevButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      handlers.onPrevMonth();
+    });
     
-    switch (viewMode) {
-      case CalendarViewMode.DAYS:
-        prevBtn.setAttribute('aria-label', i18nService.translate('previousMonth'));
-        prevBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          eventHandlers.onPrevMonth();
-        });
-        break;
-      case CalendarViewMode.MONTHS:
-        prevBtn.setAttribute('aria-label', i18nService.translate('previousYear'));
-        prevBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.navigateYearView(container, year - 1, month, selectedDate, focusedDate, isOpen, i18nService, calendarService, eventHandlers);
-        });
-        break;
-      case CalendarViewMode.YEARS:
-        const yearRange = this.getYearRange(year);
-        prevBtn.setAttribute('aria-label', i18nService.translate('previousYearRange'));
-        prevBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.navigateYearRangeView(container, yearRange.start - 12, month, selectedDate, focusedDate, isOpen, i18nService, calendarService, eventHandlers);
-        });
-        break;
-    }
+    const selectors = document.createElement('div');
+    selectors.classList.add('date-picker-selectors');
     
-    const prevIcon = document.createElement('span');
-    prevIcon.className = 'material-icons';
-    prevIcon.textContent = 'chevron_left';
-    prevBtn.appendChild(prevIcon);
+    // Month selector (always visible)
+    const monthSelector = document.createElement('button');
+    monthSelector.type = 'button';
+    monthSelector.classList.add('date-picker-month-selector');
+    monthSelector.textContent = i18nService.getMonthName(month);
+    monthSelector.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      
+      // Toggle between days view and months view
+      if (viewMode === CalendarViewMode.DAYS) {
+        // If in day view, go to month view
+        if (handlers.onViewModeChange) {
+          handlers.onViewModeChange(CalendarViewMode.MONTHS);
+        }
+        this.updateCalendarContent(dialog, year, month, selectedDate, focusedDate, i18nService, calendarService, handlers, CalendarViewMode.MONTHS, selectionMode, startDate, endDate, isSelectingRange);
+      } else if (viewMode === CalendarViewMode.MONTHS) {
+        // If in month view, go back to day view
+        if (handlers.onViewModeChange) {
+          handlers.onViewModeChange(CalendarViewMode.DAYS);
+        }
+        this.updateCalendarContent(dialog, year, month, selectedDate, focusedDate, i18nService, calendarService, handlers, CalendarViewMode.DAYS, selectionMode, startDate, endDate, isSelectingRange);
+      } else if (viewMode === CalendarViewMode.YEARS) {
+        // If in year view, go to month view
+        if (handlers.onViewModeChange) {
+          handlers.onViewModeChange(CalendarViewMode.DAYS);
+        }
+        this.updateCalendarContent(dialog, year, month, selectedDate, focusedDate, i18nService, calendarService, handlers, CalendarViewMode.DAYS, selectionMode, startDate, endDate, isSelectingRange);
+      }
+    });
     
-    // Month/Year selectors
-    const monthYearContainer = document.createElement('div');
-    monthYearContainer.className = 'date-picker-selectors';
+    // Year selector
+    const yearSelector = document.createElement('button');
+    yearSelector.type = 'button';
+    yearSelector.classList.add('date-picker-year-selector');
     
     if (viewMode === CalendarViewMode.DAYS) {
-      // Create separate month selector
-      const monthSelector = document.createElement('button');
-      monthSelector.className = 'date-picker-month-selector';
-      monthSelector.textContent = i18nService.getMonthName(month, false);
-      monthSelector.setAttribute('aria-label', i18nService.translate('selectMonth'));
-      monthSelector.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.renderCalendarDialog(
-          container,
-          year,
-          month,
-          selectedDate,
-          focusedDate,
-          isOpen,
-          i18nService,
-          calendarService,
-          eventHandlers,
-          CalendarViewMode.MONTHS
-        );
-      });
-      
-      // Create separate year selector
-      const yearSelector = document.createElement('button');
-      yearSelector.className = 'date-picker-year-selector';
       yearSelector.textContent = year.toString();
-      yearSelector.setAttribute('aria-label', i18nService.translate('selectYear'));
-      yearSelector.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.renderCalendarDialog(
-          container,
-          year,
-          month,
-          selectedDate,
-          focusedDate,
-          isOpen,
-          i18nService,
-          calendarService,
-          eventHandlers,
-          CalendarViewMode.YEARS
-        );
-      });
-      
-      monthYearContainer.appendChild(monthSelector);
-      monthYearContainer.appendChild(yearSelector);
     } else if (viewMode === CalendarViewMode.MONTHS) {
-      // In month view, only show the year
-      const yearSelector = document.createElement('button');
-      yearSelector.className = 'date-picker-year-selector center';
       yearSelector.textContent = year.toString();
-      yearSelector.setAttribute('aria-label', i18nService.translate('selectYear'));
-      yearSelector.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.renderCalendarDialog(
-          container,
-          year,
-          month,
-          selectedDate,
-          focusedDate,
-          isOpen,
-          i18nService,
-          calendarService,
-          eventHandlers,
-          CalendarViewMode.YEARS
-        );
-      });
-      
-      monthYearContainer.appendChild(yearSelector);
-    } else {
-      // In years view, show the year range (non-clickable)
+    } else if (viewMode === CalendarViewMode.YEARS) {
       const yearRange = this.getYearRange(year);
-      const yearRangeText = document.createElement('div');
-      yearRangeText.className = 'date-picker-year-range center';
-      yearRangeText.textContent = `${yearRange.start} - ${yearRange.end}`;
-      yearRangeText.setAttribute('aria-label', i18nService.translate('yearRange'));
+      yearSelector.textContent = `${yearRange.start} - ${yearRange.end}`;
+    }
+    
+    yearSelector.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
       
-      monthYearContainer.appendChild(yearRangeText);
-    }
+      // Toggle between days view and years view
+      if (viewMode === CalendarViewMode.DAYS || viewMode === CalendarViewMode.MONTHS) {
+        // If in day or month view, go to year view
+        if (handlers.onViewModeChange) {
+          handlers.onViewModeChange(CalendarViewMode.YEARS);
+        }
+        this.updateCalendarContent(dialog, year, month, selectedDate, focusedDate, i18nService, calendarService, handlers, CalendarViewMode.YEARS, selectionMode, startDate, endDate, isSelectingRange);
+      } else if (viewMode === CalendarViewMode.YEARS) {
+        // If in year view, go back to day view
+        if (handlers.onViewModeChange) {
+          handlers.onViewModeChange(CalendarViewMode.DAYS);
+        }
+        this.updateCalendarContent(dialog, year, month, selectedDate, focusedDate, i18nService, calendarService, handlers, CalendarViewMode.DAYS, selectionMode, startDate, endDate, isSelectingRange);
+      }
+    });
     
-    // Next button (function depends on view mode)
-    const nextBtn = document.createElement('button');
-    nextBtn.className = 'date-picker-nav-btn';
+    selectors.appendChild(monthSelector);
+    selectors.appendChild(yearSelector);
     
-    switch (viewMode) {
-      case CalendarViewMode.DAYS:
-        nextBtn.setAttribute('aria-label', i18nService.translate('nextMonth'));
-        nextBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          eventHandlers.onNextMonth();
-        });
-        break;
-      case CalendarViewMode.MONTHS:
-        nextBtn.setAttribute('aria-label', i18nService.translate('nextYear'));
-        nextBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.navigateYearView(container, year + 1, month, selectedDate, focusedDate, isOpen, i18nService, calendarService, eventHandlers);
-        });
-        break;
-      case CalendarViewMode.YEARS:
-        const yearRange = this.getYearRange(year);
-        nextBtn.setAttribute('aria-label', i18nService.translate('nextYearRange'));
-        nextBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.navigateYearRangeView(container, yearRange.end + 1, month, selectedDate, focusedDate, isOpen, i18nService, calendarService, eventHandlers);
-        });
-        break;
-    }
+    const nextButton = document.createElement('button');
+    nextButton.type = 'button';
+    nextButton.classList.add('date-picker-nav-btn');
+    nextButton.ariaLabel = 'Next';
+    nextButton.innerHTML = '<span class="material-icons">chevron_right</span>';
+    nextButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      handlers.onNextMonth();
+    });
     
-    const nextIcon = document.createElement('span');
-    nextIcon.className = 'material-icons';
-    nextIcon.textContent = 'chevron_right';
-    nextBtn.appendChild(nextIcon);
+    // Append navigation elements to header
+    header.appendChild(prevButton);
+    header.appendChild(selectors);
+    header.appendChild(nextButton);
     
-    // Add elements to header
-    header.appendChild(prevBtn);
-    header.appendChild(monthYearContainer);
-    header.appendChild(nextBtn);
-    content.appendChild(header);
+    dialog.appendChild(header);
     
-    // Create calendar grid based on view mode
-    switch (viewMode) {
-      case CalendarViewMode.DAYS:
-        content.appendChild(this.createDaysView(year, month, selectedDate, focusedDate, i18nService, calendarService, eventHandlers));
-        break;
-      case CalendarViewMode.MONTHS:
-        content.appendChild(this.createMonthsView(year, month, selectedDate, container, focusedDate, isOpen, i18nService, calendarService, eventHandlers));
-        break;
-      case CalendarViewMode.YEARS:
-        content.appendChild(this.createYearsView(year, month, selectedDate, container, focusedDate, isOpen, i18nService, calendarService, eventHandlers));
-        break;
-    }
+    // Create content based on view mode
+    this.updateCalendarContent(dialog, year, month, selectedDate, focusedDate, i18nService, calendarService, handlers, viewMode, selectionMode, startDate, endDate, isSelectingRange);
     
-    // Create footer with appropriate buttons for the view mode
-    if (viewMode === CalendarViewMode.DAYS) {
-      const footer = this.createFooter(selectedDate, i18nService, eventHandlers);
-      content.appendChild(footer);
-    } else {
-      // For month and year views, add a cancel button to return to day view
-      const footer = document.createElement('div');
-      footer.className = 'date-picker-footer';
-      
-      const cancelBtn = document.createElement('button');
-      cancelBtn.className = 'date-picker-btn primary';
-      cancelBtn.textContent = i18nService.translate('cancel');
-      cancelBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        // Return directly to day view
-        this.renderCalendarDialog(
-          container,
-          year,
-          month,
-          selectedDate,
-          focusedDate,
-          isOpen,
-          i18nService,
-          calendarService,
-          eventHandlers,
-          CalendarViewMode.DAYS
-        );
-      });
-      
-      footer.appendChild(cancelBtn);
-      content.appendChild(footer);
-    }
+    // Create footer with actions
+    const footer = document.createElement('div');
+    footer.classList.add('date-picker-footer');
     
-    // Update the dialog content
-    dialog.innerHTML = '';
-    dialog.appendChild(content);
+    const buttonsContainer = document.createElement('div');
+    buttonsContainer.classList.add('date-picker-buttons');
+    
+    const todayButton = document.createElement('button');
+    todayButton.type = 'button';
+    todayButton.classList.add('date-picker-btn');
+    todayButton.textContent = i18nService.translate('today');
+    todayButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      handlers.onToday();
+    });
+    
+    const clearButton = document.createElement('button');
+    clearButton.type = 'button';
+    clearButton.classList.add('date-picker-btn');
+    clearButton.textContent = i18nService.translate('clear');
+    clearButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      handlers.onClear();
+    });
+    
+    const closeButton = document.createElement('button');
+    closeButton.type = 'button';
+    closeButton.classList.add('date-picker-btn', 'primary');
+    closeButton.textContent = i18nService.translate('close');
+    closeButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      handlers.onClose();
+    });
+    
+    buttonsContainer.appendChild(todayButton);
+    buttonsContainer.appendChild(clearButton);
+    buttonsContainer.appendChild(closeButton);
+    
+    footer.appendChild(buttonsContainer);
+    
+    dialog.appendChild(footer);
+    
+    // Make dialog focusable
+    dialog.setAttribute('tabindex', '0');
   }
   
   /**
-   * Create days view (standard calendar view)
+   * Update calendar content based on view mode
    */
-  private createDaysView(
+  private updateCalendarContent(
+    dialog: HTMLDivElement,
     year: number,
     month: number,
     selectedDate: Date | null,
     focusedDate: Date,
     i18nService: InternationalizationService,
     calendarService: CalendarService,
-    eventHandlers: any
-  ): HTMLElement {
-    // Create calendar grid
-    const calendar = document.createElement('div');
-    calendar.className = 'date-picker-calendar';
-    
-    // Add weekday headers
-    const weekdaysRow = document.createElement('div');
-    weekdaysRow.className = 'date-picker-row date-picker-weekdays';
-    
-    const firstDayOfWeek = calendarService.getFirstDayOfWeekValue();
-    
-    for (let i = 0; i < 7; i++) {
-      const dayIndex = (i + firstDayOfWeek) % 7;
-      const weekdayCell = document.createElement('div');
-      weekdayCell.className = 'date-picker-cell weekday';
-      weekdayCell.textContent = i18nService.formatWeekdayNarrow(dayIndex);
-      weekdaysRow.appendChild(weekdayCell);
+    handlers: any,
+    viewMode: CalendarViewMode,
+    selectionMode: DatePickerSelectionMode,
+    startDate: Date | null,
+    endDate: Date | null,
+    isSelectingRange: boolean
+  ): void {
+    // Remove existing content
+    const existingContent = dialog.querySelector('.date-picker-calendar');
+    if (existingContent) {
+      existingContent.remove();
     }
     
-    calendar.appendChild(weekdaysRow);
+    // Create content container
+    const content = document.createElement('div');
+    content.classList.add('date-picker-calendar');
     
-    // Generate calendar days
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Update header title if exists
+    const monthSelector = dialog.querySelector('.date-picker-month-selector');
+    if (monthSelector) {
+      monthSelector.textContent = i18nService.getMonthName(month);
+    }
     
-    const firstDayOfMonth = new Date(year, month, 1);
-    const lastDayOfMonth = new Date(year, month + 1, 0);
+    // Determine which year to actually use for selection highlighting
+    let yearForHighlighting = year;
+    if (selectionMode === DatePickerSelectionMode.SINGLE && selectedDate) {
+      yearForHighlighting = selectedDate.getFullYear();
+    } else if (selectionMode === DatePickerSelectionMode.RANGE && startDate) {
+      yearForHighlighting = startDate.getFullYear();
+    }
     
-    // Calculate first day to display
-    let firstDayToDisplay = new Date(firstDayOfMonth);
-    const dayOfWeek = firstDayOfMonth.getDay();
-    const diff = (dayOfWeek - firstDayOfWeek + 7) % 7;
-    firstDayToDisplay.setDate(firstDayOfMonth.getDate() - diff);
-    
-    // Generate 6 weeks to ensure we always display enough days
-    const weeks = 6;
-    
-    for (let week = 0; week < weeks; week++) {
-      const weekRow = document.createElement('div');
-      weekRow.className = 'date-picker-row';
-      
-      for (let day = 0; day < 7; day++) {
-        const currentDate = new Date(firstDayToDisplay);
-        currentDate.setDate(firstDayToDisplay.getDate() + (week * 7) + day);
-        
-        const dayCell = document.createElement('div');
-        dayCell.className = 'date-picker-cell';
-        dayCell.textContent = currentDate.getDate().toString();
-        
-        const isFocused = currentDate.getDate() === focusedDate.getDate() && 
-                          currentDate.getMonth() === focusedDate.getMonth() && 
-                          currentDate.getFullYear() === focusedDate.getFullYear();
-        
-        if (isFocused) {
-          dayCell.tabIndex = 0;
-          dayCell.classList.add('focused');
-        } else {
-          dayCell.tabIndex = -1;
+    // Update year selector text
+    const yearSelector = dialog.querySelector('.date-picker-year-selector');
+    if (yearSelector) {
+      if (viewMode === CalendarViewMode.YEARS) {
+        // Use the yearRangeStart parameter if provided by the service manager
+        let yearRangeStart = handlers.yearRangeStart;
+        if (yearRangeStart === undefined) {
+          // Fall back to calculating based on the current year if not provided
+          const yearRange = this.getYearRange(year);
+          yearRangeStart = yearRange.start;
         }
-        
-        if (currentDate.getMonth() !== month) {
-          dayCell.classList.add(currentDate < firstDayOfMonth ? 'prev-month' : 'next-month');
-          if (!calendarService.isDateDisabled(currentDate)) {
-            const exactYear = currentDate.getFullYear();
-            const exactMonth = currentDate.getMonth();
-            const exactDay = currentDate.getDate();
-            
-            dayCell.addEventListener('click', (e) => {
-              e.stopPropagation();
-              eventHandlers.onSelectDate(new Date(exactYear, exactMonth, exactDay));
-            });
-          }
-        } else if (calendarService.isDateDisabled(currentDate)) {
-          dayCell.classList.add('disabled');
-          dayCell.setAttribute('aria-disabled', 'true');
-        } else {
-          const exactYear = currentDate.getFullYear();
-          const exactMonth = currentDate.getMonth();
-          const exactDay = currentDate.getDate();
-          
-          dayCell.addEventListener('click', (e) => {
-            e.stopPropagation();
-            eventHandlers.onSelectDate(new Date(exactYear, exactMonth, exactDay));
-          });
-        }
-        
-        if (selectedDate && 
-            currentDate.getDate() === selectedDate.getDate() && 
-            currentDate.getMonth() === selectedDate.getMonth() && 
-            currentDate.getFullYear() === selectedDate.getFullYear()) {
-          dayCell.classList.add('selected');
-        }
-        
-        if (currentDate.getDate() === today.getDate() && 
-            currentDate.getMonth() === today.getMonth() && 
-            currentDate.getFullYear() === today.getFullYear()) {
-          dayCell.classList.add('today');
-        }
-        
-        const dateKey = calendarService.formatDate(currentDate);
-        const events = calendarService.getEvents(dateKey);
-        
-        if (events && events.length > 0) {
-          const indicator = document.createElement('span');
-          indicator.className = 'event-indicator';
-          dayCell.appendChild(indicator);
-          
-          dayCell.setAttribute('aria-label', `${currentDate.getDate()}, ${events.length} ${
-            events.length === 1 ? i18nService.translate('event') : i18nService.translate('events')
-          }`);
-        } else {
-          dayCell.setAttribute('aria-label', currentDate.getDate().toString());
-        }
-        
-        weekRow.appendChild(dayCell);
+        const yearRangeEnd = yearRangeStart + 11;
+        yearSelector.textContent = `${yearRangeStart} - ${yearRangeEnd}`;
+      } else {
+        yearSelector.textContent = year.toString();
       }
-      
-      calendar.appendChild(weekRow);
     }
     
-    return calendar;
+    // Render appropriate content based on view mode
+    if (viewMode === CalendarViewMode.DAYS) {
+      this.renderDaysView(
+        content, 
+        year, 
+        month, 
+        selectedDate, 
+        focusedDate, 
+        i18nService, 
+        calendarService, 
+        handlers.onSelectDate,
+        selectionMode,
+        startDate,
+        endDate,
+        isSelectingRange
+      );
+    } else if (viewMode === CalendarViewMode.MONTHS) {
+      this.renderMonthsView(content, year, i18nService, month, (newMonth: number) => {
+        // When selecting month, go back to days view with selected month
+        if (handlers.onViewModeChange) {
+          handlers.onViewModeChange(CalendarViewMode.DAYS);
+        }
+        this.updateCalendarContent(dialog, year, newMonth, selectedDate, focusedDate, i18nService, calendarService, handlers, CalendarViewMode.DAYS, selectionMode, startDate, endDate, isSelectingRange);
+      });
+    } else if (viewMode === CalendarViewMode.YEARS) {
+      // Use provided yearRangeStart or calculate it
+      let yearRangeStart = handlers.yearRangeStart;
+      if (yearRangeStart === undefined) {
+        // Fall back to calculating based on the current year if not provided
+        const yearRange = this.getYearRange(yearForHighlighting);
+        yearRangeStart = yearRange.start;
+      }
+      const yearRangeEnd = yearRangeStart + 11;
+      
+      // Log the year range being displayed
+      console.log(`Rendering year range: ${yearRangeStart}-${yearRangeEnd}, highlighting year: ${yearForHighlighting}`);
+      
+      this.renderYearsView(content, yearRangeStart, yearRangeEnd, yearForHighlighting, (newYear: number) => {
+        // When selecting year, go directly to days view with selected year
+        if (handlers.onViewModeChange) {
+          handlers.onViewModeChange(CalendarViewMode.DAYS);
+        }
+        this.updateCalendarContent(dialog, newYear, month, selectedDate, focusedDate, i18nService, calendarService, handlers, CalendarViewMode.DAYS, selectionMode, startDate, endDate, isSelectingRange);
+      });
+    }
+    
+    // Insert content into dialog after header
+    const header = dialog.querySelector('.date-picker-header');
+    if (header && header.nextSibling) {
+      dialog.insertBefore(content, header.nextSibling);
+    } else {
+      dialog.appendChild(content);
+    }
   }
   
   /**
-   * Create months view (month picker)
+   * Render the days view
    */
-  private createMonthsView(
+  private renderDaysView(
+    container: HTMLDivElement,
     year: number,
-    currentMonth: number,
+    month: number,
     selectedDate: Date | null,
-    container: HTMLElement,
     focusedDate: Date,
-    isOpen: boolean,
     i18nService: InternationalizationService,
     calendarService: CalendarService,
-    eventHandlers: any
-  ): HTMLElement {
-    const monthsGrid = document.createElement('div');
-    monthsGrid.className = 'date-picker-months-grid';
+    onSelectDate: (date: Date) => void,
+    selectionMode: DatePickerSelectionMode,
+    startDate: Date | null,
+    endDate: Date | null,
+    isSelectingRange: boolean
+  ): void {
+    // Create weekdays header row
+    const weekdaysRow = document.createElement('div');
+    weekdaysRow.classList.add('date-picker-row', 'date-picker-weekdays');
     
+    // Get first day of week (numeric value, not a Date)
+    const firstDayOfWeek = calendarService.getFirstDayOfWeekValue();
+    
+    // Add day names
+    for (let i = 0; i < 7; i++) {
+      const dayIndex = (firstDayOfWeek + i) % 7;
+      const dayCell = document.createElement('div');
+      dayCell.classList.add('date-picker-cell', 'weekday');
+      dayCell.textContent = i18nService.getDayAbbr(dayIndex);
+      weekdaysRow.appendChild(dayCell);
+    }
+    
+    container.appendChild(weekdaysRow);
+    
+    // Generate calendar days
+    const calendarDays = calendarService.generateCalendarDays(year, month);
+    
+    // Create grid for days (6 weeks x 7 days)
+    let week: HTMLDivElement | null = null;
+    let dayCount = 0;
+    
+    // Function to check if date is in range
+    const isInRange = (date: Date): boolean => {
+      if (!startDate || !endDate) return false;
+      
+      const time = date.getTime();
+      return time > startDate.getTime() && time < endDate.getTime();
+    };
+    
+    for (const currentDate of calendarDays) {
+      // Create a new row for each week
+      if (dayCount % 7 === 0) {
+        if (week) {
+          container.appendChild(week);
+        }
+        week = document.createElement('div');
+        week.classList.add('date-picker-row');
+      }
+      
+      // Create day cell
+      const dayCell = document.createElement('div');
+      dayCell.classList.add('date-picker-cell');
+      
+      // Set text content to day number
+      dayCell.textContent = currentDate.getDate().toString();
+      
+      // Check if current month
+      const isCurrentMonth = currentDate.getMonth() === month;
+      if (!isCurrentMonth) {
+        if (currentDate.getMonth() < month || 
+          (currentDate.getMonth() === 11 && month === 0)) {
+          dayCell.classList.add('prev-month');
+        } else {
+          dayCell.classList.add('next-month');
+        }
+      }
+      
+      // Check if day is today
+      if (calendarService.isToday(currentDate)) {
+        dayCell.classList.add('today');
+      }
+      
+      // Check if day is selected (single mode) or part of selected range (range mode)
+      let isSelected = false;
+      
+      if (selectionMode === DatePickerSelectionMode.SINGLE && selectedDate) {
+        // In single mode, check if this is the selected date
+        isSelected = currentDate.getDate() === selectedDate.getDate() &&
+                      currentDate.getMonth() === selectedDate.getMonth() &&
+                      currentDate.getFullYear() === selectedDate.getFullYear();
+      } else if (selectionMode === DatePickerSelectionMode.RANGE) {
+        // In range mode, check if this is a boundary date
+        if (startDate) {
+          const isStartDate = currentDate.getDate() === startDate.getDate() &&
+                             currentDate.getMonth() === startDate.getMonth() &&
+                             currentDate.getFullYear() === startDate.getFullYear();
+          if (isStartDate) {
+            isSelected = true;
+            dayCell.classList.add('range-start');
+          }
+        }
+        
+        if (endDate) {
+          const isEndDate = currentDate.getDate() === endDate.getDate() &&
+                           currentDate.getMonth() === endDate.getMonth() &&
+                           currentDate.getFullYear() === endDate.getFullYear();
+          if (isEndDate) {
+            isSelected = true;
+            dayCell.classList.add('range-end');
+          }
+        }
+        
+        // Check if day is in the selected range
+        if (isInRange(currentDate)) {
+          dayCell.classList.add('in-range');
+        }
+      }
+      
+      if (isSelected) {
+        dayCell.classList.add('selected');
+      }
+      
+      // Check if day is focused
+      if (currentDate.getDate() === focusedDate.getDate() &&
+          currentDate.getMonth() === focusedDate.getMonth() &&
+          currentDate.getFullYear() === focusedDate.getFullYear()) {
+        dayCell.classList.add('focused');
+        dayCell.setAttribute('tabindex', '0');
+      } else {
+        dayCell.setAttribute('tabindex', '-1');
+      }
+      
+      // Check if day is disabled
+      if (calendarService.isDateDisabled(currentDate)) {
+        dayCell.classList.add('disabled');
+      } else {
+        // Add click event only if not disabled
+        dayCell.addEventListener('click', (e) => {
+          // Prevent the event from bubbling up which might cause the calendar to close
+          e.stopPropagation();
+          e.preventDefault();
+          onSelectDate(new Date(currentDate));
+        });
+      }
+      
+      // Add events indicators if any
+      const formattedDate = calendarService.formatDate(currentDate);
+      const events = calendarService.getEvents(formattedDate);
+      if (events && events.length > 0) {
+        dayCell.classList.add('has-events');
+        
+        // Create event indicator
+        const indicator = document.createElement('span');
+        indicator.classList.add('event-indicator');
+        dayCell.appendChild(indicator);
+        
+        // Add title attribute with event details
+        dayCell.title = events.join(', ');
+      }
+      
+      // Add ARIA attributes for accessibility
+      dayCell.setAttribute('role', 'gridcell');
+      dayCell.setAttribute('aria-label', i18nService.formatDate(currentDate));
+      
+      if (week) {
+        week.appendChild(dayCell);
+      }
+      
+      dayCount++;
+    }
+    
+    // Append the last week
+    if (week) {
+      container.appendChild(week);
+    }
+  }
+  
+  /**
+   * Render the months view
+   */
+  private renderMonthsView(
+    container: HTMLDivElement,
+    year: number,
+    i18nService: InternationalizationService,
+    currentMonth: number,
+    onSelectMonth: (month: number) => void
+  ): void {
+    const monthsContainer = document.createElement('div');
+    monthsContainer.classList.add('date-picker-months-grid');
+    monthsContainer.setAttribute('role', 'grid');
+    
+    // Create months grid (3x4)
     for (let row = 0; row < 4; row++) {
       const monthRow = document.createElement('div');
-      monthRow.className = 'date-picker-row';
+      monthRow.classList.add('date-picker-row');
+      monthRow.setAttribute('role', 'row');
       
       for (let col = 0; col < 3; col++) {
         const monthIndex = row * 3 + col;
-        const monthCell = document.createElement('div');
-        monthCell.className = 'date-picker-cell month-cell';
-        monthCell.textContent = i18nService.getMonthName(monthIndex, true);
+        const monthElement = document.createElement('div');
+        monthElement.classList.add('date-picker-cell', 'month-cell');
+        monthElement.setAttribute('role', 'gridcell');
         
+        // Check if month is selected
         if (monthIndex === currentMonth) {
-          monthCell.classList.add('current');
+          monthElement.classList.add('selected');
+          monthElement.setAttribute('tabindex', '0');
+        } else {
+          monthElement.setAttribute('tabindex', '-1');
         }
         
-        if (selectedDate && monthIndex === selectedDate.getMonth() && year === selectedDate.getFullYear()) {
-          monthCell.classList.add('selected');
+        // Check if it's current month in current year
+        const today = new Date();
+        if (today.getMonth() === monthIndex && today.getFullYear() === year) {
+          monthElement.classList.add('current');
         }
         
-        monthCell.addEventListener('click', (e) => {
+        monthElement.textContent = i18nService.getMonthName(monthIndex, true);
+        
+        // Add click handler
+        monthElement.addEventListener('click', (e) => {
+          // Prevent the event from bubbling up which might cause the calendar to close
           e.stopPropagation();
-          // When selecting a month, return to days view with the selected month
-          this.renderCalendarDialog(
-            container,
-            year,
-            monthIndex,
-            selectedDate,
-            new Date(year, monthIndex, 1), // Set focused date to the first day of the selected month
-            isOpen,
-            i18nService,
-            calendarService,
-            eventHandlers,
-            CalendarViewMode.DAYS
-          );
+          e.preventDefault();
+          onSelectMonth(monthIndex);
         });
         
-        monthCell.setAttribute('role', 'button');
-        monthCell.setAttribute('aria-label', i18nService.getMonthName(monthIndex, false));
-        
-        monthRow.appendChild(monthCell);
+        monthRow.appendChild(monthElement);
       }
       
-      monthsGrid.appendChild(monthRow);
+      monthsContainer.appendChild(monthRow);
     }
     
-    return monthsGrid;
+    container.appendChild(monthsContainer);
   }
   
   /**
-   * Create years view (year picker)
+   * Render the years view
    */
-  private createYearsView(
-    year: number,
-    currentMonth: number,
-    selectedDate: Date | null,
-    container: HTMLElement,
-    focusedDate: Date,
-    isOpen: boolean,
-    i18nService: InternationalizationService,
-    calendarService: CalendarService,
-    eventHandlers: any
-  ): HTMLElement {
-    const yearsGrid = document.createElement('div');
-    yearsGrid.className = 'date-picker-years-grid';
+  private renderYearsView(
+    container: HTMLDivElement,
+    startYear: number,
+    endYear: number,
+    currentYear: number,
+    onSelectYear: (year: number) => void
+  ): void {
+    const yearsContainer = document.createElement('div');
+    yearsContainer.classList.add('date-picker-years-grid');
+    yearsContainer.setAttribute('role', 'grid');
     
-    const yearRange = this.getYearRange(year);
+    // Track if the selected year is in the displayed range
+    let selectedYearVisible = false;
+    
+    // Create years grid (4x3)
+    let yearIndex = startYear;
     
     for (let row = 0; row < 4; row++) {
       const yearRow = document.createElement('div');
-      yearRow.className = 'date-picker-row';
+      yearRow.classList.add('date-picker-row');
+      yearRow.setAttribute('role', 'row');
       
       for (let col = 0; col < 3; col++) {
-        const index = row * 3 + col;
-        const yearValue = yearRange.start + index;
-        
-        const yearCell = document.createElement('div');
-        yearCell.className = 'date-picker-cell year-cell';
-        yearCell.textContent = yearValue.toString();
-        
-        if (yearValue === new Date().getFullYear()) {
-          yearCell.classList.add('today');
+        if (yearIndex <= endYear) {
+          const yearElement = document.createElement('div');
+          yearElement.classList.add('date-picker-cell', 'year-cell');
+          yearElement.setAttribute('role', 'gridcell');
+          
+          // Check if year is selected
+          const isSelected = yearIndex === currentYear;
+          if (isSelected) {
+            yearElement.classList.add('selected');
+            yearElement.setAttribute('tabindex', '0');
+            selectedYearVisible = true;
+          } else {
+            yearElement.setAttribute('tabindex', '-1');
+          }
+          
+          // Check if it's current year
+          const today = new Date();
+          if (today.getFullYear() === yearIndex) {
+            yearElement.classList.add('current');
+          }
+          
+          // Store the actual year value to ensure we select the correct year
+          const actualYear = yearIndex;
+          yearElement.textContent = actualYear.toString();
+          
+          // Add click handler
+          yearElement.addEventListener('click', (e) => {
+            // Prevent the event from bubbling up which might cause the calendar to close
+            e.stopPropagation();
+            e.preventDefault();
+            // Log which year was selected for debugging
+            console.log(`Year selected: ${actualYear}`);
+            onSelectYear(actualYear);
+          });
+          
+          yearRow.appendChild(yearElement);
+          yearIndex++;
         }
-        
-        if (selectedDate && yearValue === selectedDate.getFullYear()) {
-          yearCell.classList.add('selected');
-        }
-        
-        if (yearValue === year) {
-          yearCell.classList.add('current');
-        }
-        
-        yearCell.addEventListener('click', (e) => {
-          e.stopPropagation();
-          // When selecting a year, return directly to days view with the selected year
-          this.renderCalendarDialog(
-            container,
-            yearValue,
-            currentMonth,
-            selectedDate,
-            new Date(yearValue, currentMonth, 1), // Set focused date to the first day of the current month in selected year
-            isOpen,
-            i18nService,
-            calendarService,
-            eventHandlers,
-            CalendarViewMode.DAYS
-          );
-        });
-        
-        yearCell.setAttribute('role', 'button');
-        yearCell.setAttribute('aria-label', yearValue.toString());
-        
-        yearRow.appendChild(yearCell);
       }
       
-      yearsGrid.appendChild(yearRow);
+      yearsContainer.appendChild(yearRow);
     }
     
-    return yearsGrid;
+    container.appendChild(yearsContainer);
   }
   
   /**
-   * Helper method to get the range of years to display
+   * Calculate year range for the years view
    */
-  private getYearRange(currentYear: number): { start: number, end: number } {
-    const start = Math.floor(currentYear / 12) * 12;
+  private getYearRange(year: number): { start: number; end: number } {
+    const start = Math.floor(year / 12) * 12;
     const end = start + 11;
-    
     return { start, end };
   }
   
   /**
-   * Navigate year view
-   */
-  private navigateYearView(
-    container: HTMLElement,
-    year: number,
-    month: number,
-    selectedDate: Date | null,
-    focusedDate: Date,
-    isOpen: boolean,
-    i18nService: InternationalizationService,
-    calendarService: CalendarService,
-    eventHandlers: any
-  ): void {
-    this.renderCalendarDialog(
-      container,
-      year,
-      month,
-      selectedDate,
-      focusedDate,
-      isOpen,
-      i18nService,
-      calendarService,
-      eventHandlers,
-      CalendarViewMode.MONTHS
-    );
-  }
-  
-  /**
-   * Navigate year range view
-   */
-  private navigateYearRangeView(
-    container: HTMLElement,
-    year: number,
-    month: number,
-    selectedDate: Date | null,
-    focusedDate: Date,
-    isOpen: boolean,
-    i18nService: InternationalizationService,
-    calendarService: CalendarService,
-    eventHandlers: any
-  ): void {
-    this.renderCalendarDialog(
-      container,
-      year,
-      month,
-      selectedDate,
-      focusedDate,
-      isOpen,
-      i18nService,
-      calendarService,
-      eventHandlers,
-      CalendarViewMode.YEARS
-    );
-  }
-  
-  /**
-   * Convenience method to render month view
-   */
-  renderMonthView(
-    container: HTMLElement,
-    year: number,
-    month: number,
-    selectedDate: Date | null,
-    focusedDate: Date,
-    isOpen: boolean,
-    i18nService: InternationalizationService,
-    calendarService: CalendarService,
-    eventHandlers: any
-  ): void {
-    this.renderCalendarDialog(
-      container,
-      year,
-      month,
-      selectedDate,
-      focusedDate,
-      isOpen,
-      i18nService,
-      calendarService,
-      eventHandlers,
-      CalendarViewMode.MONTHS
-    );
-  }
-  
-  /**
-   * Convenience method to render year view
-   */
-  renderYearView(
-    container: HTMLElement,
-    year: number,
-    month: number,
-    selectedDate: Date | null,
-    focusedDate: Date,
-    isOpen: boolean,
-    i18nService: InternationalizationService,
-    calendarService: CalendarService,
-    eventHandlers: any
-  ): void {
-    this.renderCalendarDialog(
-      container,
-      year,
-      month,
-      selectedDate,
-      focusedDate,
-      isOpen,
-      i18nService,
-      calendarService,
-      eventHandlers,
-      CalendarViewMode.YEARS
-    );
-  }
-  
-  /**
-   * Create footer element with action buttons
-   */
-  private createFooter(
-    selectedDate: Date | null,
-    i18nService: InternationalizationService,
-    eventHandlers: any
-  ): HTMLElement {
-    const footer = document.createElement('div');
-    footer.className = 'date-picker-footer';
-    
-    const selectedDateText = document.createElement('div');
-    selectedDateText.className = 'date-picker-selected-date';
-    
-    if (selectedDate) {
-      selectedDateText.textContent = `${i18nService.translate('selected')}: ${i18nService.formatDate(selectedDate)}`;
-    }
-    
-    footer.appendChild(selectedDateText);
-    
-    const buttons = document.createElement('div');
-    buttons.className = 'date-picker-buttons';
-    
-    const todayBtn = document.createElement('button');
-    todayBtn.className = 'date-picker-btn';
-    todayBtn.textContent = i18nService.translate('today');
-    todayBtn.addEventListener('click', eventHandlers.onToday);
-    
-    const clearBtn = document.createElement('button');
-    clearBtn.className = 'date-picker-btn';
-    clearBtn.textContent = i18nService.translate('clear');
-    clearBtn.addEventListener('click', eventHandlers.onClear);
-    
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'date-picker-btn primary';
-    closeBtn.textContent = i18nService.translate('close');
-    closeBtn.addEventListener('click', eventHandlers.onClose);
-    
-    buttons.appendChild(todayBtn);
-    buttons.appendChild(clearBtn);
-    buttons.appendChild(closeBtn);
-    
-    footer.appendChild(buttons);
-    
-    return footer;
-  }
-  
-  /**
-   * Update the input field value
-   */
-  updateInputValue(
-    container: HTMLElement,
-    date: Date | null,
-    i18nService: InternationalizationService
-  ): void {
-    const input = this.getInputField(container);
-    if (!input) return;
-    
-    if (date) {
-      input.value = i18nService.formatDate(date);
-    } else {
-      input.value = '';
-    }
-  }
-  
-  /**
-   * Focus on a date cell
-   */
-  focusDateCell(
-    dialog: HTMLElement,
-    date: Date,
-    calendarService: CalendarService
-  ): void {
-    const cells = dialog.querySelectorAll('.date-picker-cell:not(.weekday):not(.month-cell):not(.year-cell)');
-    
-    if (calendarService.isDateDisabled(date)) {
-      return;
-    }
-    
-    for (const cell of Array.from(cells)) {
-      const cellElement = cell as HTMLElement;
-      const ariaLabel = cellElement.getAttribute('aria-label');
-      
-      if (ariaLabel && ariaLabel.startsWith(date.getDate().toString())) {
-        cells.forEach(c => (c as HTMLElement).tabIndex = -1);
-        cellElement.tabIndex = 0;
-        
-        cells.forEach(c => c.classList.remove('focused'));
-        cellElement.classList.add('focused');
-        
-        cellElement.focus();
-        break;
-      }
-    }
-  }
-  
-  /**
-   * Get the dialog element
+   * Get the calendar dialog element
    */
   getDialog(container: HTMLElement): HTMLElement | null {
     return container.querySelector('.date-picker-dialog');
   }
   
   /**
-   * Get the input field
+   * Get the input field element
    */
   getInputField(container: HTMLElement): HTMLInputElement | null {
     return container.querySelector('.date-picker-input');
+  }
+  
+  /**
+   * Update input field value
+   */
+  updateInputValue(
+    container: HTMLElement,
+    value: string | Date | null,
+    i18nService: InternationalizationService
+  ): void {
+    const input = this.getInputField(container);
+    if (!input) return;
+    
+    if (value === null) {
+      input.value = '';
+    } else if (value instanceof Date) {
+      input.value = i18nService.formatDate(value);
+    } else {
+      input.value = value;
+    }
+  }
+  
+  /**
+   * Focus on a specific date cell in the calendar
+   */
+  focusDateCell(
+    dialog: HTMLElement,
+    date: Date,
+    calendarService: CalendarService
+  ): void {
+    const daysContainer = dialog.querySelector('.date-picker-calendar');
+    if (!daysContainer) return;
+    
+    // First try to find by aria-label if available
+    const formattedDate = calendarService.formatDate(date);
+    let dateCell = dialog.querySelector(`.date-picker-cell[aria-label="${formattedDate}"]`) as HTMLElement;
+    
+    // Otherwise find by content and data attributes (only works for dates in current month)
+    if (!dateCell) {
+      const cells = dialog.querySelectorAll('.date-picker-cell:not(.weekday)');
+      for (const cell of cells) {
+        // Get text content as number
+        const cellDate = parseInt(cell.textContent || '0', 10);
+        
+        // Check if the cell represents the current date
+        if (cellDate === date.getDate() && 
+            !cell.classList.contains('prev-month') && 
+            !cell.classList.contains('next-month')) {
+          dateCell = cell as HTMLElement;
+          break;
+        }
+      }
+    }
+    
+    if (dateCell) {
+      // Remove focused class from all dates
+      const allDays = dialog.querySelectorAll('.date-picker-cell:not(.weekday)');
+      allDays.forEach(day => {
+        day.classList.remove('focused');
+        day.setAttribute('tabindex', '-1');
+      });
+      
+      // Add focused class to selected date
+      dateCell.classList.add('focused');
+      dateCell.setAttribute('tabindex', '0');
+      dateCell.focus();
+    }
   }
 }

@@ -127,6 +127,13 @@ export class InternationalizationService {
   }
 
   /**
+   * Get day abbreviation by index (0=Sunday, 1=Monday, etc.)
+   */
+  getDayAbbr(dayIndex: number): string {
+    return this.formatWeekdayNarrow(dayIndex);
+  }
+
+  /**
    * Get array of localized weekday names based on first day setting
    */
   getWeekdayNames(firstDayOfWeek: number = 0): string[] {

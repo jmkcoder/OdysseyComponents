@@ -4,17 +4,17 @@ import { CalendarViewMode } from './ui-updater.service';
  * Service responsible for dispatching custom events
  */
 export class EventDispatcherService {
-  private _element: HTMLElement;
+  private _host: HTMLElement;
 
-  constructor(element: HTMLElement) {
-    this._element = element;
+  constructor(host: HTMLElement) {
+    this._host = host;
   }
 
   /**
    * Set the element to dispatch events on
    */
   setElement(element: HTMLElement): void {
-    this._element = element;
+    this._host = element;
   }
 
   /**
@@ -31,7 +31,7 @@ export class EventDispatcherService {
       }
     });
 
-    this._element.dispatchEvent(event);
+    this._host.dispatchEvent(event);
   }
 
   /**
@@ -43,7 +43,7 @@ export class EventDispatcherService {
       composed: true
     });
 
-    this._element.dispatchEvent(event);
+    this._host.dispatchEvent(event);
   }
 
   /**
@@ -55,7 +55,7 @@ export class EventDispatcherService {
       composed: true
     });
 
-    this._element.dispatchEvent(event);
+    this._host.dispatchEvent(event);
   }
 
   /**
@@ -70,7 +70,7 @@ export class EventDispatcherService {
       }
     });
 
-    this._element.dispatchEvent(event);
+    this._host.dispatchEvent(event);
   }
 
   /**
@@ -86,7 +86,7 @@ export class EventDispatcherService {
       }
     });
 
-    this._element.dispatchEvent(event);
+    this._host.dispatchEvent(event);
   }
 
   /**
@@ -101,7 +101,7 @@ export class EventDispatcherService {
       }
     });
 
-    this._element.dispatchEvent(event);
+    this._host.dispatchEvent(event);
   }
 
   /**
@@ -116,7 +116,7 @@ export class EventDispatcherService {
       }
     });
 
-    this._element.dispatchEvent(event);
+    this._host.dispatchEvent(event);
   }
 
   /**
@@ -131,7 +131,7 @@ export class EventDispatcherService {
       }
     });
 
-    this._element.dispatchEvent(event);
+    this._host.dispatchEvent(event);
   }
 
   /**
@@ -146,7 +146,7 @@ export class EventDispatcherService {
       }
     });
 
-    this._element.dispatchEvent(event);
+    this._host.dispatchEvent(event);
   }
 
   /**
@@ -158,6 +158,66 @@ export class EventDispatcherService {
       composed: true
     });
 
-    this._element.dispatchEvent(event);
+    this._host.dispatchEvent(event);
+  }
+
+  /**
+   * Dispatch mode change event
+   */
+  dispatchModeChangeEvent(mode: string): void {
+    const event = new CustomEvent('mode-change', {
+      detail: {
+        mode
+      },
+      bubbles: true,
+      composed: true
+    });
+
+    this._host.dispatchEvent(event);
+  }
+
+  /**
+   * Dispatch range start event when the first date in a range is selected
+   */
+  dispatchRangeStartEvent(startDate: Date | null, formattedDate: string | null): void {
+    const event = new CustomEvent('range-start', {
+      detail: {
+        startDate,
+        formattedDate
+      },
+      bubbles: true,
+      composed: true
+    });
+
+    this._host.dispatchEvent(event);
+  }
+
+  /**
+   * Dispatch range complete event when both dates in a range are selected
+   */
+  dispatchRangeCompleteEvent(startDate: Date, endDate: Date, formattedRange: string): void {
+    const event = new CustomEvent('range-complete', {
+      detail: {
+        startDate,
+        endDate,
+        formattedRange
+      },
+      bubbles: true,
+      composed: true
+    });
+
+    this._host.dispatchEvent(event);
+  }
+
+  /**
+   * Dispatch range clear event when a date range is cleared
+   */
+  dispatchRangeClearEvent(): void {
+    const event = new CustomEvent('range-clear', {
+      bubbles: true,
+      composed: true
+    });
+
+    this._host.dispatchEvent(event);
   }
 }

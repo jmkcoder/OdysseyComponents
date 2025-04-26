@@ -114,10 +114,14 @@ export class CalendarService {
 
   /**
    * Get the first day of the week containing the given date
+   * @param date Optional date to determine the week
+   * @returns Date object for the first day of the week
    */
-  getFirstDayOfWeek(date: Date): Date {
-    const day = date.getDay(); // 0 = Sunday, 6 = Saturday
-    return this.addDays(date, -day);
+  getFirstDayOfWeek(date?: Date): Date {
+    const targetDate = date ? new Date(date) : new Date();
+    const day = targetDate.getDay(); // 0 = Sunday, 6 = Saturday
+    const diff = (day - this._firstDayOfWeek + 7) % 7;
+    return this.addDays(targetDate, -diff);
   }
 
   /**
@@ -199,7 +203,8 @@ export class CalendarService {
   }
 
   /**
-   * Get the first day of the week
+   * Get the configured first day of the week value
+   * @returns Number from 0 (Sunday) to 6 (Saturday)
    */
   getFirstDayOfWeekValue(): number {
     return this._firstDayOfWeek;

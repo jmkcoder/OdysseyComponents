@@ -5,7 +5,6 @@ import  '../../index';
 const meta: Meta = {
   title: 'Components/DatePicker',
   component: 'odyssey-date-picker',
-  tags: ['autodocs'],
   render: (args) => {
     return html`
       <odyssey-date-picker
@@ -17,7 +16,11 @@ const meta: Meta = {
         locale=${args.locale || ''}
         first-day-of-week=${args.firstDayOfWeek || '0'}
         theme=${args.theme || ''}
+        mode=${args.mode || 'single'}
+        start-date=${args.startDate || ''}
+        end-date=${args.endDate || ''}
         events=${args.events ? JSON.stringify(args.events) : ''}
+        format=${args.format || ''}
       ></odyssey-date-picker>
     `;
   },
@@ -42,9 +45,26 @@ const meta: Meta = {
       options: ['light', 'dark', 'minimal', 'high-contrast'],
       description: 'Visual theme for the component'
     },
+    mode: {
+      control: 'select',
+      options: ['single', 'range'],
+      description: 'Date selection mode'
+    },
+    startDate: {
+      control: 'text',
+      description: 'Start date of selected range in ISO format'
+    },
+    endDate: {
+      control: 'text',
+      description: 'End date of selected range in ISO format'
+    },
     events: { 
       control: 'object', 
       description: 'Events to display on specific dates'
+    },
+    format: {
+      control: 'text',
+      description: 'Custom date format pattern'
     }
   },
   args: {
@@ -56,7 +76,11 @@ const meta: Meta = {
     locale: 'en-US',
     firstDayOfWeek: '0',
     theme: 'light',
-    events: {}
+    mode: 'single',
+    startDate: '',
+    endDate: '',
+    events: {},
+    format: ''
   }
 };
 
@@ -82,6 +106,15 @@ export const Disabled: Story = {
 export const Required: Story = {
   args: {
     required: true
+  }
+};
+
+// Range Selection mode
+export const RangeSelection: Story = {
+  args: {
+    mode: 'range',
+    startDate: '2025-04-15',
+    endDate: '2025-04-22'
   }
 };
 
@@ -164,16 +197,16 @@ export const CustomStyled: Story = {
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
         
-        .custom-date-picker .date-picker-cell.today {
+        .custom-date-picker .day.today {
           color: var(--today-color);
           font-weight: bold;
         }
         
-        .custom-date-picker .date-picker-cell.selected {
+        .custom-date-picker .day.selected {
           background-color: var(--selected-bg);
         }
         
-        .custom-date-picker .date-picker-cell:not(.weekday):hover {
+        .custom-date-picker .day:not(.weekday):hover {
           background-color: var(--day-hover-bg);
         }
       </style>
@@ -188,5 +221,26 @@ export const CustomStyled: Story = {
         first-day-of-week=${args.firstDayOfWeek || '0'}
       ></odyssey-date-picker>
     `;
+  }
+};
+
+// Custom date formatting examples
+export const CustomFormats: Story = {
+  args: {
+    value: '2025-04-26',
+    format: 'yyyy-MM-dd'
+  },
+  argTypes: {
+    format: {
+      control: 'select',
+      options: [
+        'yyyy-MM-dd',     // ISO format
+        'MM/dd/yyyy',     // US format
+        'dd.MM.yyyy',     // European format
+        'd MMMM, yyyy',   // Long date format
+        'EEE, MMM d, yyyy' // Weekday format
+      ],
+      description: 'Date display format pattern'
+    }
   }
 };

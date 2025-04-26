@@ -22,8 +22,8 @@
   --date-picker-event-color: var(--odyssey-accent-color, #ff6b6b);
   --date-picker-focus-outline-color: var(--odyssey-focus-color, #4361ee);
   --date-picker-focus-ring-color: rgba(var(--date-picker-selected-bg-color-rgb), 0.25);
+  --date-picker-range-bg-color: rgba(var(--date-picker-selected-bg-color-rgb), 0.15);
   
-  /* Input field */
   .date-picker-input-wrapper {
     position: relative;
     display: flex;
@@ -295,6 +295,82 @@
         }
       }
       
+      /* Range selection styles */
+      &.in-range {
+        background-color: var(--date-picker-range-bg-color);
+        border-radius: 0;
+      }
+      
+      &.range-start {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+        background-color: var(--date-picker-selected-bg-color);
+        color: var(--date-picker-selected-text-color);
+        font-weight: bold;
+        position: relative;
+        z-index: 1;
+        
+        &::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          right: 0;
+          bottom: 0;
+          width: 50%;
+          background-color: var(--date-picker-range-bg-color);
+          z-index: -1;
+        }
+      }
+      
+      &.range-end {
+        border-top-right-radius: 0.25rem;
+        border-bottom-right-radius: 0.25rem;
+        background-color: var(--date-picker-selected-bg-color);
+        color: var(--date-picker-selected-text-color);
+        font-weight: bold;
+        position: relative;
+        z-index: 1;
+        
+        &::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          bottom: 0;
+          width: 50%;
+          background-color: var(--date-picker-range-bg-color);
+          z-index: -1;
+        }
+      }
+      
+      /* Special case for when start and end date are the same */
+      &.range-start.range-end {
+        border-radius: 0.25rem;
+        
+        &::before {
+          display: none;
+        }
+      }
+      
+      /* Fix for when range-end is a different row/week from range-start */
+      &.range-end:first-child {
+        border-top-left-radius: 0.25rem;
+        border-bottom-left-radius: 0.25rem;
+        
+        &::before {
+          display: none;
+        }
+      }
+      
+      &.range-start:last-child {
+        border-top-right-radius: 0.25rem;
+        border-bottom-right-radius: 0.25rem;
+        
+        &::before {
+          display: none;
+        }
+      }
+      
       &.has-events {
         font-weight: 500;
         
@@ -426,6 +502,82 @@
           background-color: rgba(var(--date-picker-selected-bg-color-rgb), 0.5);
           color: var(--date-picker-selected-text-color);
         }
+      }
+      
+      /* Range selection styles */
+      &.range-start {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+        background-color: var(--date-picker-selected-bg-color);
+        color: var(--date-picker-selected-text-color);
+        font-weight: bold;
+        position: relative;
+        z-index: 1;
+        
+        &::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          right: 0;
+          bottom: 0;
+          width: 50%;
+          background-color: var(--date-picker-range-bg-color);
+          z-index: -1;
+        }
+      }
+      
+      &.range-end {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        background-color: var(--date-picker-selected-bg-color);
+        color: var(--date-picker-selected-text-color);
+        font-weight: bold;
+        position: relative;
+        z-index: 1;
+        
+        &::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          bottom: 0;
+          width: 50%;
+          background-color: var(--date-picker-range-bg-color);
+          z-index: -1;
+        }
+      }
+      
+      /* Special case for when start and end date are the same */
+      &.range-start.range-end {
+        border-radius: 0.25rem;
+        
+        &::before {
+          display: none;
+        }
+      }
+      
+      /* Fix for when range-end is a different row/week from range-start */
+      &.range-end:first-child {
+        border-top-left-radius: 0.25rem;
+        border-bottom-left-radius: 0.25rem;
+        
+        &::before {
+          display: none;
+        }
+      }
+      
+      &.range-start:last-child {
+        border-top-right-radius: 0.25rem;
+        border-bottom-right-radius: 0.25rem;
+        
+        &::before {
+          display: none;
+        }
+      }
+      
+      &.in-range {
+        background-color: var(--date-picker-range-bg-color);
+        border-radius: 0;
       }
       
       &.has-events {
@@ -706,6 +858,7 @@
     --date-picker-selected-bg-color: #4299e1;
     --date-picker-selected-bg-color-rgb: 66, 153, 225;
     --date-picker-focus-ring-color: rgba(66, 153, 225, 0.4);
+    --date-picker-range-bg-color: rgba(66, 153, 225, 0.2);
     
     .date-picker-input {
       background-color: #2d3748;
@@ -730,6 +883,7 @@
     --date-picker-selected-bg-color: #f7f7f7;
     --date-picker-selected-bg-color-rgb: 67, 97, 238;
     --date-picker-focus-ring-color: rgba(67, 97, 238, 0.2);
+    --date-picker-range-bg-color: rgba(67, 97, 238, 0.1);
     
     .date-picker-dialog {
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -777,6 +931,31 @@
         }
       }
       
+      /* Minimal theme range selection styles */
+      &.range-start {
+        background-color: transparent;
+        color: var(--date-picker-primary-color);
+        border-bottom: 2px solid var(--date-picker-primary-color);
+        
+        &::before {
+          background-color: var(--date-picker-range-bg-color);
+        }
+      }
+      
+      &.range-end {
+        background-color: transparent;
+        color: var(--date-picker-primary-color);
+        border-bottom: 2px solid var(--date-picker-primary-color);
+        
+        &::before {
+          background-color: var(--date-picker-range-bg-color);
+        }
+      }
+      
+      &.in-range {
+        background-color: var(--date-picker-range-bg-color);
+      }
+      
       &.today:not(.selected) {
         border: none;
         background-color: var(--date-picker-today-bg-color);
@@ -798,6 +977,7 @@
     --date-picker-focus-outline-color: #ff0;
     --date-picker-selected-bg-color-rgb: 255, 255, 255;
     --date-picker-focus-ring-color: rgba(255, 255, 0, 0.5);
+    --date-picker-range-bg-color: rgba(255, 255, 255, 0.3);
     
     .date-picker-input {
       border-width: 2px;
@@ -829,6 +1009,16 @@
           height: 0.4rem;
           background-color: #000;
         }
+      }
+      
+      /* High contrast range styles */
+      &.range-start,
+      &.range-end {
+        box-shadow: 0 0 0 1px #000;
+      }
+      
+      &.in-range {
+        border: 1px dashed #fff;
       }
       
       &.has-events .event-indicator {

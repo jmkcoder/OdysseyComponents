@@ -80,7 +80,7 @@ export class EventHandlerService {
     // Date selection
     dialog.addEventListener('click', (e: Event) => {
       const target = e.target as HTMLElement;
-      const dateCell = target.closest('.date-cell') as HTMLElement;
+      const dateCell = target.closest('.date-picker-cell') as HTMLElement;
       
       if (dateCell && !dateCell.classList.contains('disabled')) {
         const dateValue = dateCell.dataset.date;
