@@ -2,37 +2,47 @@ import './date-picker.scss';
 import { DateFormatterProvider, IDateFormatter } from './services';
 import { InternationalizationService } from '../../services';
 import { defineCustomElement } from '../../utilities/define-custom-element';
+import { StateService } from './services/state.service';
+import { UIService } from './services/ui.service';
 
-export class DatePicker extends HTMLElement {
-  // State variables
-  private selectedDate: Date | null = null;
-  private viewDate: Date = new Date();
-  private isOpen: boolean = false;
-  private currentView: 'calendar' | 'months' | 'years' = 'calendar';
-  private events: Map<string, string[]> = new Map();
-  private format: string = 'yyyy-MM-dd';
-  private isRangeMode: boolean = false;
-  private rangeStart: Date | null = null;
-  private rangeEnd: Date | null = null;
-  private rangeSelectionInProgress: boolean = false;
-  private locale: string = navigator.language;
-  private minDate: Date | null = null;
-  private maxDate: Date | null = null;
-  
+/**
+ * DatePicker web component
+ * 
+ * A customizable date picker component that supports both single date selection
+ * and date range selection with internationalization support.
+ * 
+ * @example
+ * <odyssey-date-picker 
+ *   placeholder="Select a date"
+ *   format="yyyy-MM-dd"
+ *   value="2025-04-26"
+ *   locale="en-US">
+ * </odyssey-date-picker>
+ */
+export class DatePicker extends HTMLElement implements EventListenerObject {
   // DOM Elements References
   private inputElement!: HTMLInputElement;
   private calendarElement!: HTMLDivElement;
   private dialogElement!: HTMLDivElement;
+  private headerElement!: HTMLDivElement;
+  private footerElement!: HTMLDivElement;
   
   // Services
   private formatter: IDateFormatter;
   private i18nService: InternationalizationService;
+  private stateService: StateService;
+  private uiService: UIService;
   
   constructor() {
     super();
-    // Get services
+    
+    // Initialize services
     this.i18nService = InternationalizationService.getInstance();
-    this.formatter = DateFormatterProvider.getFormatter(this.locale);
+    this.formatter = DateFormatterProvider.getFormatter(this.i18nService.locale);
+    this.stateService = new StateService(this.formatter);
+    this.uiService = new UIService(this.stateService, this.formatter);
+    
+    // Initialize the component
     this.initializeComponent();
   }
   
@@ -71,50 +81,45 @@ export class DatePicker extends HTMLElement {
         }
         break;
       case 'format':
-        this.format = newValue || 'yyyy-MM-dd';
-        this.updateInputValue();
+        this.stateService.format = newValue || 'yyyy-MM-dd';
         break;
       case 'theme':
         this.setAttribute('data-theme', newValue);
         break;
       case 'locale':
-        // Update locale for both services
-        this.locale = newValue || navigator.language;
-        this.i18nService.locale = this.locale;
-        // Force re-fetch formatter with new locale
-        this.formatter = DateFormatterProvider.getFormatter(this.locale);
-        this.updateInputValue();
-        this.renderCalendar();
+        // Update locale for all services
+        const locale = newValue || navigator.language;
+        this.i18nService.locale = locale;
+        this.stateService.locale = locale;
+        this.formatter = DateFormatterProvider.getFormatter(locale);
         break;
       case 'min-date':
         try {
-          this.minDate = newValue ? this.formatter.parse(newValue) : null;
-          this.renderCalendar();
+          this.stateService.minDate = newValue ? this.formatter.parse(newValue) : null;
         } catch (e) {
           console.error("Error parsing min date:", e);
         }
         break;
       case 'max-date':
         try {
-          this.maxDate = newValue ? this.formatter.parse(newValue) : null;
-          this.renderCalendar();
+          this.stateService.maxDate = newValue ? this.formatter.parse(newValue) : null;
         } catch (e) {
           console.error("Error parsing max date:", e);
         }
         break;
       case 'mode':
-        this.isRangeMode = newValue === 'range';
-        this.resetRangeSelection();
-        this.updateInputValue();
+        this.stateService.isRangeMode = newValue === 'range';
+        if (this.stateService.isRangeMode) {
+          this.stateService.resetRangeSelection();
+        }
         break;
       case 'start-date':
-        if (this.isRangeMode && newValue) {
+        if (this.stateService.isRangeMode && newValue) {
           try {
             const startDate = this.formatter.parse(newValue);
             if (!isNaN(startDate.getTime())) {
-              this.rangeStart = startDate;
-              this.updateInputValue();
-              this.renderCalendar();
+              this.stateService.rangeStart = startDate;
+              this.stateService.viewDate = new Date(startDate);
             }
           } catch (e) {
             console.error("Error parsing start date:", e);
@@ -122,13 +127,11 @@ export class DatePicker extends HTMLElement {
         }
         break;
       case 'end-date':
-        if (this.isRangeMode && newValue) {
+        if (this.stateService.isRangeMode && newValue) {
           try {
             const endDate = this.formatter.parse(newValue);
             if (!isNaN(endDate.getTime())) {
-              this.rangeEnd = endDate;
-              this.updateInputValue();
-              this.renderCalendar();
+              this.stateService.rangeEnd = endDate;
             }
           } catch (e) {
             console.error("Error parsing end date:", e);
@@ -136,12 +139,17 @@ export class DatePicker extends HTMLElement {
         }
         break;
       case 'first-day-of-week':
-        // Re-render calendar if first day of week changed
-        this.renderCalendar();
+        const dayValue = parseInt(newValue, 10);
+        if (!isNaN(dayValue) && dayValue >= 0 && dayValue <= 6) {
+          this.stateService.firstDayOfWeek = dayValue;
+        }
         break;
     }
   }
   
+  /**
+   * Initialize component DOM structure and setup
+   */
   private initializeComponent() {
     // Create the main structure
     this.classList.add('odyssey-date-picker');
@@ -151,27 +159,9 @@ export class DatePicker extends HTMLElement {
           <span class="date-picker-icon material-icons">calendar_today</span>
         </div>
         <div class="date-picker-dialog" tabindex="-1">
-          <div class="date-picker-header">
-            <button class="date-picker-nav-btn prev-month" aria-label="Previous month">
-              <span class="material-icons">chevron_left</span>
-            </button>
-            <div class="date-picker-selectors">
-              <button class="date-picker-month-selector"></button>
-              <button class="date-picker-year-selector"></button>
-            </div>
-            <button class="date-picker-nav-btn next-month" aria-label="Next month">
-              <span class="material-icons">chevron_right</span>
-            </button>
-          </div>
+          <div class="date-picker-header"></div>
           <div class="date-picker-calendar"></div>
-          <div class="date-picker-footer">
-            <span class="date-picker-selected-date"></span>
-            <div class="date-picker-buttons">
-              <button class="date-picker-btn today-btn">Today</button>
-              <button class="date-picker-btn clear-btn">Clear</button>
-              <button class="date-picker-btn close-btn primary">Close</button>
-            </div>
-          </div>
+          <div class="date-picker-footer"></div>
         </div>
     `;
     
@@ -179,8 +169,32 @@ export class DatePicker extends HTMLElement {
     this.inputElement = this.querySelector('.date-picker-input') as HTMLInputElement;
     this.dialogElement = this.querySelector('.date-picker-dialog') as HTMLDivElement;
     this.calendarElement = this.querySelector('.date-picker-calendar') as HTMLDivElement;
+    this.headerElement = this.querySelector('.date-picker-header') as HTMLDivElement;
+    this.footerElement = this.querySelector('.date-picker-footer') as HTMLDivElement;
+    
+    // Initialize UI service with DOM references
+    this.uiService.initialize(
+      this.calendarElement,
+      this.headerElement,
+      this.footerElement,
+      this.dialogElement,
+      this.inputElement
+    );
     
     // Set initial values from attributes
+    this.initializeFromAttributes();
+    
+    // Attach event listeners
+    this.attachEventListeners();
+    
+    // Initial UI update
+    this.uiService.updateUI();
+  }
+  
+  /**
+   * Initialize state from attributes
+   */
+  private initializeFromAttributes() {
     if (this.hasAttribute('placeholder')) {
       this.inputElement.placeholder = this.getAttribute('placeholder') || 'Select date';
     }
@@ -190,18 +204,17 @@ export class DatePicker extends HTMLElement {
     }
     
     if (this.hasAttribute('format')) {
-      this.format = this.getAttribute('format') || 'yyyy-MM-dd';
+      this.stateService.format = this.getAttribute('format') || 'yyyy-MM-dd';
     }
     
     if (this.hasAttribute('theme')) {
       this.setAttribute('data-theme', this.getAttribute('theme') || '');
     }
 
-    // Set min and max dates if present
     if (this.hasAttribute('min-date')) {
       try {
         const minDateStr = this.getAttribute('min-date') || '';
-        this.minDate = this.formatter.parse(minDateStr);
+        this.stateService.minDate = this.formatter.parse(minDateStr);
       } catch (e) {
         console.error("Error parsing min date:", e);
       }
@@ -210,7 +223,7 @@ export class DatePicker extends HTMLElement {
     if (this.hasAttribute('max-date')) {
       try {
         const maxDateStr = this.getAttribute('max-date') || '';
-        this.maxDate = this.formatter.parse(maxDateStr);
+        this.stateService.maxDate = this.formatter.parse(maxDateStr);
       } catch (e) {
         console.error("Error parsing max date:", e);
       }
@@ -218,18 +231,18 @@ export class DatePicker extends HTMLElement {
 
     // Check for mode attribute
     if (this.hasAttribute('mode')) {
-      this.isRangeMode = this.getAttribute('mode') === 'range';
+      this.stateService.isRangeMode = this.getAttribute('mode') === 'range';
     }
     
     // Support both start-date/end-date attributes for range mode
-    if (this.isRangeMode) {
+    if (this.stateService.isRangeMode) {
       if (this.hasAttribute('start-date')) {
         const startDateStr = this.getAttribute('start-date') || '';
         try {
           const startDate = this.formatter.parse(startDateStr);
           if (!isNaN(startDate.getTime())) {
-            this.rangeStart = startDate;
-            this.viewDate = new Date(this.rangeStart);
+            this.stateService.rangeStart = startDate;
+            this.stateService.viewDate = new Date(startDate);
           }
         } catch (e) {
           console.error("Error parsing start date:", e);
@@ -241,7 +254,7 @@ export class DatePicker extends HTMLElement {
         try {
           const endDate = this.formatter.parse(endDateStr);
           if (!isNaN(endDate.getTime())) {
-            this.rangeEnd = endDate;
+            this.stateService.rangeEnd = endDate;
           }
         } catch (e) {
           console.error("Error parsing end date:", e);
@@ -251,65 +264,23 @@ export class DatePicker extends HTMLElement {
       this.setDateFromString(this.getAttribute('value') || '');
     }
     
-    // Attach event listeners
-    this.attachEventListeners();
-    
-    // Render the initial calendar
-    this.renderCalendar();
+    // Set first day of week
+    if (this.hasAttribute('first-day-of-week')) {
+      const dayValue = parseInt(this.getAttribute('first-day-of-week') || '0', 10);
+      if (!isNaN(dayValue) && dayValue >= 0 && dayValue <= 6) {
+        this.stateService.firstDayOfWeek = dayValue;
+      }
+    } else {
+      this.stateService.firstDayOfWeek = this.i18nService.getFirstDayOfWeek(this.stateService.locale);
+    }
   }
   
   private attachEventListeners() {
     // Toggle calendar on input click
-    this.querySelector('.date-picker-input-wrapper')?.addEventListener('click', (e) => {
-      if (!this.inputElement.disabled) {
-        this.toggleCalendar();
-      }
-    });
+    this.querySelector('.date-picker-input-wrapper')?.addEventListener('click', this);
     
     // Close calendar when clicking outside
-    document.addEventListener('click', (e: MouseEvent) => {
-      if (this.isOpen && !this.contains(e.target as Node)) {
-        this.closeCalendar();
-      }
-    });
-    
-    // Navigation buttons
-    this.querySelector('.prev-month')?.addEventListener('click', (e) => {
-      e.stopPropagation(); // Prevent event from closing calendar
-      this.previousMonth();
-    });
-    
-    this.querySelector('.next-month')?.addEventListener('click', (e) => {
-      e.stopPropagation(); // Prevent event from closing calendar
-      this.nextMonth();
-    });
-    
-    // Month and year selectors
-    this.querySelector('.date-picker-month-selector')?.addEventListener('click', (e) => {
-      e.stopPropagation(); // Prevent event from closing calendar
-      this.showMonthSelector();
-    });
-    
-    this.querySelector('.date-picker-year-selector')?.addEventListener('click', (e) => {
-      e.stopPropagation(); // Prevent event from closing calendar
-      this.showYearSelector();
-    });
-    
-    // Footer buttons
-    this.querySelector('.today-btn')?.addEventListener('click', (e) => {
-      e.stopPropagation(); // Prevent event from closing calendar
-      this.goToToday();
-    });
-    
-    this.querySelector('.clear-btn')?.addEventListener('click', (e) => {
-      e.stopPropagation(); // Prevent event from closing calendar
-      this.clearSelection();
-    });
-    
-    this.querySelector('.close-btn')?.addEventListener('click', (e) => {
-      e.stopPropagation(); // Not strictly needed, but for consistency
-      this.closeCalendar();
-    });
+    document.addEventListener('click', this);
     
     // Prevent clicks inside dialog from bubbling to document
     this.dialogElement.addEventListener('click', (e) => {
@@ -320,590 +291,133 @@ export class DatePicker extends HTMLElement {
     this.dialogElement.addEventListener('keydown', (e: KeyboardEvent) => {
       switch (e.key) {
         case 'Escape':
-          this.closeCalendar();
+          this.stateService.isOpen = false;
           break;
-        case 'ArrowLeft':
-          e.preventDefault();
-          if (e.ctrlKey) {
-            this.previousMonth();
-          } else {
-            this.navigateDay(-1);
-          }
-          break;
-        case 'ArrowRight':
-          e.preventDefault();
-          if (e.ctrlKey) {
-            this.nextMonth();
-          } else {
-            this.navigateDay(1);
-          }
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          this.navigateDay(-7);
-          break;
-        case 'ArrowDown':
-          e.preventDefault();
-          this.navigateDay(7);
-          break;
-        case 'Enter':
-          if (document.activeElement?.classList.contains('date-picker-cell')) {
-            (document.activeElement as HTMLElement).click();
-          }
-          break;
+        // Other keyboard navigation is handled by the components
       }
     });
     
-    // Add listeners to detect keyboard focus within calendar cells
-    this.calendarElement.addEventListener('focusin', (e) => {
-      if ((e.target as HTMLElement).classList.contains('date-picker-cell')) {
-        (e.target as HTMLElement).classList.add('focused');
-      }
-    });
-    
-    this.calendarElement.addEventListener('focusout', (e) => {
-      if ((e.target as HTMLElement).classList.contains('date-picker-cell')) {
-        (e.target as HTMLElement).classList.remove('focused');
-      }
+    // Connect the component to receive state change events for dispatching custom events
+    this.stateService.addListener({
+      onStateChange: () => this.handleStateChange()
     });
   }
   
-  // Calendar rendering methods
-  private renderCalendar() {
-    if (this.currentView === 'calendar') {
-      this.renderDateView();
-    } else if (this.currentView === 'months') {
-      this.renderMonthsView();
-    } else if (this.currentView === 'years') {
-      this.renderYearsView();
-    }
+  /**
+   * Handle click events using EventListenerObject interface
+   */
+  handleEvent(e: Event): void {
+    const target = e.target as Node;
     
-    this.updateHeaderText();
-    this.updateSelectedDateText();
-  }
-  
-  private renderDateView() {
-    const year = this.viewDate.getFullYear();
-    const month = this.viewDate.getMonth();
-    
-    // Get first day of month and last day of month
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    
-    // Find the first day to display (might be from previous month)
-    const firstDayOfWeek = this.getFirstDayOfWeek();
-    let firstDisplayDay = new Date(firstDay);
-    const firstDayWeekday = firstDay.getDay();
-    
-    let diff = firstDayWeekday - firstDayOfWeek;
-    if (diff < 0) diff += 7;
-    firstDisplayDay.setDate(firstDay.getDate() - diff);
-    
-    // Generate calendar grid
-    let calendarContent = '<div class="date-picker-row date-picker-weekdays">';
-    
-    // Add weekday headers
-    for (let i = 0; i < 7; i++) {
-      const weekdayIndex = (firstDayOfWeek + i) % 7;
-      const weekdayName = this.getWeekdayName(weekdayIndex, 'short');
-      calendarContent += `<div class="date-picker-cell weekday">${weekdayName}</div>`;
-    }
-    calendarContent += '</div>';
-    
-    // Create date grid (6 rows max)
-    let currentDate = new Date(firstDisplayDay);
-    
-    for (let row = 0; row < 6; row++) {
-      calendarContent += '<div class="date-picker-row">';
-      
-      for (let col = 0; col < 7; col++) {
-        const isToday = this.isSameDate(currentDate, new Date());
-        const isSelected = this.isSelectedDate(currentDate);
-        const isPrevMonth = currentDate.getMonth() < month || (currentDate.getMonth() === 11 && month === 0);
-        const isNextMonth = currentDate.getMonth() > month || (currentDate.getMonth() === 0 && month === 11);
-        const hasEvents = this.hasEventsOnDate(currentDate);
-        const isRangeStart = this.isRangeMode && this.isSameDate(currentDate, this.rangeStart);
-        const isRangeEnd = this.isRangeMode && this.isSameDate(currentDate, this.rangeEnd);
-        const isInRange = this.isRangeMode && this.isDateInRange(currentDate);
-        const isDisabled = this.isDateDisabled(currentDate);
-        
-        // Build CSS classes
-        let cellClass = 'date-picker-cell';
-        if (isToday) cellClass += ' today';
-        if (isSelected && !this.isRangeMode) cellClass += ' selected';
-        if (isPrevMonth) cellClass += ' prev-month';
-        if (isNextMonth) cellClass += ' next-month';
-        if (hasEvents) cellClass += ' has-events';
-        if (isRangeStart) cellClass += ' range-start';
-        if (isRangeEnd) cellClass += ' range-end';
-        if (isInRange) cellClass += ' in-range';
-        if (isDisabled) cellClass += ' disabled';
-        
-        // Generate the date cell
-        calendarContent += `
-          <div 
-            class="${cellClass}" 
-            tabindex="0" 
-            data-date="${this.formatDate(currentDate, 'yyyy-MM-dd')}">
-            ${currentDate.getDate()}
-            ${hasEvents ? '<span class="event-indicator"></span>' : ''}
-          </div>
-        `;
-        
-        // Move to next day
-        currentDate.setDate(currentDate.getDate() + 1);
+    if (e.type === 'click') {
+      if ((target as Element).closest('.date-picker-input-wrapper') && !this.inputElement.disabled) {
+        this.toggleCalendar();
+        e.stopPropagation();
+      } else if (!this.contains(target) && this.stateService.isOpen) {
+        this.stateService.isOpen = false;
       }
-      
-      calendarContent += '</div>';
     }
-    
-    this.calendarElement.innerHTML = calendarContent;
-    
-    // Attach click events to date cells
-    this.attachDateCellListeners();
   }
   
-  private renderMonthsView() {
-    // Create months grid
-    let monthsContent = '<div class="date-picker-months-grid">';
-    const monthNames = this.getMonthNames('short');
-    const currentYear = this.viewDate.getFullYear();
-    const currentMonth = new Date().getFullYear() === currentYear ? new Date().getMonth() : -1;
-    
-    for (let i = 0; i < 4; i++) {
-      monthsContent += '<div class="date-picker-row">';
-      
-      for (let j = 0; j < 3; j++) {
-        const monthIndex = i * 3 + j;
-        const isSelected = this.viewDate.getMonth() === monthIndex;
-        const isCurrent = currentMonth === monthIndex;
+  /**
+   * Handle state changes and dispatch custom events
+   */
+  private handleStateChange(): void {
+    // Update attributes
+    if (this.stateService.isRangeMode) {
+      if (this.stateService.rangeStart && this.stateService.rangeEnd) {
+        this.setAttribute(
+          'value', 
+          `${this.formatter.format(this.stateService.rangeStart, this.stateService.format)} - ${
+            this.formatter.format(this.stateService.rangeEnd, this.stateService.format)
+          }`
+        );
         
-        let cellClass = 'date-picker-cell month-cell';
-        if (isSelected) cellClass += ' selected';
-        if (isCurrent) cellClass += ' current';
+        // Dispatch range selection event
+        this.dispatchEvent(
+          new CustomEvent('date-change', {
+            detail: {
+              rangeStart: this.formatter.format(this.stateService.rangeStart, this.stateService.format),
+              rangeEnd: this.formatter.format(this.stateService.rangeEnd, this.stateService.format)
+            },
+            bubbles: true,
+            composed: true
+          })
+        );
+      } else if (!this.stateService.rangeStart && !this.stateService.rangeEnd) {
+        this.removeAttribute('value');
         
-        monthsContent += `
-          <div class="${cellClass}" tabindex="0" data-month="${monthIndex}">
-            ${monthNames[monthIndex]}
-          </div>
-        `;
+        // Dispatch clear event
+        this.dispatchEvent(
+          new CustomEvent('date-clear', {
+            bubbles: true,
+            composed: true
+          })
+        );
       }
-      
-      monthsContent += '</div>';
-    }
-    
-    monthsContent += '</div>';
-    this.calendarElement.innerHTML = monthsContent;
-    
-    // Attach click events to month cells
-    const monthCells = this.querySelectorAll('.month-cell');
-    monthCells.forEach(cell => {
-      cell.addEventListener('click', () => {
-        const monthIndex = parseInt((cell as HTMLElement).dataset.month || '0', 10);
-        this.viewDate.setMonth(monthIndex);
-        this.currentView = 'calendar';
-        this.renderCalendar();
-      });
-    });
-  }
-  
-  private renderYearsView() {
-    // Create years grid
-    const currentYear = this.viewDate.getFullYear();
-    const startYear = currentYear - (currentYear % 12) - 3;
-    
-    let yearsContent = '<div class="date-picker-years-grid">';
-    
-    for (let i = 0; i < 5; i++) {
-      yearsContent += '<div class="date-picker-row">';
-      
-      for (let j = 0; j < 3; j++) {
-        const yearValue = startYear + i * 3 + j;
-        const isSelected = currentYear === yearValue;
-        const isCurrent = new Date().getFullYear() === yearValue;
-        
-        let cellClass = 'date-picker-cell year-cell';
-        if (isSelected) cellClass += ' selected';
-        if (isCurrent) cellClass += ' current';
-        
-        yearsContent += `
-          <div class="${cellClass}" tabindex="0" data-year="${yearValue}">
-            ${yearValue}
-          </div>
-        `;
-      }
-      
-      yearsContent += '</div>';
-    }
-    
-    yearsContent += '</div>';
-    
-    this.calendarElement.innerHTML = yearsContent;
-    
-    // Attach click events to year cells
-    const yearCells = this.querySelectorAll('.year-cell');
-    yearCells.forEach(cell => {
-      cell.addEventListener('click', () => {
-        const yearValue = parseInt((cell as HTMLElement).dataset.year || '0', 10);
-        this.viewDate.setFullYear(yearValue);
-        this.currentView = 'months';
-        this.renderCalendar();
-      });
-    });
-  }
-  
-  private attachDateCellListeners() {
-    const dateCells = this.querySelectorAll('.date-picker-cell:not(.weekday)');
-    dateCells.forEach(cell => {
-      if (!(cell as HTMLElement).classList.contains('disabled')) {
-        cell.addEventListener('click', (e) => {
-          e.stopPropagation(); // Prevent event from closing calendar
-          const dateStr = (cell as HTMLElement).dataset.date;
-          if (dateStr) {
-            const clickedDate = this.parseDateString(dateStr);
-            this.handleDateSelection(clickedDate);
-          }
-        });
-      }
-    });
-  }
-  
-  private handleDateSelection(date: Date) {
-    // Check if this date is disabled (outside min/max range)
-    if (this.isDateDisabled(date)) {
-      return; // Don't select disabled dates
-    }
-    
-    if (this.isRangeMode) {
-      this.handleRangeSelection(date);
     } else {
-      this.selectedDate = date;
-      this.dispatchChangeEvent();
-      this.updateInputValue();
-      this.renderCalendar();
-    }
-  }
-  
-  private handleRangeSelection(date: Date) {
-    // Check if this date is disabled (outside min/max range)
-    if (this.isDateDisabled(date)) {
-      return; // Don't select disabled dates
-    }
-    
-    if (!this.rangeSelectionInProgress) {
-      this.resetRangeSelection();
-      this.rangeStart = date;
-      this.rangeSelectionInProgress = true;
-    } else {
-      if (this.isSameDate(date, this.rangeStart)) {
-        this.rangeEnd = new Date(this.rangeStart!);
-        this.rangeSelectionInProgress = false;
-        this.dispatchChangeEvent();
+      if (this.stateService.selectedDate) {
+        this.setAttribute('value', this.formatter.format(this.stateService.selectedDate, this.stateService.format));
+        
+        // Dispatch date selection event
+        this.dispatchEvent(
+          new CustomEvent('date-change', {
+            detail: {
+              date: this.formatter.format(this.stateService.selectedDate, this.stateService.format)
+            },
+            bubbles: true,
+            composed: true
+          })
+        );
       } else {
-        if (date < this.rangeStart!) {
-          this.rangeEnd = new Date(this.rangeStart!);
-          this.rangeStart = date;
-        } else {
-          this.rangeEnd = date;
-        }
-        this.rangeSelectionInProgress = false;
-        this.dispatchChangeEvent();
-      }
-    }
-    
-    this.updateInputValue();
-    this.renderCalendar();
-  }
-  
-  private isDateInRange(date: Date): boolean {
-    // First check if date is within min/max constraints
-    if (this.isDateDisabled(date)) {
-      return false;
-    }
-    
-    if (!this.isRangeMode || !this.rangeStart) return false;
-    
-    if (!this.rangeEnd) return false;
-    
-    return date >= this.rangeStart && date <= this.rangeEnd;
-  }
-  
-  private resetRangeSelection() {
-    this.rangeStart = null;
-    this.rangeEnd = null;
-    this.rangeSelectionInProgress = false;
-  }
-  
-  private updateHeaderText() {
-    const monthSelector = this.querySelector('.date-picker-month-selector') as HTMLElement;
-    const yearSelector = this.querySelector('.date-picker-year-selector') as HTMLElement;
-    
-    if (this.currentView === 'calendar') {
-      monthSelector.textContent = this.getMonthName(this.viewDate.getMonth());
-      yearSelector.textContent = this.viewDate.getFullYear().toString();
-    } else if (this.currentView === 'months') {
-      monthSelector.textContent = this.getMonthName(this.viewDate.getMonth());
-      yearSelector.textContent = this.viewDate.getFullYear().toString();
-    } else if (this.currentView === 'years') {
-      const currentYear = this.viewDate.getFullYear();
-      const startYear = currentYear - (currentYear % 12) - 3;
-      const endYear = startYear + 14;
-      monthSelector.textContent = this.getMonthName(this.viewDate.getMonth());
-      yearSelector.textContent = `${startYear} - ${endYear}`;
-    }
-  }
-  
-  private updateSelectedDateText() {
-    const selectedDateElement = this.querySelector('.date-picker-selected-date') as HTMLElement;
-    
-    if (this.isRangeMode) {
-      if (this.rangeStart && this.rangeEnd) {
-        selectedDateElement.textContent = `${this.formatDate(this.rangeStart)} - ${this.formatDate(this.rangeEnd)}`;
-      } else if (this.rangeStart) {
-        selectedDateElement.textContent = `${this.formatDate(this.rangeStart)} - Select end date`;
-      } else {
-        selectedDateElement.textContent = 'Select date range';
-      }
-    } else if (this.selectedDate) {
-      selectedDateElement.textContent = this.formatDate(this.selectedDate);
-    } else {
-      selectedDateElement.textContent = '';
-    }
-  }
-  
-  private updateInputValue() {
-    if (this.isRangeMode) {
-      if (this.rangeStart && this.rangeEnd) {
-        this.inputElement.value = `${this.formatDateByLocale(this.rangeStart)} - ${this.formatDateByLocale(this.rangeEnd)}`;
-      } else if (this.rangeStart) {
-        this.inputElement.value = `${this.formatDateByLocale(this.rangeStart)} - ...`;
-      } else {
-        this.inputElement.value = '';
-      }
-    } else if (this.selectedDate) {
-      this.inputElement.value = this.formatDateByLocale(this.selectedDate);
-    } else {
-      this.inputElement.value = '';
-    }
-  }
-  
-  private formatDate(date: Date | null, format?: string, locale?: string): string {
-    return this.formatter.format(date, format || this.format, locale || this.locale);
-  }
-  
-  private formatDateByLocale(date: Date | null): string {
-    if (!date) return '';
-    
-    // If user has explicitly set a format, use that
-    if (this.hasAttribute('format')) {
-      return this.formatDate(date);
-    }
-    
-    // Otherwise use the locale-specific format
-    return this.formatDate(date, 'locale');
-  }
-  
-  private parseDateString(dateStr: string, format?: string): Date {
-    return this.formatter.parse(dateStr, format);
-  }
-  
-  private getMonthName(monthIndex: number, format: 'long' | 'short' = 'long'): string {
-    return this.formatter.getMonthName(monthIndex, format, this.locale);
-  }
-  
-  private getMonthNames(format: 'long' | 'short' = 'long'): string[] {
-    const months = [];
-    for (let i = 0; i < 12; i++) {
-      months.push(this.getMonthName(i, format));
-    }
-    return months;
-  }
-  
-  private getWeekdayName(dayIndex: number, format: 'long' | 'short' | 'narrow' = 'short'): string {
-    return this.formatter.getWeekdayName(dayIndex, format, this.locale);
-  }
-  
-  private getFirstDayOfWeek(): number {
-    // First try to get from attribute
-    const firstDayAttr = this.getAttribute('first-day-of-week');
-    if (firstDayAttr && !isNaN(parseInt(firstDayAttr, 10))) {
-      return parseInt(firstDayAttr, 10);
-    }
-    
-    // Otherwise use i18n service to get locale-appropriate first day
-    return this.i18nService.getFirstDayOfWeek(this.locale);
-  }
-  
-  private isSameDate(date1: Date | null, date2: Date | null): boolean {
-    if (!date1 || !date2) return false;
-    
-    return (
-      date1.getFullYear() === date2.getFullYear() &&
-      date1.getMonth() === date2.getMonth() &&
-      date1.getDate() === date2.getDate()
-    );
-  }
-  
-  private isSelectedDate(date: Date): boolean {
-    return this.isSameDate(date, this.selectedDate);
-  }
-  
-  private hasEventsOnDate(date: Date): boolean {
-    const dateKey = this.formatDate(date, 'yyyy-MM-dd');
-    return this.events.has(dateKey) && this.events.get(dateKey)!.length > 0;
-  }
-  
-  private isDateDisabled(date: Date): boolean {
-    if (this.minDate && date < this.minDate) {
-      return true;
-    }
-    
-    if (this.maxDate && date > this.maxDate) {
-      return true;
-    }
-    
-    return false;
-  }
-  
-  private previousMonth() {
-    const newViewDate = new Date(this.viewDate);
-    
-    if (this.currentView === 'calendar') {
-      newViewDate.setMonth(newViewDate.getMonth() - 1);
-    } else if (this.currentView === 'months') {
-      newViewDate.setFullYear(newViewDate.getFullYear() - 1);
-    } else if (this.currentView === 'years') {
-      newViewDate.setFullYear(newViewDate.getFullYear() - 15);
-    }
-    
-    this.viewDate = newViewDate;
-    this.renderCalendar();
-  }
-  
-  private nextMonth() {
-    const newViewDate = new Date(this.viewDate);
-    
-    if (this.currentView === 'calendar') {
-      newViewDate.setMonth(newViewDate.getMonth() + 1);
-    } else if (this.currentView === 'months') {
-      newViewDate.setFullYear(newViewDate.getFullYear() + 1);
-    } else if (this.currentView === 'years') {
-      newViewDate.setFullYear(newViewDate.getFullYear() + 15);
-    }
-    
-    this.viewDate = newViewDate;
-    this.renderCalendar();
-  }
-  
-  private showMonthSelector() {
-    this.currentView = 'months';
-    this.renderCalendar();
-  }
-  
-  private showYearSelector() {
-    this.currentView = 'years';
-    this.renderCalendar();
-  }
-  
-  private navigateDay(offset: number) {
-    const focusedElement = document.activeElement as HTMLElement;
-    
-    if (focusedElement && focusedElement.classList.contains('date-picker-cell')) {
-      const dateStr = focusedElement.dataset.date;
-      if (dateStr) {
-        const currentDate = this.parseDateString(dateStr);
-        const newDate = new Date(currentDate);
-        newDate.setDate(newDate.getDate() + offset);
+        this.removeAttribute('value');
         
-        if (newDate.getMonth() !== currentDate.getMonth()) {
-          this.viewDate = newDate;
-          this.renderCalendar();
-          
-          setTimeout(() => {
-            const newDateStr = this.formatDate(newDate, 'yyyy-MM-dd');
-            const newCell = this.querySelector(`[data-date="${newDateStr}"]`) as HTMLElement;
-            if (newCell) newCell.focus();
-          }, 0);
-        } else {
-          const newDateStr = this.formatDate(newDate, 'yyyy-MM-dd');
-          const newCell = this.querySelector(`[data-date="${newDateStr}"]`) as HTMLElement;
-          if (newCell) newCell.focus();
-        }
+        // Dispatch clear event
+        this.dispatchEvent(
+          new CustomEvent('date-clear', {
+            bubbles: true,
+            composed: true
+          })
+        );
       }
-    } else {
-      const todayCell = this.querySelector('.today') as HTMLElement;
-      if (todayCell) todayCell.focus();
+    }
+    
+    // Dispatch open/close events
+    if (this.stateService.isOpen && !this._wasOpen) {
+      this._wasOpen = true;
+      this.dispatchEvent(new CustomEvent('calendar-open', { bubbles: true }));
+    } else if (!this.stateService.isOpen && this._wasOpen) {
+      this._wasOpen = false;
+      this.dispatchEvent(new CustomEvent('calendar-close', { bubbles: true }));
     }
   }
   
-  private toggleCalendar() {
-    if (this.isOpen) {
-      this.closeCalendar();
-    } else {
-      this.openCalendar();
-    }
+  private _wasOpen: boolean = false;
+  
+  /**
+   * Toggle calendar visibility
+   */
+  private toggleCalendar(): void {
+    this.stateService.isOpen = !this.stateService.isOpen;
   }
   
-  private openCalendar() {
-    if (this.isOpen) return;
-    
-    this.dialogElement.classList.add('open');
-    this.isOpen = true;
-    
-    setTimeout(() => this.dialogElement.focus(), 0);
-    
-    this.dispatchEvent(new CustomEvent('calendar-open'));
-  }
-  
-  private closeCalendar() {
-    if (!this.isOpen) return;
-    
-    this.dialogElement.classList.remove('open');
-    this.isOpen = false;
-    
-    this.currentView = 'calendar';
-    
-    this.dispatchEvent(new CustomEvent('calendar-close'));
-  }
-  
-  private goToToday() {
-    const today = new Date();
-    this.viewDate = today;
-    
-    // Only select today if it's within the allowed date range
-    if (!this.isRangeMode && 
-        !(this.minDate && today < this.minDate) && 
-        !(this.maxDate && today > this.maxDate)) {
-      this.selectedDate = today;
-      this.dispatchChangeEvent();
-      this.updateInputValue();
-    }
-    
-    this.renderCalendar();
-  }
-  
-  private clearSelection() {
-    if (this.isRangeMode) {
-      this.resetRangeSelection();
-    } else {
-      this.selectedDate = null;
-    }
-    
-    this.updateInputValue();
-    this.renderCalendar();
-    this.dispatchChangeEvent();
-  }
-  
-  private setDateFromString(value: string) {
-    if (this.isRangeMode) {
+  /**
+   * Set date from string value
+   */
+  private setDateFromString(value: string): void {
+    if (this.stateService.isRangeMode) {
       this.setRangeFromString(value);
     } else {
       try {
+        if (!value) {
+          this.stateService.selectedDate = null;
+          return;
+        }
+        
         const date = this.formatter.parse(value);
         if (!isNaN(date.getTime())) {
-          this.selectedDate = date;
-          this.viewDate = new Date(this.selectedDate);
-          this.updateInputValue();
+          this.stateService.selectedDate = date;
+          this.stateService.viewDate = new Date(date);
         }
       } catch (e) {
         console.error("Error parsing date:", e);
@@ -911,9 +425,12 @@ export class DatePicker extends HTMLElement {
     }
   }
   
-  private setRangeFromString(value: string) {
+  /**
+   * Set date range from string value
+   */
+  private setRangeFromString(value: string): void {
     if (!value) {
-      this.resetRangeSelection();
+      this.stateService.resetRangeSelection();
       return;
     }
     
@@ -925,14 +442,13 @@ export class DatePicker extends HTMLElement {
         
         if (start && end && !isNaN(start.getTime()) && !isNaN(end.getTime())) {
           if (start > end) {
-            this.rangeStart = end;
-            this.rangeEnd = start;
+            this.stateService.rangeStart = end;
+            this.stateService.rangeEnd = start;
           } else {
-            this.rangeStart = start;
-            this.rangeEnd = end;
+            this.stateService.rangeStart = start;
+            this.stateService.rangeEnd = end;
           }
-          this.viewDate = new Date(this.rangeStart);
-          this.updateInputValue();
+          this.stateService.viewDate = new Date(this.stateService.rangeStart);
         }
       }
     } catch (e) {
@@ -940,98 +456,65 @@ export class DatePicker extends HTMLElement {
     }
   }
   
-  private dispatchChangeEvent() {
-    let detail;
-    if (this.isRangeMode) {
-      detail = {
-        rangeStart: this.rangeStart ? this.formatDate(this.rangeStart) : null,
-        rangeEnd: this.rangeEnd ? this.formatDate(this.rangeEnd) : null
-      };
-    } else {
-      detail = {
-        date: this.selectedDate ? this.formatDate(this.selectedDate) : null
-      };
-    }
-    
-    this.dispatchEvent(
-      new CustomEvent('date-change', {
-        detail,
-        bubbles: true,
-        composed: true
-      })
-    );
-    
-    if (this.isRangeMode) {
-      if (this.rangeStart && this.rangeEnd) {
-        this.setAttribute(
-          'value', 
-          `${this.formatDate(this.rangeStart)} - ${this.formatDate(this.rangeEnd)}`
-        );
-      }
-    } else if (this.selectedDate) {
-      this.setAttribute('value', this.formatDate(this.selectedDate));
-    } else {
-      this.removeAttribute('value');
-    }
+  /**
+   * Clean up event listeners on disconnection
+   */
+  disconnectedCallback() {
+    document.removeEventListener('click', this);
+    this.querySelector('.date-picker-input-wrapper')?.removeEventListener('click', this);
   }
   
+  // Public API methods
+  
+  /**
+   * Set the selected date programmatically
+   * @param date The date to set
+   */
   public setDate(date: Date) {
-    if (this.isRangeMode) return;
+    if (this.stateService.isRangeMode) return;
     
-    this.selectedDate = date;
-    this.viewDate = new Date(this.selectedDate);
-    this.updateInputValue();
-    if (this.isOpen) this.renderCalendar();
-    this.dispatchChangeEvent();
+    this.stateService.selectedDate = date;
+    this.stateService.viewDate = new Date(date);
   }
   
+  /**
+   * Set a date range programmatically
+   * @param startDate Range start date
+   * @param endDate Range end date
+   */
   public setDateRange(startDate: Date, endDate: Date) {
-    if (!this.isRangeMode) return;
+    if (!this.stateService.isRangeMode) return;
     
     if (startDate > endDate) {
-      this.rangeStart = endDate;
-      this.rangeEnd = startDate;
+      this.stateService.rangeStart = endDate;
+      this.stateService.rangeEnd = startDate;
     } else {
-      this.rangeStart = startDate;
-      this.rangeEnd = endDate;
+      this.stateService.rangeStart = startDate;
+      this.stateService.rangeEnd = endDate;
     }
     
-    this.viewDate = new Date(this.rangeStart);
-    this.updateInputValue();
-    if (this.isOpen) this.renderCalendar();
-    this.dispatchChangeEvent();
+    this.stateService.viewDate = new Date(this.stateService.rangeStart);
   }
   
+  /**
+   * Add an event to a specific date
+   * @param date The date to add the event to
+   * @param eventName Optional name for the event
+   */
   public addEvent(date: Date, eventName: string = 'event') {
-    const dateKey = this.formatDate(date, 'yyyy-MM-dd');
-    
-    if (!this.events.has(dateKey)) {
-      this.events.set(dateKey, []);
-    }
-    
-    this.events.get(dateKey)!.push(eventName);
-    
-    if (
-      this.viewDate.getFullYear() === date.getFullYear() && 
-      this.viewDate.getMonth() === date.getMonth() && 
-      this.isOpen
-    ) {
-      this.renderCalendar();
-    }
+    this.stateService.addEvent(date, eventName);
   }
   
+  /**
+   * Clear all events from a specific date
+   * @param date The date to clear events from
+   */
   public clearEvents(date: Date) {
-    const dateKey = this.formatDate(date, 'yyyy-MM-dd');
-    this.events.delete(dateKey);
-    
-    if (
-      this.viewDate.getFullYear() === date.getFullYear() && 
-      this.viewDate.getMonth() === date.getMonth() && 
-      this.isOpen
-    ) {
-      this.renderCalendar();
-    }
+    this.stateService.clearEvents(date);
   }
 }
 
+/**
+ * Define the custom element
+ */
 export const defineDatePicker = () => defineCustomElement('odyssey-date-picker', DatePicker);

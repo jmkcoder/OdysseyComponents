@@ -44,7 +44,6 @@ export class DateFormatter implements IDateFormatter {
     const year = date.getFullYear();
     const month = date.getMonth(); // 0-based
     const day = date.getDate();
-    const dayOfWeek = date.getDay();
     const hours = date.getHours();
     const minutes = date.getMinutes();
     const seconds = date.getSeconds();
@@ -57,9 +56,6 @@ export class DateFormatter implements IDateFormatter {
     if (format === 'locale') {
       result = this.i18nService.getDateFormatPattern(useLocale);
     }
-    
-    // IMPORTANT: Order of replacements matters - we have to replace longer tokens first
-    // and use exact token matching to avoid partial replacements within words
     
     // Create a function to safely replace tokens with values
     const replaceToken = (token: string, value: string) => {
