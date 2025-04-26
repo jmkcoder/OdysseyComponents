@@ -16,6 +16,8 @@ export class DatePicker extends HTMLElement {
   private rangeEnd: Date | null = null;
   private rangeSelectionInProgress: boolean = false;
   private locale: string = navigator.language;
+  private minDate: Date | null = null;
+  private maxDate: Date | null = null;
   
   // DOM Elements References
   private inputElement!: HTMLInputElement;
@@ -83,6 +85,22 @@ export class DatePicker extends HTMLElement {
         this.formatter = DateFormatterProvider.getFormatter(this.locale);
         this.updateInputValue();
         this.renderCalendar();
+        break;
+      case 'min-date':
+        try {
+          this.minDate = newValue ? this.formatter.parse(newValue) : null;
+          this.renderCalendar();
+        } catch (e) {
+          console.error("Error parsing min date:", e);
+        }
+        break;
+      case 'max-date':
+        try {
+          this.maxDate = newValue ? this.formatter.parse(newValue) : null;
+          this.renderCalendar();
+        } catch (e) {
+          console.error("Error parsing max date:", e);
+        }
         break;
       case 'mode':
         this.isRangeMode = newValue === 'range';
@@ -177,6 +195,25 @@ export class DatePicker extends HTMLElement {
     
     if (this.hasAttribute('theme')) {
       this.setAttribute('data-theme', this.getAttribute('theme') || '');
+    }
+
+    // Set min and max dates if present
+    if (this.hasAttribute('min-date')) {
+      try {
+        const minDateStr = this.getAttribute('min-date') || '';
+        this.minDate = this.formatter.parse(minDateStr);
+      } catch (e) {
+        console.error("Error parsing min date:", e);
+      }
+    }
+    
+    if (this.hasAttribute('max-date')) {
+      try {
+        const maxDateStr = this.getAttribute('max-date') || '';
+        this.maxDate = this.formatter.parse(maxDateStr);
+      } catch (e) {
+        console.error("Error parsing max date:", e);
+      }
     }
 
     // Check for mode attribute
@@ -388,6 +425,7 @@ export class DatePicker extends HTMLElement {
         const isRangeStart = this.isRangeMode && this.isSameDate(currentDate, this.rangeStart);
         const isRangeEnd = this.isRangeMode && this.isSameDate(currentDate, this.rangeEnd);
         const isInRange = this.isRangeMode && this.isDateInRange(currentDate);
+        const isDisabled = this.isDateDisabled(currentDate);
         
         // Build CSS classes
         let cellClass = 'date-picker-cell';
@@ -399,6 +437,7 @@ export class DatePicker extends HTMLElement {
         if (isRangeStart) cellClass += ' range-start';
         if (isRangeEnd) cellClass += ' range-end';
         if (isInRange) cellClass += ' in-range';
+        if (isDisabled) cellClass += ' disabled';
         
         // Generate the date cell
         calendarContent += `
@@ -530,6 +569,11 @@ export class DatePicker extends HTMLElement {
   }
   
   private handleDateSelection(date: Date) {
+    // Check if this date is disabled (outside min/max range)
+    if (this.isDateDisabled(date)) {
+      return; // Don't select disabled dates
+    }
+    
     if (this.isRangeMode) {
       this.handleRangeSelection(date);
     } else {
@@ -541,6 +585,11 @@ export class DatePicker extends HTMLElement {
   }
   
   private handleRangeSelection(date: Date) {
+    // Check if this date is disabled (outside min/max range)
+    if (this.isDateDisabled(date)) {
+      return; // Don't select disabled dates
+    }
+    
     if (!this.rangeSelectionInProgress) {
       this.resetRangeSelection();
       this.rangeStart = date;
@@ -567,6 +616,11 @@ export class DatePicker extends HTMLElement {
   }
   
   private isDateInRange(date: Date): boolean {
+    // First check if date is within min/max constraints
+    if (this.isDateDisabled(date)) {
+      return false;
+    }
+    
     if (!this.isRangeMode || !this.rangeStart) return false;
     
     if (!this.rangeEnd) return false;
@@ -699,6 +753,18 @@ export class DatePicker extends HTMLElement {
     return this.events.has(dateKey) && this.events.get(dateKey)!.length > 0;
   }
   
+  private isDateDisabled(date: Date): boolean {
+    if (this.minDate && date < this.minDate) {
+      return true;
+    }
+    
+    if (this.maxDate && date > this.maxDate) {
+      return true;
+    }
+    
+    return false;
+  }
+  
   private previousMonth() {
     const newViewDate = new Date(this.viewDate);
     
@@ -804,7 +870,10 @@ export class DatePicker extends HTMLElement {
     const today = new Date();
     this.viewDate = today;
     
-    if (!this.isRangeMode) {
+    // Only select today if it's within the allowed date range
+    if (!this.isRangeMode && 
+        !(this.minDate && today < this.minDate) && 
+        !(this.maxDate && today > this.maxDate)) {
       this.selectedDate = today;
       this.dispatchChangeEvent();
       this.updateInputValue();
