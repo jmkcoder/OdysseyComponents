@@ -1,6 +1,7 @@
 import './date-picker.scss';
 import { DateFormatterProvider, IDateFormatter } from './services';
 import { InternationalizationService } from '../../services';
+import { defineCustomElement } from '../../utilities/define-custom-element';
 
 export class DatePicker extends HTMLElement {
   // State variables
@@ -970,4 +971,4 @@ export class DatePicker extends HTMLElement {
   }
 }
 
-customElements.define('odyssey-date-picker', DatePicker);
+export const defineDatePicker = () => defineCustomElement('odyssey-date-picker', DatePicker);
