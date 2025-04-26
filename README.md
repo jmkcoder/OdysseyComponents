@@ -7,6 +7,9 @@ A library of web components for modern web applications, featuring the powerful 
 ### Node Explorer
 A hierarchical tree view component with drag-and-drop capabilities, multi-selection support, and keyboard navigation.
 
+### Date Picker
+A flexible date picker component with single/range selection modes, internationalization support, and customizable inputs.
+
 ## Installation
 
 ```bash
@@ -34,6 +37,7 @@ import '@jmkcoder/components';
     window.addEventListener('DOMContentLoaded', () => {
       // Register the components
       OdysseyComponents.defineNodeExplorer();
+      OdysseyComponents.defineDatePicker();
     });
   </script>
   <style>
@@ -188,6 +192,113 @@ explorer.addEventListener('nodes-changed', (e) => {
 });
 ```
 
+## Date Picker API
+
+### Attributes
+
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `value` | String | `''` | Selected date in ISO format (YYYY-MM-DD) |
+| `mode` | String | `'single'` | Selection mode ('single' or 'range') |
+| `format` | String | `'yyyy-MM-dd'` | Date format for display |
+| `disabled` | Boolean | `false` | Disables the date picker |
+| `placeholder` | String | `'Select date'` | Placeholder text for the input |
+| `theme` | String | `'light'` | Theme variant ('light', 'dark', 'minimal', 'high-contrast') |
+| `locale` | String | `'en-US'` | Locale for date formatting and localization |
+| `min-date` | String | `''` | Minimum selectable date in ISO format |
+| `max-date` | String | `''` | Maximum selectable date in ISO format |
+| `start-date` | String | `''` | Start date for range selection in ISO format |
+| `end-date` | String | `''` | End date for range selection in ISO format |
+| `first-day-of-week` | String | `'0'` | First day of week (0: Sunday, 1: Monday) |
+
+### Slots
+
+| Slot Name | Description |
+|-----------|-------------|
+| `input` | Slot for a custom input element that replaces the default input while maintaining calendar functionality |
+
+### Basic Usage
+
+```html
+<!-- Basic date picker -->
+<odyssey-date-picker placeholder="Select a date"></odyssey-date-picker>
+
+<!-- With initial value -->
+<odyssey-date-picker value="2025-04-26"></odyssey-date-picker>
+
+<!-- Range selection mode -->
+<odyssey-date-picker 
+  mode="range" 
+  start-date="2025-04-15" 
+  end-date="2025-04-22">
+</odyssey-date-picker>
+
+<!-- With custom input element -->
+<odyssey-date-picker>
+  <input type="text" slot="input" class="my-custom-input" placeholder="Choose a date">
+</odyssey-date-picker>
+```
+
+### Methods
+
+```javascript
+// Get a reference to the date picker
+const datePicker = document.querySelector('odyssey-date-picker');
+
+// Date manipulation
+datePicker.setDate(new Date(2025, 3, 15)); // April 15, 2025
+const selectedDate = datePicker.getDate();
+
+// Range selection
+datePicker.setDateRange(
+  new Date(2025, 3, 15), // April 15, 2025
+  new Date(2025, 3, 22)  // April 22, 2025
+);
+const dateRange = datePicker.getDateRange();
+
+// Events
+datePicker.addEvent(new Date(2025, 3, 15), 'Meeting');
+datePicker.clearEvents(new Date(2025, 3, 15));
+```
+
+### Events
+
+```javascript
+// Selection events
+datePicker.addEventListener('date-change', (e) => {
+  console.log('Date changed:', e.detail.date); // Single date mode
+  // Or in range mode:
+  // console.log('Range:', e.detail.rangeStart, e.detail.rangeEnd);
+});
+
+// Calendar state
+datePicker.addEventListener('calendar-open', () => {
+  console.log('Calendar opened');
+});
+
+datePicker.addEventListener('calendar-close', () => {
+  console.log('Calendar closed');
+});
+```
+
+### CSS Customization
+
+```css
+odyssey-date-picker {
+  /* Color customization */
+  --date-picker-primary-color: #4361ee;
+  --date-picker-text-color: #333;
+  --date-picker-bg-color: #fff;
+  --date-picker-border-color: #ddd;
+  --date-picker-hover-bg-color: #f5f7fa;
+  
+  /* Size and spacing */
+  width: 250px;
+}
+```
+
+For more details about the Date Picker, please refer to the DatePicker documentation in Storybook.
+
 ## Features
 
 ### Themes
@@ -303,7 +414,10 @@ odyssey-components/
 │   │   │       ├── node.service.ts           # Node data handling
 │   │   │       ├── node-renderer.service.ts  # DOM rendering
 │   │   │       └── drag-drop.service.ts      # Drag & drop handling
-│   │   └── odyssey-button/ # Button component
+│   │   └── date-picker/   # Date Picker component
+│   │       ├── date-picker.ts          # Main component file
+│   │       ├── date-picker.scss        # Component styles
+│   │       └── services/               # Date services
 │   ├── utilities/        # Utility functions
 │   └── stories/          # Storybook documentation
 ├── examples/             # Usage examples

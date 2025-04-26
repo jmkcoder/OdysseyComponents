@@ -22,7 +22,7 @@ A flexible and customizable date picker component for modern web applications.
 
 ## Overview
 
-The Date Picker provides an intuitive and feature-rich interface for date selection. It supports single date selection, date range selection, localization, theming, and event indicators to fit various use cases.
+The Date Picker provides an intuitive and feature-rich interface for date selection. It supports single date selection, date range selection, localization, theming, event indicators, and custom input elements to fit various use cases.
 
 ### Key Features
 
@@ -33,6 +33,7 @@ The Date Picker provides an intuitive and feature-rich interface for date select
 - **Keyboard Accessibility**: Full keyboard navigation support.
 - **Event Indicators**: Display event indicators on specific dates.
 - **Month and Year Navigation**: Easily navigate between months and years.
+- **Slotable Input**: Use custom input elements while maintaining calendar functionality.
 
 ## Installation
 
@@ -60,6 +61,16 @@ Using the component in plain HTML is straightforward:
 
 ```html
 <odyssey-date-picker mode="range" start-date="2025-04-15" end-date="2025-04-22"></odyssey-date-picker>
+```
+
+### With Custom Input Element
+
+You can provide your own input element while maintaining the date picker functionality:
+
+```html
+<odyssey-date-picker>
+  <input type="text" slot="input" class="my-custom-input" placeholder="Select a date">
+</odyssey-date-picker>
 ```
 
 ## Examples
@@ -299,6 +310,12 @@ rangePickerr.addEventListener('date-change', (event) => {
 | `first-day-of-week`   | `string`        | `'0'`         | First day of week (0: Sunday, 1: Monday, 6: Saturday)   |
 | `theme`               | `string`        | `'light'`     | Theme variant ('light', 'dark', 'minimal', 'high-contrast') |
 
+### Slots
+
+| Slot Name    | Description                                                                     |
+|--------------|---------------------------------------------------------------------------------|
+| `input`      | Slot for a custom input element (replaces the default input while maintaining the calendar icon and functionality) |
+
 ### Methods
 
 | Method                 | Parameters                                    | Return Type    | Description                               |
@@ -334,6 +351,65 @@ rangePickerr.addEventListener('date-change', (event) => {
 | `--date-picker-event-color`           | `#ff6b6b`            | Color for event indicators                    |
 | `--date-picker-focus-outline-color`   | `#4361ee`            | Color for focus outline                       |
 | `--date-picker-range-bg-color`        | Variable opacity     | Background color for date range               |
+
+## Customizing the Input Element
+
+The Date Picker component provides a flexible way to use your own custom input element while maintaining all the date picker functionality.
+
+### Basic Custom Input Example
+
+```html
+<odyssey-date-picker>
+  <input type="text" slot="input" class="my-custom-input" placeholder="Choose a date...">
+</odyssey-date-picker>
+```
+
+### Styling Custom Inputs
+
+You can apply your own styles to the custom input, while the date picker will still handle the date formatting and calendar interactions:
+
+```html
+<odyssey-date-picker format="MMM d, yyyy">
+  <input type="text" 
+         slot="input" 
+         class="custom-fancy-input"
+         placeholder="Select date...">
+</odyssey-date-picker>
+
+<style>
+  .custom-fancy-input {
+    padding: 10px 15px;
+    border: 2px solid #8b5cf6;
+    border-radius: 8px;
+    font-size: 16px;
+    background-color: #f3f4f6;
+    transition: all 0.3s ease;
+  }
+  
+  .custom-fancy-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3);
+    border-color: #7c3aed;
+  }
+</style>
+```
+
+### Integration with Form Frameworks
+
+When using custom inputs with form libraries or frameworks, note that the date picker will automatically:
+
+1. Set the input to `readonly` to prevent direct typing
+2. Handle the date formatting based on the date picker's configuration
+3. Maintain calendar icon positioning on the right side of the input
+
+### Accessibility Considerations
+
+When using custom inputs, ensure they have appropriate:
+- Labels or aria-labels
+- Color contrast ratios
+- Focus states for keyboard navigation
+
+The date picker will automatically handle the calendar dialog's accessibility.
 
 ## Accessibility
 

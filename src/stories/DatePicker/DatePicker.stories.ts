@@ -244,3 +244,144 @@ export const CustomFormats: Story = {
     }
   }
 };
+
+// Custom input examples
+export const CustomInputs: Story = {
+  args: {
+    value: '2025-04-26',
+  },
+  render: () => {
+    return html`
+      <style>
+        .custom-inputs-container {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+          max-width: 500px;
+        }
+        
+        .example-wrapper {
+          margin-bottom: 12px;
+        }
+        
+        .input-example-title {
+          font-weight: bold;
+          margin-bottom: 8px;
+          color: #333;
+        }
+        
+        .styled-input {
+          width: 100%;
+          padding: 10px 15px;
+          border: 2px solid #8b5cf6;
+          border-radius: 8px;
+          font-size: 14px;
+          background-color: #f3f4f6;
+          transition: all 0.3s ease;
+        }
+        
+        .styled-input:focus {
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3);
+        }
+        
+        .material-input {
+          width: 100%;
+          padding: 12px;
+          border: none;
+          border-bottom: 2px solid #9ca3af;
+          font-size: 14px;
+          background-color: transparent;
+          transition: all 0.3s ease;
+        }
+        
+        .material-input:focus {
+          outline: none;
+          border-bottom-color: #3b82f6;
+        }
+        
+        .rounded-input {
+          width: 100%;
+          padding: 12px 20px;
+          border: 1px solid #e5e7eb;
+          border-radius: 50px;
+          font-size: 14px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+          transition: all 0.3s ease;
+        }
+        
+        .rounded-input:focus {
+          outline: none;
+          border-color: #10b981;
+          box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+        }
+        
+        .dark-input {
+          width: 100%;
+          padding: 12px;
+          border: 1px solid #4b5563;
+          border-radius: 6px;
+          font-size: 14px;
+          background-color: #1f2937;
+          color: #e5e7eb;
+          transition: all 0.3s ease;
+        }
+        
+        .dark-input:focus {
+          outline: none;
+          border-color: #60a5fa;
+          box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.3);
+        }
+        
+        .icon-slot-example {
+          --date-picker-text-color: #4b5563;
+          --date-picker-border-color: #e5e7eb;
+          --date-picker-selected-bg-color: #3b82f6;
+          margin-top: 30px;
+        }
+      </style>
+      
+      <div class="custom-inputs-container">
+        <div class="example-wrapper">
+          <p class="input-example-title">Purple Styled Input:</p>
+          <odyssey-date-picker format="MM/dd/yyyy" value="2025-04-26">
+            <input type="text" slot="input" class="styled-input" placeholder="Choose a date...">
+          </odyssey-date-picker>
+        </div>
+        
+        <div class="example-wrapper">
+          <p class="input-example-title">Material Design Style:</p>
+          <odyssey-date-picker format="d MMMM, yyyy" value="2025-04-26">
+            <input type="text" slot="input" class="material-input" placeholder="Select date">
+          </odyssey-date-picker>
+        </div>
+        
+        <div class="example-wrapper">
+          <p class="input-example-title">Rounded with Green Accents:</p>
+          <odyssey-date-picker format="EEE, MMM d, yyyy" value="2025-04-26">
+            <input type="text" slot="input" class="rounded-input" placeholder="Pick a date">
+          </odyssey-date-picker>
+        </div>
+        
+        <div class="example-wrapper">
+          <p class="input-example-title">Dark Theme Input:</p>
+          <odyssey-date-picker theme="dark" value="2025-04-26">
+            <input type="text" slot="input" class="dark-input" placeholder="Select date">
+          </odyssey-date-picker>
+        </div>
+        
+        <div class="example-wrapper icon-slot-example">
+          <p class="input-example-title">Default Input (For Comparison):</p>
+          <odyssey-date-picker value="2025-04-26"></odyssey-date-picker>
+        </div>
+      </div>
+    `;
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Examples of date pickers with custom slotted inputs. The component maintains calendar functionality and icon placement while allowing completely custom input styling.'
+      }
+    }
+  }
+};

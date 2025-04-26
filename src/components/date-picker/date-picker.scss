@@ -60,12 +60,24 @@
       }
     }
     
+    /* Apply only essential positioning styles to slotted inputs, preserve custom styling */
+    ::slotted(input) {
+      width: 100%; /* This is needed for proper sizing */
+      padding-right: 2rem !important; /* Important to preserve space for the calendar icon */
+      cursor: pointer;
+      
+      &:disabled {
+        cursor: not-allowed;
+      }
+    }
+    
     .date-picker-icon {
       position: absolute;
       right: 0.5rem;
       color: var(--date-picker-text-color);
       opacity: 0.7;
       pointer-events: none;
+      z-index: 1;
     }
   }
   

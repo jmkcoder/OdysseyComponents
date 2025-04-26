@@ -18,14 +18,21 @@ import { UIService } from './services/ui.service';
  *   value="2025-04-26"
  *   locale="en-US">
  * </odyssey-date-picker>
+ * 
+ * @example With custom input
+ * <odyssey-date-picker>
+ *   <input type="text" slot="input" class="my-custom-input">
+ * </odyssey-date-picker>
  */
 export class DatePicker extends HTMLElement implements EventListenerObject {
   // DOM Elements References
   private inputElement!: HTMLInputElement;
+  private inputWrapperElement!: HTMLDivElement;
   private calendarElement!: HTMLDivElement;
   private dialogElement!: HTMLDivElement;
   private headerElement!: HTMLDivElement;
   private footerElement!: HTMLDivElement;
+  private defaultInputElement!: HTMLInputElement;
   
   // Services
   private formatter: IDateFormatter;
@@ -153,9 +160,14 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
   private initializeComponent() {
     // Create the main structure
     this.classList.add('odyssey-date-picker');
+    
+    // First check if there's a slotted input before building the structure
+    const slottedInput = this.querySelector('input[slot="input"]');
+    
+    // Create HTML structure
     this.innerHTML = `
         <div class="date-picker-input-wrapper">
-          <input type="text" class="date-picker-input" placeholder="Select date" readonly>
+          ${slottedInput ? '' : '<input type="text" class="date-picker-input" placeholder="Select date" readonly>'}
           <span class="date-picker-icon material-icons">calendar_today</span>
         </div>
         <div class="date-picker-dialog" tabindex="-1">
@@ -166,11 +178,24 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
     `;
     
     // Get references to DOM elements
-    this.inputElement = this.querySelector('.date-picker-input') as HTMLInputElement;
+    this.inputWrapperElement = this.querySelector('.date-picker-input-wrapper') as HTMLDivElement;
     this.dialogElement = this.querySelector('.date-picker-dialog') as HTMLDivElement;
     this.calendarElement = this.querySelector('.date-picker-calendar') as HTMLDivElement;
     this.headerElement = this.querySelector('.date-picker-header') as HTMLDivElement;
     this.footerElement = this.querySelector('.date-picker-footer') as HTMLDivElement;
+    
+    // Handle input: either use slotted input or the default one
+    if (slottedInput && slottedInput instanceof HTMLInputElement) {
+      // Move the slotted input into the wrapper
+      this.inputWrapperElement.insertBefore(slottedInput, this.inputWrapperElement.firstChild);
+      this.inputElement = slottedInput;
+      this.inputElement.removeAttribute('slot'); // No longer needed
+      
+      // Set readonly attribute to prevent direct typing
+      this.inputElement.setAttribute('readonly', 'true');
+    } else {
+      this.inputElement = this.querySelector('.date-picker-input') as HTMLInputElement;
+    }
     
     // Initialize UI service with DOM references
     this.uiService.initialize(
@@ -276,8 +301,8 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
   }
   
   private attachEventListeners() {
-    // Toggle calendar on input click
-    this.querySelector('.date-picker-input-wrapper')?.addEventListener('click', this);
+    // Toggle calendar on input wrapper click
+    this.inputWrapperElement?.addEventListener('click', this);
     
     // Close calendar when clicking outside
     document.addEventListener('click', this);
@@ -461,7 +486,7 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
    */
   disconnectedCallback() {
     document.removeEventListener('click', this);
-    this.querySelector('.date-picker-input-wrapper')?.removeEventListener('click', this);
+    this.inputWrapperElement?.removeEventListener('click', this);
   }
   
   // Public API methods
