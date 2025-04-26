@@ -1058,7 +1058,7 @@ export class DatePickerServiceManager {
    */
   setTheme(theme: string): void {
     this._themeService.setTheme(this._element, theme);
-    this._element.setAttribute('theme', theme);
+    this._element.setAttribute('data-theme', theme);
     
     if (this._container) {
       this._themeService.setTheme(this._container, theme);

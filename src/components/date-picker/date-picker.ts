@@ -126,8 +126,8 @@ export class DatePicker extends HTMLElement {
   
   private initializeComponent() {
     // Create the main structure
+    this.classList.add('odyssey-date-picker');
     this.innerHTML = `
-      <div class="odyssey-date-picker">
         <div class="date-picker-input-wrapper">
           <input type="text" class="date-picker-input" placeholder="Select date" readonly>
           <span class="date-picker-icon material-icons">calendar_today</span>
@@ -155,7 +155,6 @@ export class DatePicker extends HTMLElement {
             </div>
           </div>
         </div>
-      </div>
     `;
     
     // Get references to DOM elements
@@ -500,14 +499,6 @@ export class DatePicker extends HTMLElement {
     
     yearsContent += '</div>';
     
-    // Add navigation for decades
-    yearsContent += `
-      <div style="display: flex; justify-content: space-between; padding: 0.5rem;">
-        <button class="date-picker-btn prev-decade">« Prev</button>
-        <button class="date-picker-btn next-decade">Next »</button>
-      </div>
-    `;
-    
     this.calendarElement.innerHTML = yearsContent;
     
     // Attach click events to year cells
@@ -519,21 +510,6 @@ export class DatePicker extends HTMLElement {
         this.currentView = 'months';
         this.renderCalendar();
       });
-    });
-    
-    // Attach decade navigation events
-    this.querySelector('.prev-decade')?.addEventListener('click', (e) => {
-      e.stopPropagation(); // Prevent event from closing calendar
-      this.viewDate.setFullYear(this.viewDate.getFullYear() - 10);
-      this.renderYearsView();
-      this.updateHeaderText();
-    });
-    
-    this.querySelector('.next-decade')?.addEventListener('click', (e) => {
-      e.stopPropagation(); // Prevent event from closing calendar
-      this.viewDate.setFullYear(this.viewDate.getFullYear() + 10);
-      this.renderYearsView();
-      this.updateHeaderText();
     });
   }
   
@@ -608,16 +584,18 @@ export class DatePicker extends HTMLElement {
     const monthSelector = this.querySelector('.date-picker-month-selector') as HTMLElement;
     const yearSelector = this.querySelector('.date-picker-year-selector') as HTMLElement;
     
-    if (this.currentView === 'calendar' || this.currentView === 'months') {
+    if (this.currentView === 'calendar') {
+      monthSelector.textContent = this.getMonthName(this.viewDate.getMonth());
+      yearSelector.textContent = this.viewDate.getFullYear().toString();
+    } else if (this.currentView === 'months') {
       monthSelector.textContent = this.getMonthName(this.viewDate.getMonth());
       yearSelector.textContent = this.viewDate.getFullYear().toString();
     } else if (this.currentView === 'years') {
       const currentYear = this.viewDate.getFullYear();
       const startYear = currentYear - (currentYear % 12) - 3;
       const endYear = startYear + 14;
-      monthSelector.textContent = '';
+      monthSelector.textContent = this.getMonthName(this.viewDate.getMonth());
       yearSelector.textContent = `${startYear} - ${endYear}`;
-      yearSelector.classList.add('center');
     }
   }
   
@@ -723,14 +701,30 @@ export class DatePicker extends HTMLElement {
   
   private previousMonth() {
     const newViewDate = new Date(this.viewDate);
-    newViewDate.setMonth(newViewDate.getMonth() - 1);
+    
+    if (this.currentView === 'calendar') {
+      newViewDate.setMonth(newViewDate.getMonth() - 1);
+    } else if (this.currentView === 'months') {
+      newViewDate.setFullYear(newViewDate.getFullYear() - 1);
+    } else if (this.currentView === 'years') {
+      newViewDate.setFullYear(newViewDate.getFullYear() - 15);
+    }
+    
     this.viewDate = newViewDate;
     this.renderCalendar();
   }
   
   private nextMonth() {
     const newViewDate = new Date(this.viewDate);
-    newViewDate.setMonth(newViewDate.getMonth() + 1);
+    
+    if (this.currentView === 'calendar') {
+      newViewDate.setMonth(newViewDate.getMonth() + 1);
+    } else if (this.currentView === 'months') {
+      newViewDate.setFullYear(newViewDate.getFullYear() + 1);
+    } else if (this.currentView === 'years') {
+      newViewDate.setFullYear(newViewDate.getFullYear() + 15);
+    }
+    
     this.viewDate = newViewDate;
     this.renderCalendar();
   }
