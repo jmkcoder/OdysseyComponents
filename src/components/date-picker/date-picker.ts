@@ -422,19 +422,143 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
         this.setRangeFromString(inputValue);
       } else {
         const date = this.formatter.parse(inputValue);
+        
         if (!isNaN(date.getTime())) {
-          this.stateService.selectedDate = date;
-          this.stateService.viewDate = new Date(date);
+          // Check if the date is disabled before setting it
+          if (this.stateService.isDateDisabled(date)) {
+            this.showDisabledDateFeedback(date);
+          } else {
+            // Valid date, update state
+            this.stateService.selectedDate = date;
+            this.stateService.viewDate = new Date(date);
+            this.clearDateInputError();
+          }
         } else {
           // Invalid date format, restore previous value
+          this.showInvalidDateFormatFeedback();
           this.updateInputDisplay();
         }
       }
     } catch (e) {
       console.error("Error parsing input date:", e);
       // Invalid format, restore previous value
+      this.showInvalidDateFormatFeedback();
       this.updateInputDisplay();
     }
+  }
+  
+  /**
+   * Display feedback when user tries to select a disabled date
+   */
+  private showDisabledDateFeedback(date: Date): void {
+    // Get the reason why this date is disabled
+    const reason = this.stateService.getDisabledDateReason(date);
+    
+    // Create or update the error message element
+    let errorElement = this.querySelector('.date-picker-input-error');
+    if (!errorElement) {
+      errorElement = document.createElement('div');
+      errorElement.className = 'date-picker-input-error';
+      this.inputWrapperElement.insertAdjacentElement('afterend', errorElement);
+    }
+    
+    // Add error class to the input
+    this.inputElement.classList.add('date-picker-input-invalid');
+    
+    // Find the nearest available date as a suggestion
+    const formattedDate = this.formatter.format(date, this.stateService.format);
+    let suggestMessage = '';
+    
+    // Try to find a valid date within one week in either direction
+    const today = new Date();
+    const oneWeekForward = new Date(today);
+    oneWeekForward.setDate(today.getDate() + 7);
+    
+    const nearestAvailableDate = this.findNearestAvailableDate(date);
+    if (nearestAvailableDate) {
+      const formattedNearestDate = this.formatter.format(nearestAvailableDate, this.stateService.format);
+      suggestMessage = ` Try ${formattedNearestDate} instead.`;
+    }
+    
+    // Set the error message with the reason and suggestion
+    if (reason) {
+      errorElement.textContent = `${formattedDate} can't be selected: ${reason}.${suggestMessage}`;
+    } else {
+      errorElement.textContent = `${formattedDate} is not available.${suggestMessage}`;
+    }
+    
+    // Restore the previous value
+    this.updateInputDisplay();
+    
+    // Auto-hide the error after 5 seconds
+    setTimeout(() => {
+      this.clearDateInputError();
+    }, 5000);
+  }
+  
+  /**
+   * Display feedback for invalid date format
+   */
+  private showInvalidDateFormatFeedback(): void {
+    // Create or update the error message element
+    let errorElement = this.querySelector('.date-picker-input-error');
+    if (!errorElement) {
+      errorElement = document.createElement('div');
+      errorElement.className = 'date-picker-input-error';
+      this.inputWrapperElement.insertAdjacentElement('afterend', errorElement);
+    }
+    
+    // Add error class to the input
+    this.inputElement.classList.add('date-picker-input-invalid');
+    
+    // Show a format hint
+    errorElement.textContent = `Invalid date. Please use format: ${this.stateService.format}`;
+    
+    // Auto-hide the error after 5 seconds
+    setTimeout(() => {
+      this.clearDateInputError();
+    }, 5000);
+  }
+  
+  /**
+   * Clear any input error state
+   */
+  private clearDateInputError(): void {
+    const errorElement = this.querySelector('.date-picker-input-error');
+    if (errorElement) {
+      errorElement.remove();
+    }
+    
+    this.inputElement.classList.remove('date-picker-input-invalid');
+  }
+  
+  /**
+   * Find the nearest available date to a given date
+   * @param date The reference date
+   * @returns The nearest available date or null if none found within reasonable range
+   */
+  private findNearestAvailableDate(date: Date): Date | null {
+    const maxDays = 14; // Look up to 2 weeks in either direction
+    const dateToCheck = new Date(date);
+    
+    // Check forward
+    for (let i = 1; i <= maxDays; i++) {
+      dateToCheck.setDate(date.getDate() + i);
+      if (!this.stateService.isDateDisabled(dateToCheck)) {
+        return new Date(dateToCheck);
+      }
+      
+      // Also check backward on the same iteration
+      dateToCheck.setDate(date.getDate() - i);
+      if (!this.stateService.isDateDisabled(dateToCheck)) {
+        return new Date(dateToCheck);
+      }
+      
+      // Reset for next iteration
+      dateToCheck.setTime(date.getTime());
+    }
+    
+    return null; // No available date found within the range
   }
   
   /**
@@ -551,14 +675,6 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
   public toggleCalendar(): void {
     const wasOpen = this.stateService.isOpen;
     this.stateService.isOpen = !wasOpen;
-    
-    // If opening the calendar, maintain focus on the input element
-    if (!wasOpen) {
-      // Use setTimeout to ensure the focus happens after rendering
-      setTimeout(() => {
-        this.inputElement.focus();
-      }, 0);
-    }
   }
   
   /**
@@ -595,12 +711,77 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
     }
     
     try {
-      const rangeParts = value.split('-').map(part => part.trim());
+      // Look for a separator between dates (dash, "to", or other common separators)
+      let rangeParts: string[] = [];
+      
+      // Try standard dash separator first (most common)
+      if (value.includes('-')) {
+        rangeParts = value.split('-').map(part => part.trim());
+      } 
+      // Try "to" as separator
+      else if (value.toLowerCase().includes('to')) {
+        rangeParts = value.toLowerCase().split('to').map(part => part.trim());
+      }
+      // Try slash as separator (less common, but possible user input)
+      else if (value.split('/').length > 2) {
+        // This might be a complex case like "04/15/2025 / 04/26/2025"
+        // Try to intelligently split this based on the format
+        const formatParts = this.stateService.format.split('-');
+        if (formatParts.length === 3) {
+          // Count separators expected in a single date based on the format
+          const expectedSeparators = formatParts.join('').split('').filter(c => /[^A-Za-z0-9]/.test(c)).length;
+          
+          // Find the position where the second date starts
+          const separatorCount = [...value].reduce((count, char, index) => {
+            if (/[^A-Za-z0-9]/.test(char)) count++;
+            if (count === expectedSeparators + 1) return index;
+            return count;
+          }, 0);
+          
+          if (typeof separatorCount === 'number' && separatorCount > 0) {
+            rangeParts = [
+              value.substring(0, separatorCount).trim(),
+              value.substring(separatorCount + 1).trim()
+            ];
+          }
+        }
+      }
+      
+      // If we couldn't parse it using known separators, try to infer based on the format pattern
+      if (rangeParts.length !== 2) {
+        // Get the expected length of a single date based on the format
+        const sampleDate = new Date();
+        const formattedSample = this.formatter.format(sampleDate, this.stateService.format);
+        const expectedLength = formattedSample.length;
+        
+        // If the input is roughly twice the expected length, try to split in the middle
+        if (value.length >= expectedLength * 1.8) {
+          // Find a natural break point (space, comma, etc.) near the middle
+          const midPoint = Math.floor(value.length / 2);
+          let splitIndex = value.indexOf(' ', midPoint - 3);
+          
+          if (splitIndex === -1) {
+            splitIndex = value.indexOf(',', midPoint - 3);
+          }
+          
+          if (splitIndex === -1) {
+            // No natural break point, just split in the middle
+            splitIndex = midPoint;
+          }
+          
+          rangeParts = [
+            value.substring(0, splitIndex).trim(),
+            value.substring(splitIndex).trim()
+          ];
+        }
+      }
+      
+      // Try to parse both parts as dates
       if (rangeParts.length === 2) {
         const start = this.formatter.parse(rangeParts[0]);
         const end = this.formatter.parse(rangeParts[1]);
         
-        if (start && end && !isNaN(start.getTime()) && !isNaN(end.getTime())) {
+        if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
           if (start > end) {
             this.stateService.rangeStart = end;
             this.stateService.rangeEnd = start;
@@ -609,10 +790,16 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
             this.stateService.rangeEnd = end;
           }
           this.stateService.viewDate = new Date(this.stateService.rangeStart);
+          return;
         }
       }
+      
+      // If we get here, we couldn't parse the input as a valid range
+      console.warn("Could not parse input as date range:", value);
+      this.updateInputDisplay(); // Restore previous valid value
     } catch (e) {
       console.error("Error parsing date range:", e);
+      this.updateInputDisplay(); // Restore previous valid value
     }
   }
   

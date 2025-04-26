@@ -1,3 +1,5 @@
+import { DateUtils } from '../../../utilities/date-utils';
+
 /**
  * Service for calendar-related calculations and date management
  */
@@ -8,111 +10,6 @@ export class CalendarService {
   private _events: Map<string, string[]> = new Map();
 
   /**
-   * Format a date as YYYY-MM-DD
-   */
-  formatDate(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-
-  /**
-   * Format a date to ISO string (YYYY-MM-DD)
-   */
-  formatISODate(date: Date): string {
-    return date.toISOString().split('T')[0];
-  }
-
-  /**
-   * Parse a date string in YYYY-MM-DD format
-   */
-  parseDate(dateString: string): Date | null {
-    if (!dateString) return null;
-    
-    // Try to parse the date string
-    const parts = dateString.split('-');
-    if (parts.length !== 3) return null;
-    
-    const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1; // Months are 0-based in JS
-    const day = parseInt(parts[2], 10);
-    
-    if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
-    
-    const date = new Date(year, month, day);
-    
-    // Validate the date is valid
-    if (date.getFullYear() !== year || date.getMonth() !== month || date.getDate() !== day) {
-      return null;
-    }
-    
-    return date;
-  }
-
-  /**
-   * Parse an ISO date string (YYYY-MM-DD)
-   */
-  parseISODate(dateString: string): Date | null {
-    return this.parseDate(dateString);
-  }
-
-  /**
-   * Check if two dates are the same (ignoring time)
-   */
-  isSameDay(date1: Date, date2: Date): boolean {
-    return (
-      date1.getFullYear() === date2.getFullYear() &&
-      date1.getMonth() === date2.getMonth() &&
-      date1.getDate() === date2.getDate()
-    );
-  }
-
-  /**
-   * Add specified number of days to a date
-   */
-  addDays(date: Date, days: number): Date {
-    const result = new Date(date);
-    result.setDate(result.getDate() + days);
-    return result;
-  }
-
-  /**
-   * Add specified number of months to a date
-   */
-  addMonths(date: Date, months: number): Date {
-    const result = new Date(date);
-    result.setMonth(result.getMonth() + months);
-    
-    // Handle edge case when adding months can skip to the next month
-    // For example, Jan 31 + 1 month would be Mar 3 (in non-leap years)
-    // We want it to be Feb 28/29 instead
-    const originalDate = date.getDate();
-    const newDate = result.getDate();
-    
-    if (originalDate !== newDate) {
-      // Set to the last day of the previous month
-      result.setDate(0);
-    }
-    
-    return result;
-  }
-
-  /**
-   * Get the first day of the month for a given date
-   */
-  getFirstDayOfMonth(date: Date): Date {
-    return new Date(date.getFullYear(), date.getMonth(), 1);
-  }
-
-  /**
-   * Get the last day of the month for a given date
-   */
-  getLastDayOfMonth(date: Date): Date {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0);
-  }
-
-  /**
    * Get the first day of the week containing the given date
    * @param date Optional date to determine the week
    * @returns Date object for the first day of the week
@@ -121,7 +18,7 @@ export class CalendarService {
     const targetDate = date ? new Date(date) : new Date();
     const day = targetDate.getDay(); // 0 = Sunday, 6 = Saturday
     const diff = (day - this._firstDayOfWeek + 7) % 7;
-    return this.addDays(targetDate, -diff);
+    return DateUtils.addDays(targetDate, -diff);
   }
 
   /**
@@ -129,7 +26,7 @@ export class CalendarService {
    */
   getLastDayOfWeek(date: Date): Date {
     const day = date.getDay(); // 0 = Sunday, 6 = Saturday
-    return this.addDays(date, 6 - day);
+    return DateUtils.addDays(date, 6 - day);
   }
 
   /**
@@ -138,7 +35,6 @@ export class CalendarService {
   generateCalendarDays(year: number, month: number): Date[] {
     const result: Date[] = [];
     const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
     
     // Start from the first day of the week that contains the first day of the month
     let currentDate = this.getFirstDayOfWeek(firstDay);
@@ -147,37 +43,10 @@ export class CalendarService {
     // This covers all possible month layouts
     for (let i = 0; i < 42; i++) {
       result.push(new Date(currentDate));
-      currentDate = this.addDays(currentDate, 1);
+      currentDate = DateUtils.addDays(currentDate, 1);
     }
     
     return result;
-  }
-
-  /**
-   * Check if a date is today
-   */
-  isToday(date: Date): boolean {
-    const today = new Date();
-    return this.isSameDay(date, today);
-  }
-
-  /**
-   * Check if a date is in the current month
-   */
-  isCurrentMonth(date: Date, currentMonth: Date): boolean {
-    return (
-      date.getMonth() === currentMonth.getMonth() &&
-      date.getFullYear() === currentMonth.getFullYear()
-    );
-  }
-
-  /**
-   * Get today's date with time set to midnight
-   */
-  getToday(): Date {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return today;
   }
 
   /**
@@ -240,20 +109,7 @@ export class CalendarService {
    * Check if a date is disabled (outside min/max range)
    */
   isDateDisabled(date: Date): boolean {
-    if (!date) return true;
-    
-    const testDate = new Date(date);
-    testDate.setHours(0, 0, 0, 0);
-    
-    if (this._minDate && testDate < this._minDate) {
-      return true;
-    }
-    
-    if (this._maxDate && testDate > this._maxDate) {
-      return true;
-    }
-    
-    return false;
+    return DateUtils.isDateDisabled(date, this._minDate, this._maxDate);
   }
 
   /**
@@ -264,9 +120,9 @@ export class CalendarService {
     
     Object.entries(events).forEach(([dateStr, eventsList]) => {
       // Normalize the date string to YYYY-MM-DD
-      const date = this.parseDate(dateStr);
+      const date = DateUtils.parseDate(dateStr);
       if (date) {
-        const normalizedDateStr = this.formatDate(date);
+        const normalizedDateStr = DateUtils.formatDate(date);
         
         // Get existing events or create new array
         const existingEvents = this._events.get(normalizedDateStr) || [];
@@ -282,9 +138,9 @@ export class CalendarService {
    * Remove events from a specific date
    */
   removeEvents(dateStr: string): void {
-    const date = this.parseDate(dateStr);
+    const date = DateUtils.parseDate(dateStr);
     if (date) {
-      const normalizedDateStr = this.formatDate(date);
+      const normalizedDateStr = DateUtils.formatDate(date);
       this._events.delete(normalizedDateStr);
     }
   }
@@ -321,4 +177,19 @@ export class CalendarService {
     });
     return eventsObj;
   }
+
+  // Provide direct access to DateUtils methods that don't need internal state
+  // This allows calling code to continue working without changes
+  formatDate = DateUtils.formatDate;
+  formatISODate = DateUtils.formatISODate;
+  parseDate = DateUtils.parseDate;
+  parseISODate = DateUtils.parseISODate;
+  isSameDay = DateUtils.isSameDay;
+  addDays = DateUtils.addDays;
+  addMonths = DateUtils.addMonths;
+  getFirstDayOfMonth = DateUtils.getFirstDayOfMonth;
+  getLastDayOfMonth = DateUtils.getLastDayOfMonth;
+  isToday = DateUtils.isToday;
+  isCurrentMonth = DateUtils.isCurrentMonth;
+  getToday = DateUtils.getToday;
 }

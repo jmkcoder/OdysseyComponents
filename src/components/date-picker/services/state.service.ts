@@ -1,4 +1,5 @@
 import { IDateFormatter } from './date-formatter.interface';
+import { DateUtils } from '../../../utilities/date-utils';
 
 export type DatePickerViewMode = 'calendar' | 'months' | 'years';
 export type DatePickerSelectionMode = 'single' | 'range';
@@ -248,11 +249,9 @@ export class StateService {
    * Utility methods
    */
   public isDateDisabled(date: Date): boolean {
-    if (this._minDate && date < this._minDate) {
-      return true;
-    }
-    
-    if (this._maxDate && date > this._maxDate) {
+    // First check min/max dates using DateUtils
+    const isDisabledByMinMax = DateUtils.isDateDisabled(date, this._minDate, this._maxDate);
+    if (isDisabledByMinMax) {
       return true;
     }
     
@@ -277,12 +276,7 @@ export class StateService {
   
   public isSameDate(date1: Date | null, date2: Date | null): boolean {
     if (!date1 || !date2) return false;
-    
-    return (
-      date1.getFullYear() === date2.getFullYear() &&
-      date1.getMonth() === date2.getMonth() &&
-      date1.getDate() === date2.getDate()
-    );
+    return DateUtils.isSameDay(date1, date2);
   }
   
   public hasEventsOnDate(date: Date): boolean {

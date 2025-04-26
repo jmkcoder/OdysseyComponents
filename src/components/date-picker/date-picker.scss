@@ -83,6 +83,52 @@
     }
   }
   
+  /* Error message for invalid/disabled date input */
+  .date-picker-input-error {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    padding: 0.5rem;
+    background-color: #fff1f1;
+    border: 1px solid #ff8a8a;
+    border-radius: 0.25rem;
+    color: #d42626;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    z-index: 10;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    animation: slideIn 0.2s ease-out;
+  }
+
+  .date-picker-input-invalid {
+    border-color: #ff4d4d !important;
+    box-shadow: 0 0 0 1px rgba(255, 77, 77, 0.5) !important;
+  }
+  
+  /* Dark theme styles for error messages */
+  &[data-theme="dark"] {
+    .date-picker-input-error {
+      background-color: #3b1a1a;
+      border-color: #6e2a2a;
+      color: #ff8a8a;
+    }
+  }
+  
+  /* High contrast theme styles for error messages */
+  &[data-theme="high-contrast"] {
+    .date-picker-input-error {
+      background-color: #000;
+      border: 2px solid #f00;
+      color: #f00;
+      font-weight: bold;
+    }
+    
+    .date-picker-input-invalid {
+      border: 2px solid #f00 !important;
+    }
+  }
+  
   .date-picker-dialog {
     position: absolute;
     z-index: 100;

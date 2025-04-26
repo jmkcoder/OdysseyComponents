@@ -1,4 +1,5 @@
 import { IDateFormatter } from '../services';
+import { DateUtils } from '../../../utilities/date-utils';
 
 export interface CalendarViewConfig {
   formatter: IDateFormatter;
@@ -132,12 +133,7 @@ export class CalendarView {
   
   private isSameDate(date1: Date | null, date2: Date | null): boolean {
     if (!date1 || !date2) return false;
-    
-    return (
-      date1.getFullYear() === date2.getFullYear() &&
-      date1.getMonth() === date2.getMonth() &&
-      date1.getDate() === date2.getDate()
-    );
+    return DateUtils.isSameDay(date1, date2);
   }
   
   private hasEventsOnDate(date: Date): boolean {
@@ -157,14 +153,6 @@ export class CalendarView {
   }
   
   private isDateDisabled(date: Date): boolean {
-    if (this.config.minDate && date < this.config.minDate) {
-      return true;
-    }
-    
-    if (this.config.maxDate && date > this.config.maxDate) {
-      return true;
-    }
-    
-    return false;
+    return DateUtils.isDateDisabled(date, this.config.minDate, this.config.maxDate);
   }
 }
