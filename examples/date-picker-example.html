@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Odyssey Date Picker Example</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            background-color: #f5f7fa;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #1a1f36;
+        }
+
+        .intro {
+            text-align: center;
+            margin-bottom: 40px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
+        }
+
+        .example-section {
+            margin-bottom: 40px;
+            padding: 30px;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .example-title {
+            font-size: 1.5rem;
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #1a1f36;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .example-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        .theme-section {
+            flex: 1;
+            min-width: 300px;
+            padding: 20px;
+            border-radius: 6px;
+            background: #fff;
+        }
+
+        .dark-section {
+            background: #1a1d27;
+            color: #e2e8f0;
+        }
+
+        .high-contrast-section {
+            background: #000;
+            color: #fff;
+        }
+
+        .theme-section odyssey-date-picker {
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+
+        .theme-title {
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+
+        .code-block {
+            background: #f8f9fb;
+            padding: 15px;
+            border-radius: 6px;
+            overflow: auto;
+            font-family: 'Courier New', monospace;
+            margin-top: 20px;
+            border-left: 4px solid #635bff;
+        }
+
+        .dark-section .code-block {
+            background: #2d303e;
+            border-left: 4px solid #7b68ee;
+        }
+
+        .high-contrast-section .code-block {
+            background: #333;
+            border-left: 4px solid #ffd700;
+        }
+
+        .events-demo {
+            margin-top: 20px;
+        }
+
+        #add-event-form {
+            margin-bottom: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        #add-event-form input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        #add-event-form button {
+            padding: 8px 12px;
+            background: #635bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #add-event-form button:hover {
+            opacity: 0.9;
+        }
+
+        #events-list {
+            margin-top: 15px;
+        }
+
+        .event-item {
+            background: rgba(99, 91, 255, 0.1);
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .event-item button {
+            background: none;
+            border: none;
+            color: #ff4d4f;
+            cursor: pointer;
+        }
+
+        .methods-section button {
+            padding: 8px 12px;
+            background: #635bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+
+        .methods-section button:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Odyssey Date Picker Component</h1>
+        
+        <div class="intro">
+            <p>A fully accessible date picker component built using web components. Features include keyboard navigation, 
+            multiple themes, event indicators, min/max date restrictions, and internationalization support.</p>
+        </div>
+
+        <div class="example-section">
+            <h2 class="example-title">Basic Usage</h2>
+            <div class="example-row">
+                <div>
+                    <p>Default date picker with no options:</p>
+                    <odyssey-date-picker id="basic-picker"></odyssey-date-picker>
+                    
+                    <div class="code-block">
+                        &lt;odyssey-date-picker&gt;&lt;/odyssey-date-picker&gt;
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="example-section">
+            <h2 class="example-title">Date Constraints</h2>
+            <div class="example-row">
+                <div>
+                    <p>With min and max date restrictions:</p>
+                    <odyssey-date-picker 
+                        id="constraints-picker" 
+                        min-date="2025-04-15" 
+                        max-date="2025-05-15">
+                    </odyssey-date-picker>
+                    
+                    <div class="code-block">
+                        &lt;odyssey-date-picker 
+                          min-date="2025-04-15" 
+                          max-date="2025-05-15"&gt;
+                        &lt;/odyssey-date-picker&gt;
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="example-section">
+            <h2 class="example-title">Preset Value</h2>
+            <div class="example-row">
+                <div>
+                    <p>With a preset date:</p>
+                    <odyssey-date-picker 
+                        id="preset-picker" 
+                        value="2025-04-25">
+                    </odyssey-date-picker>
+                    
+                    <div class="code-block">
+                        &lt;odyssey-date-picker value="2025-04-25"&gt;&lt;/odyssey-date-picker&gt;
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="example-section">
+            <h2 class="example-title">States</h2>
+            <div class="example-row">
+                <div>
+                    <p>Disabled date picker:</p>
+                    <odyssey-date-picker 
+                        id="disabled-picker" 
+                        disabled>
+                    </odyssey-date-picker>
+                    
+                    <div class="code-block">
+                        &lt;odyssey-date-picker disabled&gt;&lt;/odyssey-date-picker&gt;
+                    </div>
+                </div>
+
+                <div>
+                    <p>Required date picker:</p>
+                    <odyssey-date-picker 
+                        id="required-picker" 
+                        required>
+                    </odyssey-date-picker>
+                    
+                    <div class="code-block">
+                        &lt;odyssey-date-picker required&gt;&lt;/odyssey-date-picker&gt;
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="example-section">
+            <h2 class="example-title">Internationalization</h2>
+            <div class="example-row">
+                <div>
+                    <p>French locale with Monday as first day of week:</p>
+                    <odyssey-date-picker 
+                        id="locale-picker" 
+                        locale="fr-FR"
+                        first-day-of-week="1">
+                    </odyssey-date-picker>
+                    
+                    <div class="code-block">
+                        &lt;odyssey-date-picker 
+                          locale="fr-FR"
+                          first-day-of-week="1"&gt;
+                        &lt;/odyssey-date-picker&gt;
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="example-section">
+            <h2 class="example-title">Events API</h2>
+            <div class="example-row">
+                <div>
+                    <p>Date picker with event indicators:</p>
+                    <odyssey-date-picker id="events-picker"></odyssey-date-picker>
+                    
+                    <div class="events-demo">
+                        <form id="add-event-form">
+                            <input type="date" id="event-date" required>
+                            <input type="text" id="event-name" placeholder="Event name" required>
+                            <button type="submit">Add Event</button>
+                        </form>
+                        
+                        <div id="events-list"></div>
+                    </div>
+                    
+                    <div class="code-block">
+                        // Adding events programmatically
+                        const datePicker = document.querySelector('#events-picker');
+                        datePicker.addEvents({
+                          '2025-04-22': ['Meeting with team', 'Project deadline'],
+                          '2025-04-25': ['Conference call']
+                        });
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="example-section">
+            <h2 class="example-title">Theme Variants</h2>
+            <div class="example-row">
+                <div class="theme-section">
+                    <h3 class="theme-title">Light Theme (Default)</h3>
+                    <odyssey-date-picker id="light-picker" theme="light"></odyssey-date-picker>
+                    <div class="code-block">
+                        &lt;odyssey-date-picker theme="light"&gt;&lt;/odyssey-date-picker&gt;
+                    </div>
+                </div>
+                
+                <div class="theme-section dark-section">
+                    <h3 class="theme-title">Dark Theme</h3>
+                    <odyssey-date-picker id="dark-picker" theme="dark"></odyssey-date-picker>
+                    <div class="code-block">
+                        &lt;odyssey-date-picker theme="dark"&gt;&lt;/odyssey-date-picker&gt;
+                    </div>
+                </div>
+            </div>
+            
+            <div class="example-row">
+                <div class="theme-section">
+                    <h3 class="theme-title">Minimal Theme</h3>
+                    <odyssey-date-picker id="minimal-picker" theme="minimal"></odyssey-date-picker>
+                    <div class="code-block">
+                        &lt;odyssey-date-picker theme="minimal"&gt;&lt;/odyssey-date-picker&gt;
+                    </div>
+                </div>
+                
+                <div class="theme-section high-contrast-section">
+                    <h3 class="theme-title">High Contrast Theme</h3>
+                    <odyssey-date-picker id="high-contrast-picker" theme="high-contrast"></odyssey-date-picker>
+                    <div class="code-block">
+                        &lt;odyssey-date-picker theme="high-contrast"&gt;&lt;/odyssey-date-picker&gt;
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="example-section">
+            <h2 class="example-title">Public Methods</h2>
+            <div class="example-row">
+                <div>
+                    <odyssey-date-picker id="methods-picker"></odyssey-date-picker>
+                    
+                    <div class="methods-section">
+                        <button id="get-date-btn">Get Date</button>
+                        <button id="set-date-btn">Set Date (May 1, 2025)</button>
+                        <button id="clear-date-btn">Clear Date</button>
+                        <button id="open-btn">Open Calendar</button>
+                        <button id="close-btn">Close Calendar</button>
+                        <button id="set-min-btn">Set Min Date (April 10, 2025)</button>
+                        <button id="set-max-btn">Set Max Date (May 20, 2025)</button>
+                        <button id="set-locale-btn">Set Locale (es-ES)</button>
+                    </div>
+                    
+                    <div class="code-block">
+                        // Public methods
+                        const picker = document.querySelector('#methods-picker');
+                        
+                        // Get the selected date
+                        const date = picker.getDate();
+                        
+                        // Set a date programmatically
+                        picker.setDate(new Date(2025, 4, 1));
+                        
+                        // Clear the selected date
+                        picker.setDate(null);
+                        
+                        // Open and close the calendar
+                        picker.open();
+                        picker.close();
+                        
+                        // Set min/max dates
+                        picker.setMinDate(new Date(2025, 3, 10));
+                        picker.setMaxDate(new Date(2025, 4, 20));
+                        
+                        // Set the locale
+                        picker.setLocale('es-ES');
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import component registration
+        import OdysseyComponents from '../dist/index.js';
+        
+        // Wait for DOM content loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set up events demo
+            const eventsPicker = document.getElementById('events-picker');
+            const events = {
+                '2025-04-22': ['Meeting with team', 'Project deadline'],
+                '2025-04-25': ['Conference call']
+            };
+            
+            // Add default events
+            setTimeout(() => {
+                eventsPicker.addEvents(events);
+                renderEventsList();
+            }, 500);
+            
+            // Handle form submission
+            const eventForm = document.getElementById('add-event-form');
+            eventForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const dateInput = document.getElementById('event-date');
+                const nameInput = document.getElementById('event-name');
+                
+                const date = dateInput.value;
+                const name = nameInput.value.trim();
+                
+                if (date && name) {
+                    if (!events[date]) {
+                        events[date] = [];
+                    }
+                    
+                    events[date].push(name);
+                    eventsPicker.addEvents({ [date]: events[date] });
+                    
+                    // Reset form
+                    dateInput.value = '';
+                    nameInput.value = '';
+                    
+                    renderEventsList();
+                }
+            });
+            
+            function renderEventsList() {
+                const listContainer = document.getElementById('events-list');
+                listContainer.innerHTML = '';
+                
+                for (const date in events) {
+                    if (events[date].length > 0) {
+                        const dateHeader = document.createElement('h4');
+                        dateHeader.textContent = new Date(date).toLocaleDateString();
+                        listContainer.appendChild(dateHeader);
+                        
+                        events[date].forEach((event, index) => {
+                            const eventItem = document.createElement('div');
+                            eventItem.className = 'event-item';
+                            
+                            const eventText = document.createElement('span');
+                            eventText.textContent = event;
+                            
+                            const removeBtn = document.createElement('button');
+                            removeBtn.textContent = '×';
+                            removeBtn.title = 'Remove event';
+                            removeBtn.addEventListener('click', () => {
+                                events[date].splice(index, 1);
+                                if (events[date].length === 0) {
+                                    delete events[date];
+                                    eventsPicker.removeEvents(date);
+                                } else {
+                                    eventsPicker.addEvents({ [date]: events[date] });
+                                }
+                                renderEventsList();
+                            });
+                            
+                            eventItem.appendChild(eventText);
+                            eventItem.appendChild(removeBtn);
+                            listContainer.appendChild(eventItem);
+                        });
+                    }
+                }
+            }
+            
+            // Set up methods demo
+            const methodsPicker = document.getElementById('methods-picker');
+            
+            document.getElementById('get-date-btn').addEventListener('click', () => {
+                const date = methodsPicker.getDate();
+                alert(date ? date.toLocaleDateString() : 'No date selected');
+            });
+            
+            document.getElementById('set-date-btn').addEventListener('click', () => {
+                methodsPicker.setDate(new Date(2025, 4, 1));
+            });
+            
+            document.getElementById('clear-date-btn').addEventListener('click', () => {
+                methodsPicker.setDate(null);
+            });
+            
+            document.getElementById('open-btn').addEventListener('click', () => {
+                methodsPicker.open();
+            });
+            
+            document.getElementById('close-btn').addEventListener('click', () => {
+                methodsPicker.close();
+            });
+            
+            document.getElementById('set-min-btn').addEventListener('click', () => {
+                methodsPicker.setMinDate(new Date(2025, 3, 10));
+            });
+            
+            document.getElementById('set-max-btn').addEventListener('click', () => {
+                methodsPicker.setMaxDate(new Date(2025, 4, 20));
+            });
+            
+            document.getElementById('set-locale-btn').addEventListener('click', () => {
+                methodsPicker.setLocale('es-ES');
+            });
+        });
+    </script>
+</body>
+</html>
