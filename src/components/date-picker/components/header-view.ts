@@ -24,20 +24,55 @@ export class HeaderView {
   }
   
   public render(container: HTMLElement): void {
-    const headerContent = `
-      <button class="date-picker-nav-btn prev-month" aria-label="Previous">
-        <span class="material-icons">chevron_left</span>
-      </button>
-      <div class="date-picker-selectors">
-        <button class="date-picker-month-selector">${this.getMonthText()}</button>
-        <button class="date-picker-year-selector">${this.getYearText()}</button>
-      </div>
-      <button class="date-picker-nav-btn next-month" aria-label="Next">
-        <span class="material-icons">chevron_right</span>
-      </button>
-    `;
+    // If in years view, create special centered header for year range
+    if (this.config.currentView === 'years') {
+      const headerContent = `
+        <button class="date-picker-nav-btn prev-month" aria-label="Previous">
+          <span class="material-icons">chevron_left</span>
+        </button>
+        <div class="date-picker-selectors year-range-centered">
+          <button class="date-picker-year-selector">${this.getYearText()}</button>
+        </div>
+        <button class="date-picker-nav-btn next-month" aria-label="Next">
+          <span class="material-icons">chevron_right</span>
+        </button>
+      `;
+      
+      container.innerHTML = headerContent;
+      
+      // Add specific CSS for year view - keeping font size consistent
+      const yearSelector = container.querySelector('.date-picker-year-selector') as HTMLElement;
+      if (yearSelector) {
+        yearSelector.style.flex = '1';
+        yearSelector.style.textAlign = 'center';
+        // Removed font-size modification
+      }
+      
+      // Center the year range in the header
+      const selectorsDiv = container.querySelector('.year-range-centered') as HTMLElement;
+      if (selectorsDiv) {
+        selectorsDiv.style.display = 'flex';
+        selectorsDiv.style.justifyContent = 'center';
+        selectorsDiv.style.flex = '1';
+      }
+    } else {
+      // Standard header for calendar and month views
+      const headerContent = `
+        <button class="date-picker-nav-btn prev-month" aria-label="Previous">
+          <span class="material-icons">chevron_left</span>
+        </button>
+        <div class="date-picker-selectors">
+          <button class="date-picker-month-selector">${this.getMonthText()}</button>
+          <button class="date-picker-year-selector">${this.getYearText()}</button>
+        </div>
+        <button class="date-picker-nav-btn next-month" aria-label="Next">
+          <span class="material-icons">chevron_right</span>
+        </button>
+      `;
+      
+      container.innerHTML = headerContent;
+    }
     
-    container.innerHTML = headerContent;
     this.attachEventListeners(container);
   }
   
