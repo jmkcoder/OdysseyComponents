@@ -293,9 +293,8 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
           this.dialogElement.style.opacity = `${1 - (deltaY / 400)}`;
         } 
         // If swiping horizontally in calendar view, provide visual feedback for month navigation
-        else if (Math.abs(deltaX) > Math.abs(deltaY) && 
-                this.calendarElement.contains(e.target as Node) &&
-                this.stateService.currentView === 'calendar') {
+        else if (Math.abs(deltaX) > Math.abs(deltaY) && this.calendarElement.contains(e.target as Node)) {
+          // Apply horizontal swipe effect regardless of which view is active
           this.calendarElement.style.transform = `translateX(${deltaX / 2}px)`;
           this.calendarElement.style.opacity = `${1 - (Math.abs(deltaX) / 500)}`;
         }
@@ -326,17 +325,42 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
             (swipeTime < maxSwipeTime || deltaY > window.innerHeight / 3)) {
           this.stateService.isOpen = false;
         } 
-        // Navigate between months on horizontal swipe
+        // Navigate based on the current view
         else if (!isVerticalSwipe && Math.abs(deltaX) > minSwipeDistance && 
                 swipeTime < maxSwipeTime &&
-                this.stateService.currentView === 'calendar') {
+                this.calendarElement.contains(e.target as Node)) {
           
-          if (deltaX > 0) {
-            // Swiping right - go to previous month with animation
-            this.navigateWithAnimation('previous');
-          } else {
-            // Swiping left - go to next month with animation
-            this.navigateWithAnimation('next');
+          // Handle horizontal swipes based on the active view
+          switch (this.stateService.currentView) {
+            case 'calendar':
+              if (deltaX > 0) {
+                // Swiping right - go to previous month with animation
+                this.navigateWithAnimation('previous');
+              } else {
+                // Swiping left - go to next month with animation
+                this.navigateWithAnimation('next');
+              }
+              break;
+            case 'months':
+              // For months view, navigate through years
+              if (deltaX > 0) {
+                // Previous year
+                this.navigateWithAnimation('previous-year');
+              } else {
+                // Next year
+                this.navigateWithAnimation('next-year');
+              }
+              break;
+            case 'years':
+              // For years view, navigate through decades
+              if (deltaX > 0) {
+                // Previous decade
+                this.navigateWithAnimation('previous-decade');
+              } else {
+                // Next decade
+                this.navigateWithAnimation('next-decade');
+              }
+              break;
           }
         }
       }
@@ -356,9 +380,9 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
    * Navigate to previous or next month with animation
    * @param direction 'previous' or 'next'
    */
-  private navigateWithAnimation(direction: 'previous' | 'next'): void {
+  private navigateWithAnimation(direction: 'previous' | 'next' | 'previous-year' | 'next-year' | 'previous-decade' | 'next-decade'): void {
     // Create animation class on the calendar element
-    const animationClass = direction === 'previous' ? 'slide-right' : 'slide-left';
+    const animationClass = direction.includes('previous') ? 'slide-right' : 'slide-left';
     this.calendarElement.classList.add(animationClass);
     
     // Use setTimeout to ensure animation is visible
@@ -369,8 +393,16 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
       
       if (direction === 'previous') {
         newDate.setMonth(currentDate.getMonth() - 1);
-      } else {
+      } else if (direction === 'next') {
         newDate.setMonth(currentDate.getMonth() + 1);
+      } else if (direction === 'previous-year') {
+        newDate.setFullYear(currentDate.getFullYear() - 1);
+      } else if (direction === 'next-year') {
+        newDate.setFullYear(currentDate.getFullYear() + 1);
+      } else if (direction === 'previous-decade') {
+        newDate.setFullYear(currentDate.getFullYear() - 10);
+      } else if (direction === 'next-decade') {
+        newDate.setFullYear(currentDate.getFullYear() + 10);
       }
       
       // Update state
