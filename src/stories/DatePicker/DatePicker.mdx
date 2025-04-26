@@ -27,6 +27,8 @@ The Date Picker provides an intuitive and feature-rich interface for date select
 ### Key Features
 
 - **Single and Range Selection**: Select either a single date or a date range.
+- **Direct Text Input**: Type dates directly into the input field in the configured format.
+- **Custom Calendar Triggering**: Hide the built-in calendar icon and use your own custom trigger elements.
 - **Date Restrictions**: Disable specific dates, weekdays, or entire months.
 - **Public Holidays**: Mark holidays or unavailable dates programmatically.
 - **Range Selection with Available Dates**: Get a list of valid dates in a range, excluding disabled ones.
@@ -64,6 +66,32 @@ Using the component in plain HTML is straightforward:
 
 ```html
 <odyssey-date-picker mode="range" start-date="2025-04-15" end-date="2025-04-22"></odyssey-date-picker>
+```
+
+### With Direct Text Input
+
+Allow users to type dates directly into the input field:
+
+```html
+<!-- The input is no longer readonly by default -->
+<odyssey-date-picker format="MM/dd/yyyy"></odyssey-date-picker>
+```
+
+### With Custom Trigger Button
+
+Hide the default calendar icon and use your own trigger element:
+
+```html
+<div class="my-date-picker-container">
+  <odyssey-date-picker id="my-date-picker" show-icon="false"></odyssey-date-picker>
+  <button id="open-calendar-btn" class="custom-calendar-button">📅 Open Calendar</button>
+</div>
+
+<script>
+  document.getElementById('open-calendar-btn').addEventListener('click', () => {
+    document.getElementById('my-date-picker').toggleCalendar();
+  });
+</script>
 ```
 
 ### With Custom Input Element
@@ -416,6 +444,7 @@ rangePicker.addEventListener('date-change', (event) => {
 | `locale`              | `string`        | `'en-US'`     | Locale for date formatting and localization             |
 | `first-day-of-week`   | `string`        | `'0'`         | First day of week (0: Sunday, 1: Monday, 6: Saturday)   |
 | `theme`               | `string`        | `'light'`     | Theme variant ('light', 'dark', 'minimal', 'high-contrast') |
+| `show-icon`           | `boolean`       | `true`        | Controls visibility of the calendar icon                |
 
 ### Slots
 
@@ -432,6 +461,7 @@ rangePicker.addEventListener('date-change', (event) => {
 | `setDateRange(startDate, endDate)` | `startDate: Date, endDate: Date`  | `void`         | Sets the selected date range               |
 | `getDateRange()`       | -                                             | `{startDate: Date \| null, endDate: Date \| null}` | Gets the selected date range |
 | `getAvailableDatesInRange()` | -                                       | `Date[]`       | Gets available dates within the selected range, excluding disabled dates |
+| `toggleCalendar()`     | -                                             | `void`         | Programmatically open or close the calendar popup |
 | `addEvent(date, eventName)`      | `date: Date, eventName: string = 'event'` | `void`  | Adds an event indicator to a specific date |
 | `clearEvents(date)`    | `date: Date`                                  | `void`         | Clears event indicators from a specific date |
 | `addDisabledDate(date, reason)` | `date: Date, reason?: string` | `void` | Disables a specific date with optional reason |
@@ -479,219 +509,144 @@ rangePicker.addEventListener('date-change', (event) => {
 | `--date-picker-focus-outline-color`   | `#4361ee`            | Color for focus outline                       |
 | `--date-picker-range-bg-color`        | Variable opacity     | Background color for date range               |
 
-## Working with Disabled Dates
+## Direct Text Input
 
-The DatePicker component provides comprehensive functionality for controlling date availability.
+The Date Picker component now supports direct text input, allowing users to type dates directly in the configured format instead of only selecting from the calendar.
 
-### Disabling Specific Dates
+### Using Direct Text Input
 
-You can disable specific dates, such as public holidays or unavailable booking dates:
+By default, all DatePicker inputs allow text input in the configured format. When a user types a date and then:
+- Tabs away (blur event)
+- Presses Enter
+- Clicks outside the input
 
-```javascript
-// Disable Christmas for the next three years
-[2025, 2026, 2027].forEach(year => {
-  datePicker.addDisabledDate(new Date(year, 11, 25), "Christmas Day");
-});
-```
+The entered date is validated against the configured format pattern. If valid, it's accepted and the calendar view updates accordingly. If invalid, it reverts to the previous valid date or clears if no previous date was selected.
 
-### Disabling Weekends or Specific Weekdays
-
-To limit selection to workdays or specific days of the week:
-
-```javascript
-// Disable weekends
-datePicker.disableWeekdays([0, 6]); // Sunday and Saturday
-
-// For a booking system that only accepts appointments on certain days
-datePicker.disableWeekdays([0, 2, 4, 6]); // Only allow Mon, Wed, Fri
-```
-
-### Disabling Entire Months
-
-For seasonal constraints or extended unavailability periods:
-
-```javascript
-// Disable winter months
-datePicker.disableMonths([11, 0, 1]); // December, January, February
-
-// For a seasonal business that operates only in summer
-datePicker.disableMonths([0, 1, 2, 3, 9, 10, 11]); // Only allow May through August
-```
-
-### Working with Range Selection
-
-When using range selection with disabled dates, the component provides access to only the valid dates:
-
-```javascript
-// When using range selection with weekends disabled
-rangePicker.disableWeekdays([0, 6]);
-
-// Listen for date changes
-rangePicker.addEventListener('date-change', (event) => {
-  // This will only include weekdays, excluding weekends
-  const workdays = event.detail.availableDatesObjects;
-  
-  console.log(`Selected ${workdays.length} working days`);
-  
-  // Calculate something based on working days only
-  calculateWorkHours(workdays.length * 8);
-});
-```
-
-### Hierarchy of Restrictions
-
-When multiple restriction mechanisms are used, dates are evaluated in this order:
-1. Min/max date constraints
-2. Disabled weekdays
-3. Disabled months
-4. Specifically disabled dates
-
-A date is disabled if it fails any of these checks.
-
-## Customizing the Input Element
-
-The Date Picker component provides a flexible way to use your own custom input element while maintaining all the date picker functionality.
-
-### Basic Custom Input Example
+### Example with Custom Format
 
 ```html
-<odyssey-date-picker>
-  <input type="text" slot="input" class="my-custom-input" placeholder="Choose a date...">
+<odyssey-date-picker 
+  format="MM/dd/yyyy"
+  placeholder="Enter a date (mm/dd/yyyy)">
 </odyssey-date-picker>
 ```
 
-### Styling Custom Inputs
+In this example, users can either:
+1. Click the calendar icon to open the date picker and select a date
+2. Type a date directly in MM/dd/yyyy format (e.g., "04/26/2025")
 
-You can apply your own styles to the custom input, while the date picker will still handle the date formatting and calendar interactions:
+### Range Input
+
+When in range mode, users can type a date range using the format pattern with a separator:
 
 ```html
-<odyssey-date-picker format="MMM d, yyyy">
-  <input type="text" 
-         slot="input" 
-         class="custom-fancy-input"
-         placeholder="Select date...">
+<odyssey-date-picker 
+  mode="range"
+  format="MM/dd/yyyy">
 </odyssey-date-picker>
-
-<style>
-  .custom-fancy-input {
-    padding: 10px 15px;
-    border: 2px solid #8b5cf6;
-    border-radius: 8px;
-    font-size: 16px;
-    background-color: #f3f4f6;
-    transition: all 0.3s ease;
-  }
-  
-  .custom-fancy-input:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3);
-    border-color: #7c3aed;
-  }
-</style>
 ```
 
-### Integration with Form Frameworks
+Users can then type a range like "04/15/2025 - 04/26/2025" and it will be parsed correctly.
 
-When using custom inputs with form libraries or frameworks, note that the date picker will automatically:
+### Validation
 
-1. Set the input to `readonly` to prevent direct typing
-2. Handle the date formatting based on the date picker's configuration
-3. Maintain calendar icon positioning on the right side of the input
+The component performs validation when the input loses focus or when Enter is pressed:
+- Validates the entered text against the configured date format
+- If valid, updates the internal date state
+- If invalid, restores the previous valid date (or clears if no previous date)
 
-### Accessibility Considerations
+### Keyboard Support
 
-When using custom inputs, ensure they have appropriate:
-- Labels or aria-labels
-- Color contrast ratios
-- Focus states for keyboard navigation
+Direct text input works seamlessly with keyboard navigation:
+- Tab: Move to the next form element
+- Shift+Tab: Move to the previous form element
+- Enter: Commit the entered date
+- Escape: Close the calendar if open
 
-The date picker will automatically handle the calendar dialog's accessibility.
+## Custom Calendar Triggering
 
-## Accessibility
+The Date Picker component now allows you to hide the default calendar icon and use your own custom elements to trigger the calendar. This gives you complete control over the visual presentation while still leveraging all the calendar functionality.
 
-The Date Picker component is built with accessibility in mind, supporting ARIA attributes and keyboard navigation.
+### Hiding the Default Calendar Icon
 
-### Keyboard Navigation
+Use the `show-icon` attribute to control the visibility of the default calendar icon:
 
-- **Tab**: Focus on the date picker input field.
-- **Space/Enter**: Open the calendar when input is focused.
-- **Arrow keys**: Navigate within the calendar grid.
-- **Page Up/Down**: Navigate to previous/next month.
-- **Home/End**: Navigate to the first/last day of the current month.
-- **Escape**: Close the calendar without selection.
-- **Enter**: Select the focused date.
+```html
+<!-- Hide the default calendar icon -->
+<odyssey-date-picker show-icon="false"></odyssey-date-picker>
+```
 
-### ARIA Attributes
+### Using a Custom Trigger
 
-- `role="dialog"` for the calendar popup.
-- `aria-label` attributes for navigation buttons.
-- `aria-selected` to indicate the selected date.
+You can create any custom button or element to open/close the calendar:
 
-## Browser Support
+```html
+<div class="custom-date-container">
+  <odyssey-date-picker id="custom-trigger-picker" show-icon="false"></odyssey-date-picker>
+  <button id="custom-calendar-button" class="fancy-calendar-button">
+    <svg><!-- Your custom calendar icon SVG --></svg>
+    Select Date
+  </button>
+</div>
 
-The Date Picker component works in all modern browsers:
+<script>
+  document.getElementById('custom-calendar-button').addEventListener('click', () => {
+    // Use the public toggleCalendar method
+    document.getElementById('custom-trigger-picker').toggleCalendar();
+  });
+</script>
+```
 
-- Chrome (latest)
-- Firefox (latest)
-- Safari (latest)
-- Edge (latest)
+### Integration with Design Systems
 
-## Best Practices
+This feature makes it easy to integrate the DatePicker with various design systems and UI frameworks:
 
-1. **Provide Clear Labels**: Always use labels or aria-labels to identify what the date picker is for.
-2. **Set Appropriate Constraints**: Use min-date, max-date and disabled dates to limit selections to reasonable ranges.
-3. **Consider Mobile Users**: Test the component on mobile devices to ensure usability on touch screens.
-4. **Localize Appropriately**: Set the locale attribute to match your user's language and regional preferences.
-5. **Handle Validation**: Implement form validation to ensure selected dates meet your requirements.
-6. **Explain Disabled Dates**: When disabling dates, provide clear feedback to users about why certain dates are unavailable.
-7. **Use Range Selection Wisely**: When using range selection, process the available dates instead of all dates in the range.
+```html
+<!-- Example with a Material Design style button -->
+<div class="date-field-container">
+  <odyssey-date-picker id="material-date-picker" show-icon="false"></odyssey-date-picker>
+  <button class="md-button" onclick="document.getElementById('material-date-picker').toggleCalendar()">
+    <i class="material-icons">calendar_today</i>
+  </button>
+</div>
+```
 
-## Common Use Cases
+### Advanced Custom Triggers
 
-### Holiday Booking System
+You can create more complex trigger behaviors:
 
 ```javascript
-const datePicker = document.querySelector('odyssey-date-picker[mode="range"]');
+// Get references to the elements
+const datePicker = document.getElementById('advanced-picker');
+const openButton = document.getElementById('open-calendar');
+const closeButton = document.getElementById('close-calendar');
+const toggleButton = document.getElementById('toggle-calendar');
 
-// Disable past dates
-datePicker.stateService.minDate = new Date();
+// Open the calendar
+openButton.addEventListener('click', () => {
+  datePicker.stateService.isOpen = true;
+});
 
-// Disable weekends for a business booking system
-datePicker.disableWeekdays([0, 6]);
+// Close the calendar
+closeButton.addEventListener('click', () => {
+  datePicker.stateService.isOpen = false;
+});
 
-// Mark public holidays as unavailable
-const holidays = getPublicHolidays(); // Your function to fetch holidays
-datePicker.addDisabledDates(holidays, "Public Holiday");
+// Toggle calendar visibility
+toggleButton.addEventListener('click', () => {
+  datePicker.toggleCalendar();
+});
 
-// Listen for selection
-datePicker.addEventListener('date-change', (event) => {
-  // Use only the available business days
-  const businessDays = event.detail.availableDatesObjects;
-  // Calculate price based on number of business days
-  calculatePrice(businessDays.length);
+// Listen for calendar open/close events
+datePicker.addEventListener('calendar-open', () => {
+  console.log('Calendar opened');
+  // You can update your custom UI here
+});
+
+datePicker.addEventListener('calendar-close', () => {
+  console.log('Calendar closed');
+  // You can update your custom UI here
 });
 ```
 
-### Date Range with Business Days Counter
-
-```javascript
-const datePicker = document.querySelector('odyssey-date-picker[mode="range"]');
-const businessDaysOutput = document.getElementById('business-days-count');
-
-// Disable weekends
-datePicker.disableWeekdays([0, 6]);
-
-datePicker.addEventListener('date-change', (event) => {
-  if (event.detail.rangeStart && event.detail.rangeEnd) {
-    const businessDays = event.detail.availableDatesObjects.length;
-    businessDaysOutput.textContent = `Selected ${businessDays} business days`;
-  }
-});
-```
-
-## Limitations
-
-- The date picker does not support time selection.
-- Mobile experience may vary based on device and browser.
-- When a large number of dates are disabled, performance may be affected.
-- Overlapping disabled date rules follow the hierarchy described above.
+This new functionality makes the DatePicker component incredibly flexible and easy to integrate into any UI design system or framework.

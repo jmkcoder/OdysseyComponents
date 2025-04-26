@@ -76,8 +76,10 @@
       right: 0.5rem;
       color: var(--date-picker-text-color);
       opacity: 0.7;
-      pointer-events: none;
-      z-index: 1;
+      pointer-events: auto; /* Changed from 'none' to 'auto' to make it clickable */
+      cursor: pointer; /* Added cursor pointer to indicate it's clickable */
+      padding: 0.25rem; /* Added padding to increase click target area */
+      z-index: 2; /* Ensure it's above the input for clicking */
     }
   }
   

@@ -11,7 +11,7 @@ import { UIService } from './services/ui.service';
  * A customizable date picker component that supports both single date selection
  * and date range selection with internationalization support.
  * 
- * @example
+ * @example Basic usage
  * <odyssey-date-picker 
  *   placeholder="Select a date"
  *   format="yyyy-MM-dd"
@@ -23,6 +23,23 @@ import { UIService } from './services/ui.service';
  * <odyssey-date-picker>
  *   <input type="text" slot="input" class="my-custom-input">
  * </odyssey-date-picker>
+ * 
+ * @example With direct text input
+ * <odyssey-date-picker allow-input="true">
+ * </odyssey-date-picker>
+ * 
+ * @example With custom calendar trigger (hiding default icon)
+ * <div class="custom-date-picker-container">
+ *   <odyssey-date-picker id="my-date-picker" show-icon="false">
+ *   </odyssey-date-picker>
+ *   <button id="calendar-btn">Open Calendar</button>
+ * </div>
+ * <script>
+ *   document.getElementById('calendar-btn').addEventListener('click', () => {
+ *     const datePicker = document.getElementById('my-date-picker');
+ *     datePicker.toggleCalendar(); // Using the public API method
+ *   });
+ * </script>
  */
 export class DatePicker extends HTMLElement implements EventListenerObject {
   // DOM Elements References
@@ -66,7 +83,9 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
       'mode',
       'start-date',
       'end-date',
-      'locale'
+      'locale',
+      'allow-input',
+      'show-icon'
     ];
   }
   
@@ -151,6 +170,23 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
           this.stateService.firstDayOfWeek = dayValue;
         }
         break;
+      case 'show-icon':
+        this.updateIconVisibility();
+        break;
+    }
+  }
+  
+  /**
+   * Update the visibility of the calendar icon based on the 'show-icon' attribute
+   */
+  private updateIconVisibility(): void {
+    const calendarIcon = this.querySelector('.date-picker-icon') as HTMLElement;
+    if (calendarIcon) {
+      if (this.hasAttribute('show-icon') && this.getAttribute('show-icon') === 'false') {
+        calendarIcon.style.display = 'none';
+      } else {
+        calendarIcon.style.display = '';
+      }
     }
   }
   
@@ -167,7 +203,7 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
     // Create HTML structure
     this.innerHTML = `
         <div class="date-picker-input-wrapper">
-          ${slottedInput ? '' : '<input type="text" class="date-picker-input" placeholder="Select date" readonly>'}
+          ${slottedInput ? '' : '<input type="text" class="date-picker-input" placeholder="Select date">'}
           <span class="date-picker-icon material-icons">calendar_today</span>
         </div>
         <div class="date-picker-dialog" tabindex="-1">
@@ -190,9 +226,6 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
       this.inputWrapperElement.insertBefore(slottedInput, this.inputWrapperElement.firstChild);
       this.inputElement = slottedInput;
       this.inputElement.removeAttribute('slot'); // No longer needed
-      
-      // Set readonly attribute to prevent direct typing
-      this.inputElement.setAttribute('readonly', 'true');
     } else {
       this.inputElement = this.querySelector('.date-picker-input') as HTMLInputElement;
     }
@@ -298,11 +331,21 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
     } else {
       this.stateService.firstDayOfWeek = this.i18nService.getFirstDayOfWeek(this.stateService.locale);
     }
+    
+    // Update icon visibility based on show-icon attribute
+    this.updateIconVisibility();
   }
   
   private attachEventListeners() {
-    // Toggle calendar on input wrapper click
-    this.inputWrapperElement?.addEventListener('click', this);
+    // Get a reference to the calendar icon specifically
+    const calendarIcon = this.querySelector('.date-picker-icon') as HTMLElement;
+    if (calendarIcon) {
+      // Add a dedicated click handler to the calendar icon
+      calendarIcon.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent the event from reaching the document
+        this.toggleCalendar();
+      });
+    }
     
     // Close calendar when clicking outside
     document.addEventListener('click', this);
@@ -310,6 +353,15 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
     // Prevent clicks inside dialog from bubbling to document
     this.dialogElement.addEventListener('click', (e) => {
       e.stopPropagation();
+    });
+    
+    // Handle direct input in the text field
+    this.inputElement.addEventListener('input', (e) => this.handleInputChange(e));
+    this.inputElement.addEventListener('blur', (e) => this.handleInputBlur(e));
+    this.inputElement.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        this.handleInputBlur(e);
+      }
     });
     
     // Keyboard navigation
@@ -327,19 +379,81 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
       onStateChange: () => this.handleStateChange()
     });
   }
+
+  /**
+   * Required implementation for EventListenerObject interface
+   * Handles DOM events that this class is registered to listen for
+   */
+  handleEvent(event: Event): void {
+    if (event.type === 'click') {
+      // Only handle document clicks to close the calendar
+      if (event.currentTarget === document && !this.contains(event.target as Node)) {
+        // Close calendar when clicking outside
+        this.stateService.isOpen = false;
+      }
+    }
+  }
   
   /**
-   * Handle click events using EventListenerObject interface
+   * Handle user input in the text field
    */
-  handleEvent(e: Event): void {
-    const target = e.target as Node;
+  private handleInputChange(e: Event): void {
+    // Just allow typing - validation happens on blur
+  }
+  
+  /**
+   * Validate and process the input when focus is lost
+   */
+  private handleInputBlur(e: Event): void {
+    const inputValue = this.inputElement.value.trim();
     
-    if (e.type === 'click') {
-      if ((target as Element).closest('.date-picker-input-wrapper') && !this.inputElement.disabled) {
-        this.toggleCalendar();
-        e.stopPropagation();
-      } else if (!this.contains(target) && this.stateService.isOpen) {
-        this.stateService.isOpen = false;
+    if (!inputValue) {
+      // Clear the selection if input is empty
+      if (this.stateService.isRangeMode) {
+        this.stateService.resetRangeSelection();
+      } else {
+        this.stateService.selectedDate = null;
+      }
+      return;
+    }
+    
+    try {
+      if (this.stateService.isRangeMode) {
+        this.setRangeFromString(inputValue);
+      } else {
+        const date = this.formatter.parse(inputValue);
+        if (!isNaN(date.getTime())) {
+          this.stateService.selectedDate = date;
+          this.stateService.viewDate = new Date(date);
+        } else {
+          // Invalid date format, restore previous value
+          this.updateInputDisplay();
+        }
+      }
+    } catch (e) {
+      console.error("Error parsing input date:", e);
+      // Invalid format, restore previous value
+      this.updateInputDisplay();
+    }
+  }
+  
+  /**
+   * Update the input display to match the current state
+   */
+  private updateInputDisplay(): void {
+    if (this.stateService.isRangeMode) {
+      if (this.stateService.rangeStart && this.stateService.rangeEnd) {
+        this.inputElement.value = `${this.formatter.format(this.stateService.rangeStart, this.stateService.format)} - ${
+          this.formatter.format(this.stateService.rangeEnd, this.stateService.format)
+        }`;
+      } else {
+        this.inputElement.value = '';
+      }
+    } else {
+      if (this.stateService.selectedDate) {
+        this.inputElement.value = this.formatter.format(this.stateService.selectedDate, this.stateService.format);
+      } else {
+        this.inputElement.value = '';
       }
     }
   }
@@ -348,6 +462,9 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
    * Handle state changes and dispatch custom events
    */
   private handleStateChange(): void {
+    // Update input display
+    this.updateInputDisplay();
+    
     // Update attributes
     if (this.stateService.isRangeMode) {
       if (this.stateService.rangeStart && this.stateService.rangeEnd) {
@@ -429,9 +546,19 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
   
   /**
    * Toggle calendar visibility
+   * Public method to allow developers to open/close the calendar programmatically
    */
-  private toggleCalendar(): void {
-    this.stateService.isOpen = !this.stateService.isOpen;
+  public toggleCalendar(): void {
+    const wasOpen = this.stateService.isOpen;
+    this.stateService.isOpen = !wasOpen;
+    
+    // If opening the calendar, maintain focus on the input element
+    if (!wasOpen) {
+      // Use setTimeout to ensure the focus happens after rendering
+      setTimeout(() => {
+        this.inputElement.focus();
+      }, 0);
+    }
   }
   
   /**
