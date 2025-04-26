@@ -358,12 +358,20 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
           }`
         );
         
-        // Dispatch range selection event
+        // Get available dates within the range (excluding disabled dates)
+        const availableDates = this.getAvailableDatesInRange();
+        const formattedDates = availableDates.map(date => 
+          this.formatter.format(date, this.stateService.format)
+        );
+        
+        // Dispatch range selection event with available dates
         this.dispatchEvent(
           new CustomEvent('date-change', {
             detail: {
               rangeStart: this.formatter.format(this.stateService.rangeStart, this.stateService.format),
-              rangeEnd: this.formatter.format(this.stateService.rangeEnd, this.stateService.format)
+              rangeEnd: this.formatter.format(this.stateService.rangeEnd, this.stateService.format),
+              availableDates: formattedDates,
+              availableDatesObjects: availableDates
             },
             bubbles: true,
             composed: true
@@ -536,6 +544,167 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
    */
   public clearEvents(date: Date) {
     this.stateService.clearEvents(date);
+  }
+  
+  /**
+   * Add a disabled date (e.g., a public holiday or unavailable date)
+   * @param date The date to disable
+   * @param reason Optional reason for disabling (e.g., "Public Holiday - Christmas")
+   */
+  public addDisabledDate(date: Date, reason: string = '') {
+    this.stateService.addDisabledDate(date, reason);
+  }
+  
+  /**
+   * Remove a previously disabled date
+   * @param date The date to enable
+   */
+  public removeDisabledDate(date: Date) {
+    this.stateService.removeDisabledDate(date);
+  }
+  
+  /**
+   * Add multiple disabled dates at once
+   * @param dates Array of dates to disable
+   * @param reason Optional shared reason for all dates (e.g., "Public Holidays")
+   */
+  public addDisabledDates(dates: Date[], reason: string = '') {
+    this.stateService.addDisabledDates(dates, reason);
+  }
+  
+  /**
+   * Clear all disabled dates
+   */
+  public clearDisabledDates() {
+    this.stateService.clearDisabledDates();
+  }
+  
+  /**
+   * Check if a date is disabled
+   * @param date The date to check
+   * @returns True if the date is disabled, false otherwise
+   */
+  public isDateDisabled(date: Date): boolean {
+    return this.stateService.isDateDisabled(date);
+  }
+  
+  /**
+   * Get the reason a date is disabled (if any)
+   * @param date The date to check
+   * @returns The reason string or null if not disabled with a reason
+   */
+  public getDisabledDateReason(date: Date): string | null {
+    return this.stateService.getDisabledDateReason(date);
+  }
+
+  /**
+   * Disable a specific weekday for all months
+   * @param weekday The weekday to disable (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+   */
+  public disableWeekday(weekday: number): void {
+    this.stateService.addDisabledWeekday(weekday);
+  }
+
+  /**
+   * Enable a previously disabled weekday
+   * @param weekday The weekday to enable (0-6)
+   */
+  public enableWeekday(weekday: number): void {
+    this.stateService.removeDisabledWeekday(weekday);
+  }
+
+  /**
+   * Disable multiple weekdays at once
+   * @param weekdays Array of weekdays to disable (0-6)
+   * @example
+   * // Disable all weekends
+   * datePicker.disableWeekdays([0, 6]);
+   */
+  public disableWeekdays(weekdays: number[]): void {
+    this.stateService.addDisabledWeekdays(weekdays);
+  }
+
+  /**
+   * Clear all disabled weekday settings
+   */
+  public clearDisabledWeekdays(): void {
+    this.stateService.clearDisabledWeekdays();
+  }
+
+  /**
+   * Check if a weekday is disabled
+   * @param weekday The weekday to check (0-6)
+   * @returns True if the weekday is disabled
+   */
+  public isWeekdayDisabled(weekday: number): boolean {
+    return this.stateService.isWeekdayDisabled(weekday);
+  }
+
+  /**
+   * Get all currently disabled weekdays
+   * @returns Array of disabled weekdays (0-6)
+   */
+  public getDisabledWeekdays(): number[] {
+    return this.stateService.getDisabledWeekdays();
+  }
+
+  /**
+   * Disable a specific month
+   * @param month The month to disable (0 = January, 1 = February, ..., 11 = December)
+   */
+  public disableMonth(month: number): void {
+    this.stateService.addDisabledMonth(month);
+  }
+
+  /**
+   * Enable a previously disabled month
+   * @param month The month to enable (0-11)
+   */
+  public enableMonth(month: number): void {
+    this.stateService.removeDisabledMonth(month);
+  }
+
+  /**
+   * Disable multiple months at once
+   * @param months Array of months to disable (0-11)
+   * @example
+   * // Disable winter months (for Northern Hemisphere)
+   * datePicker.disableMonths([0, 1, 11]); // January, February, December
+   */
+  public disableMonths(months: number[]): void {
+    this.stateService.addDisabledMonths(months);
+  }
+
+  /**
+   * Clear all disabled month settings
+   */
+  public clearDisabledMonths(): void {
+    this.stateService.clearDisabledMonths();
+  }
+
+  /**
+   * Check if a month is disabled
+   * @param month The month to check (0-11)
+   * @returns True if the month is disabled
+   */
+  public isMonthDisabled(month: number): boolean {
+    return this.stateService.isMonthDisabled(month);
+  }
+
+  /**
+   * Get all currently disabled months
+   * @returns Array of disabled months (0-11)
+   */
+  public getDisabledMonths(): number[] {
+    return this.stateService.getDisabledMonths();
+  }
+
+  /**
+   * Get all available (not disabled) dates within the currently selected range
+   * @returns Array of available dates within the range, or empty array if no range is selected
+   */
+  public getAvailableDatesInRange(): Date[] {
+    return this.stateService.getAvailableDatesInRange(this.stateService.rangeStart, this.stateService.rangeEnd);
   }
 }
 

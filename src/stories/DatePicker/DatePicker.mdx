@@ -27,6 +27,9 @@ The Date Picker provides an intuitive and feature-rich interface for date select
 ### Key Features
 
 - **Single and Range Selection**: Select either a single date or a date range.
+- **Date Restrictions**: Disable specific dates, weekdays, or entire months.
+- **Public Holidays**: Mark holidays or unavailable dates programmatically.
+- **Range Selection with Available Dates**: Get a list of valid dates in a range, excluding disabled ones.
 - **Localization**: Support for multiple languages and regional date formats.
 - **Customizable Styling**: Extensive theming capabilities via CSS custom properties.
 - **Responsive Design**: Works well on both desktop and mobile devices.
@@ -258,6 +261,10 @@ datePicker.setDateRange(
   new Date(2025, 3, 15), // April 15, 2025
   new Date(2025, 3, 22)  // April 22, 2025
 );
+
+// Get all available dates in the range (excluding disabled dates)
+const availableDates = datePicker.getAvailableDatesInRange();
+console.log(`Available dates in range: ${availableDates.length}`);
 ```
 
 ### Adding Event Indicators
@@ -275,6 +282,93 @@ datePicker.addEvent(new Date(2025, 3, 22), 'Team Lunch');
 datePicker.clearEvents(new Date(2025, 3, 15));
 ```
 
+### Managing Disabled Dates
+
+```javascript
+const datePicker = document.querySelector('odyssey-date-picker');
+
+// Disable specific dates (like public holidays)
+datePicker.addDisabledDate(new Date(2025, 11, 25), "Christmas Day");
+datePicker.addDisabledDate(new Date(2025, 0, 1), "New Year's Day");
+
+// Disable multiple dates at once
+const holidays = [
+  new Date(2025, 6, 4),   // Independence Day
+  new Date(2025, 10, 27), // Thanksgiving
+  new Date(2025, 10, 28)  // Day after Thanksgiving
+];
+datePicker.addDisabledDates(holidays, "Public Holiday");
+
+// Enable a previously disabled date
+datePicker.removeDisabledDate(new Date(2025, 10, 28));
+
+// Clear all disabled dates
+datePicker.clearDisabledDates();
+
+// Check if a date is disabled
+if (datePicker.isDateDisabled(new Date(2025, 11, 25))) {
+  console.log("This date is disabled");
+}
+
+// Get the reason a date is disabled
+const reason = datePicker.getDisabledDateReason(new Date(2025, 11, 25));
+console.log(reason); // "Christmas Day"
+```
+
+### Disabling Weekdays
+
+```javascript
+const datePicker = document.querySelector('odyssey-date-picker');
+
+// Disable weekends (0 = Sunday, 6 = Saturday)
+datePicker.disableWeekdays([0, 6]);
+
+// Disable a specific weekday
+datePicker.disableWeekday(1); // Disable Mondays
+
+// Enable a previously disabled weekday
+datePicker.enableWeekday(0); // Enable Sundays
+
+// Clear all disabled weekdays
+datePicker.clearDisabledWeekdays();
+
+// Check if a weekday is disabled
+if (datePicker.isWeekdayDisabled(6)) {
+  console.log("Saturdays are disabled");
+}
+
+// Get all disabled weekdays
+const disabledWeekdays = datePicker.getDisabledWeekdays();
+console.log(disabledWeekdays); // e.g., [0, 6]
+```
+
+### Disabling Months
+
+```javascript
+const datePicker = document.querySelector('odyssey-date-picker');
+
+// Disable summer months (June, July, August)
+datePicker.disableMonths([5, 6, 7]); // Note: Months are zero-based (0 = January)
+
+// Disable a specific month
+datePicker.disableMonth(11); // Disable December
+
+// Enable a previously disabled month
+datePicker.enableMonth(5); // Enable June
+
+// Clear all disabled months
+datePicker.clearDisabledMonths();
+
+// Check if a month is disabled
+if (datePicker.isMonthDisabled(11)) {
+  console.log("December is disabled");
+}
+
+// Get all disabled months
+const disabledMonths = datePicker.getDisabledMonths();
+console.log(disabledMonths); // e.g., [5, 6, 7]
+```
+
 ### Listening for Date Selection Events
 
 ```javascript
@@ -284,10 +378,23 @@ datePicker.addEventListener('date-change', (event) => {
 });
 
 // For range mode
-const rangePickerr = document.querySelector('odyssey-date-picker[mode="range"]');
-rangePickerr.addEventListener('date-change', (event) => {
+const rangePicker = document.querySelector('odyssey-date-picker[mode="range"]');
+rangePicker.addEventListener('date-change', (event) => {
   console.log('Range start:', event.detail.rangeStart);
   console.log('Range end:', event.detail.rangeEnd);
+  
+  // Access the available dates in the range (excluding disabled dates)
+  console.log('Available dates in range:', event.detail.availableDates);
+  
+  // Access the available dates as Date objects
+  const dateObjects = event.detail.availableDatesObjects;
+  console.log(`Number of available dates: ${dateObjects.length}`);
+  
+  // Process only the valid dates in the range
+  dateObjects.forEach(date => {
+    // Do something with each available date
+    processDate(date);
+  });
 });
 ```
 
@@ -324,16 +431,36 @@ rangePickerr.addEventListener('date-change', (event) => {
 | `getDate()`            | -                                             | `Date \| null` | Gets the selected date                     |
 | `setDateRange(startDate, endDate)` | `startDate: Date, endDate: Date`  | `void`         | Sets the selected date range               |
 | `getDateRange()`       | -                                             | `{startDate: Date \| null, endDate: Date \| null}` | Gets the selected date range |
+| `getAvailableDatesInRange()` | -                                       | `Date[]`       | Gets available dates within the selected range, excluding disabled dates |
 | `addEvent(date, eventName)`      | `date: Date, eventName: string = 'event'` | `void`  | Adds an event indicator to a specific date |
 | `clearEvents(date)`    | `date: Date`                                  | `void`         | Clears event indicators from a specific date |
+| `addDisabledDate(date, reason)` | `date: Date, reason?: string` | `void` | Disables a specific date with optional reason |
+| `removeDisabledDate(date)` | `date: Date` | `void` | Enables a previously disabled date |
+| `addDisabledDates(dates, reason)` | `dates: Date[], reason?: string` | `void` | Disables multiple dates at once with optional shared reason |
+| `clearDisabledDates()` | - | `void` | Clears all specifically disabled dates |
+| `isDateDisabled(date)` | `date: Date` | `boolean` | Checks if a date is disabled |
+| `getDisabledDateReason(date)` | `date: Date` | `string \| null` | Gets the reason a date is disabled or null if not disabled |
+| `disableWeekday(weekday)` | `weekday: number` | `void` | Disables a specific weekday (0-6) |
+| `enableWeekday(weekday)` | `weekday: number` | `void` | Enables a previously disabled weekday |
+| `disableWeekdays(weekdays)` | `weekdays: number[]` | `void` | Disables multiple weekdays at once |
+| `clearDisabledWeekdays()` | - | `void` | Clears all disabled weekday settings |
+| `isWeekdayDisabled(weekday)` | `weekday: number` | `boolean` | Checks if a weekday is disabled |
+| `getDisabledWeekdays()` | - | `number[]` | Gets all currently disabled weekdays |
+| `disableMonth(month)` | `month: number` | `void` | Disables a specific month (0-11) |
+| `enableMonth(month)` | `month: number` | `void` | Enables a previously disabled month |
+| `disableMonths(months)` | `months: number[]` | `void` | Disables multiple months at once |
+| `clearDisabledMonths()` | - | `void` | Clears all disabled month settings |
+| `isMonthDisabled(month)` | `month: number` | `boolean` | Checks if a month is disabled |
+| `getDisabledMonths()` | - | `number[]` | Gets all currently disabled months |
 
 ### Events
 
 | Event Name         | Detail Object                                      | Description                                  |
 |--------------------|---------------------------------------------------|----------------------------------------------|
-| `date-change`      | `{date: string} \| {rangeStart: string, rangeEnd: string}` | Fired when the selected date changes         |
+| `date-change`      | Single mode: `{date: string}`<br/>Range mode: `{rangeStart: string, rangeEnd: string, availableDates: string[], availableDatesObjects: Date[]}` | Fired when the selected date changes. Range mode includes arrays of available dates (excluding disabled ones) |
 | `calendar-open`    | `{}`                                              | Fired when the calendar is opened             |
 | `calendar-close`   | `{}`                                              | Fired when the calendar is closed             |
+| `date-clear`       | `{}`                                              | Fired when the date selection is cleared      |
 
 ### CSS Custom Properties
 
@@ -351,6 +478,75 @@ rangePickerr.addEventListener('date-change', (event) => {
 | `--date-picker-event-color`           | `#ff6b6b`            | Color for event indicators                    |
 | `--date-picker-focus-outline-color`   | `#4361ee`            | Color for focus outline                       |
 | `--date-picker-range-bg-color`        | Variable opacity     | Background color for date range               |
+
+## Working with Disabled Dates
+
+The DatePicker component provides comprehensive functionality for controlling date availability.
+
+### Disabling Specific Dates
+
+You can disable specific dates, such as public holidays or unavailable booking dates:
+
+```javascript
+// Disable Christmas for the next three years
+[2025, 2026, 2027].forEach(year => {
+  datePicker.addDisabledDate(new Date(year, 11, 25), "Christmas Day");
+});
+```
+
+### Disabling Weekends or Specific Weekdays
+
+To limit selection to workdays or specific days of the week:
+
+```javascript
+// Disable weekends
+datePicker.disableWeekdays([0, 6]); // Sunday and Saturday
+
+// For a booking system that only accepts appointments on certain days
+datePicker.disableWeekdays([0, 2, 4, 6]); // Only allow Mon, Wed, Fri
+```
+
+### Disabling Entire Months
+
+For seasonal constraints or extended unavailability periods:
+
+```javascript
+// Disable winter months
+datePicker.disableMonths([11, 0, 1]); // December, January, February
+
+// For a seasonal business that operates only in summer
+datePicker.disableMonths([0, 1, 2, 3, 9, 10, 11]); // Only allow May through August
+```
+
+### Working with Range Selection
+
+When using range selection with disabled dates, the component provides access to only the valid dates:
+
+```javascript
+// When using range selection with weekends disabled
+rangePicker.disableWeekdays([0, 6]);
+
+// Listen for date changes
+rangePicker.addEventListener('date-change', (event) => {
+  // This will only include weekdays, excluding weekends
+  const workdays = event.detail.availableDatesObjects;
+  
+  console.log(`Selected ${workdays.length} working days`);
+  
+  // Calculate something based on working days only
+  calculateWorkHours(workdays.length * 8);
+});
+```
+
+### Hierarchy of Restrictions
+
+When multiple restriction mechanisms are used, dates are evaluated in this order:
+1. Min/max date constraints
+2. Disabled weekdays
+3. Disabled months
+4. Specifically disabled dates
+
+A date is disabled if it fails any of these checks.
 
 ## Customizing the Input Element
 
@@ -443,12 +639,59 @@ The Date Picker component works in all modern browsers:
 ## Best Practices
 
 1. **Provide Clear Labels**: Always use labels or aria-labels to identify what the date picker is for.
-2. **Set Appropriate Constraints**: Use min-date and max-date attributes to limit selections to reasonable ranges.
+2. **Set Appropriate Constraints**: Use min-date, max-date and disabled dates to limit selections to reasonable ranges.
 3. **Consider Mobile Users**: Test the component on mobile devices to ensure usability on touch screens.
 4. **Localize Appropriately**: Set the locale attribute to match your user's language and regional preferences.
 5. **Handle Validation**: Implement form validation to ensure selected dates meet your requirements.
+6. **Explain Disabled Dates**: When disabling dates, provide clear feedback to users about why certain dates are unavailable.
+7. **Use Range Selection Wisely**: When using range selection, process the available dates instead of all dates in the range.
+
+## Common Use Cases
+
+### Holiday Booking System
+
+```javascript
+const datePicker = document.querySelector('odyssey-date-picker[mode="range"]');
+
+// Disable past dates
+datePicker.stateService.minDate = new Date();
+
+// Disable weekends for a business booking system
+datePicker.disableWeekdays([0, 6]);
+
+// Mark public holidays as unavailable
+const holidays = getPublicHolidays(); // Your function to fetch holidays
+datePicker.addDisabledDates(holidays, "Public Holiday");
+
+// Listen for selection
+datePicker.addEventListener('date-change', (event) => {
+  // Use only the available business days
+  const businessDays = event.detail.availableDatesObjects;
+  // Calculate price based on number of business days
+  calculatePrice(businessDays.length);
+});
+```
+
+### Date Range with Business Days Counter
+
+```javascript
+const datePicker = document.querySelector('odyssey-date-picker[mode="range"]');
+const businessDaysOutput = document.getElementById('business-days-count');
+
+// Disable weekends
+datePicker.disableWeekdays([0, 6]);
+
+datePicker.addEventListener('date-change', (event) => {
+  if (event.detail.rangeStart && event.detail.rangeEnd) {
+    const businessDays = event.detail.availableDatesObjects.length;
+    businessDaysOutput.textContent = `Selected ${businessDays} business days`;
+  }
+});
+```
 
 ## Limitations
 
 - The date picker does not support time selection.
 - Mobile experience may vary based on device and browser.
+- When a large number of dates are disabled, performance may be affected.
+- Overlapping disabled date rules follow the hierarchy described above.

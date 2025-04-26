@@ -29,6 +29,9 @@ export class StateService {
   private _minDate: Date | null = null;
   private _maxDate: Date | null = null;
   private _firstDayOfWeek: number = 0;
+  private _disabledDates: Map<string, string> = new Map(); // Store disabled dates with optional reason
+  private _disabledWeekdays: Set<number> = new Set(); // Store disabled weekdays (0-6, where 0 is Sunday)
+  private _disabledMonths: Set<number> = new Set(); // Store disabled months (0-11, where 0 is January)
   
   private _listeners: StateChangeListener[] = [];
   private _formatter: IDateFormatter;
@@ -253,6 +256,22 @@ export class StateService {
       return true;
     }
     
+    // Check if date's weekday is disabled
+    if (this._disabledWeekdays.has(date.getDay())) {
+      return true;
+    }
+    
+    // Check if date's month is disabled
+    if (this._disabledMonths.has(date.getMonth())) {
+      return true;
+    }
+    
+    // Check if date is in custom disabled dates
+    const dateKey = this._formatter.format(date, 'yyyy-MM-dd');
+    if (this._disabledDates.has(dateKey)) {
+      return true;
+    }
+    
     return false;
   }
   
@@ -276,5 +295,221 @@ export class StateService {
     if (this.isDateDisabled(date)) return false;
     
     return date >= this._rangeStart && date <= this._rangeEnd;
+  }
+
+  /**
+   * Add a disabled date
+   * @param date The date to disable
+   * @param reason Optional reason for disabling (e.g., "Public Holiday - Christmas")
+   */
+  public addDisabledDate(date: Date, reason: string = ''): void {
+    const dateKey = this._formatter.format(date, 'yyyy-MM-dd');
+    this._disabledDates.set(dateKey, reason);
+    this.notifyListeners();
+  }
+
+  /**
+   * Remove a disabled date
+   * @param date The date to enable
+   */
+  public removeDisabledDate(date: Date): void {
+    const dateKey = this._formatter.format(date, 'yyyy-MM-dd');
+    this._disabledDates.delete(dateKey);
+    this.notifyListeners();
+  }
+
+  /**
+   * Add multiple disabled dates at once
+   * @param dates Array of dates to disable
+   * @param reason Optional shared reason for all dates
+   */
+  public addDisabledDates(dates: Date[], reason: string = ''): void {
+    dates.forEach(date => this.addDisabledDate(date, reason));
+  }
+
+  /**
+   * Clear all disabled dates
+   */
+  public clearDisabledDates(): void {
+    this._disabledDates.clear();
+    this.notifyListeners();
+  }
+
+  /**
+   * Get whether a date has a custom disabled reason
+   * @param date The date to check
+   * @returns The reason string or null if not disabled
+   */
+  public getDisabledDateReason(date: Date): string | null {
+    // Check min/max date constraints first
+    if (this._minDate && date < this._minDate) {
+      return "Before minimum allowed date";
+    }
+    
+    if (this._maxDate && date > this._maxDate) {
+      return "After maximum allowed date";
+    }
+    
+    // Check if weekday is disabled
+    if (this._disabledWeekdays.has(date.getDay())) {
+      const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      return `Disabled weekday (${weekdays[date.getDay()]})`;
+    }
+    
+    // Check if month is disabled
+    if (this._disabledMonths.has(date.getMonth())) {
+      const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                      'July', 'August', 'September', 'October', 'November', 'December'];
+      return `Disabled month (${months[date.getMonth()]})`;
+    }
+    
+    // Check if specific date is disabled with reason
+    const dateKey = this._formatter.format(date, 'yyyy-MM-dd');
+    return this._disabledDates.has(dateKey) ? this._disabledDates.get(dateKey)! : null;
+  }
+
+  /**
+   * Add a disabled weekday (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+   * @param weekday The weekday to disable (0-6)
+   */
+  public addDisabledWeekday(weekday: number): void {
+    if (weekday >= 0 && weekday <= 6) {
+      this._disabledWeekdays.add(weekday);
+      this.notifyListeners();
+    }
+  }
+
+  /**
+   * Remove a disabled weekday
+   * @param weekday The weekday to enable (0-6)
+   */
+  public removeDisabledWeekday(weekday: number): void {
+    this._disabledWeekdays.delete(weekday);
+    this.notifyListeners();
+  }
+
+  /**
+   * Add multiple disabled weekdays at once
+   * @param weekdays Array of weekdays to disable (0-6)
+   */
+  public addDisabledWeekdays(weekdays: number[]): void {
+    weekdays.forEach(weekday => {
+      if (weekday >= 0 && weekday <= 6) {
+        this._disabledWeekdays.add(weekday);
+      }
+    });
+    this.notifyListeners();
+  }
+
+  /**
+   * Clear all disabled weekdays
+   */
+  public clearDisabledWeekdays(): void {
+    this._disabledWeekdays.clear();
+    this.notifyListeners();
+  }
+
+  /**
+   * Check if a weekday is disabled
+   * @param weekday The weekday to check (0-6)
+   * @returns True if the weekday is disabled
+   */
+  public isWeekdayDisabled(weekday: number): boolean {
+    return this._disabledWeekdays.has(weekday);
+  }
+
+  /**
+   * Get all disabled weekdays
+   * @returns An array of disabled weekdays (0-6)
+   */
+  public getDisabledWeekdays(): number[] {
+    return Array.from(this._disabledWeekdays);
+  }
+
+  /**
+   * Add a disabled month (0 = January, 1 = February, ..., 11 = December)
+   * @param month The month to disable (0-11)
+   */
+  public addDisabledMonth(month: number): void {
+    if (month >= 0 && month <= 11) {
+      this._disabledMonths.add(month);
+      this.notifyListeners();
+    }
+  }
+
+  /**
+   * Remove a disabled month
+   * @param month The month to enable (0-11)
+   */
+  public removeDisabledMonth(month: number): void {
+    this._disabledMonths.delete(month);
+    this.notifyListeners();
+  }
+
+  /**
+   * Add multiple disabled months at once
+   * @param months Array of months to disable (0-11)
+   */
+  public addDisabledMonths(months: number[]): void {
+    months.forEach(month => {
+      if (month >= 0 && month <= 11) {
+        this._disabledMonths.add(month);
+      }
+    });
+    this.notifyListeners();
+  }
+
+  /**
+   * Clear all disabled months
+   */
+  public clearDisabledMonths(): void {
+    this._disabledMonths.clear();
+    this.notifyListeners();
+  }
+
+  /**
+   * Check if a month is disabled
+   * @param month The month to check (0-11)
+   * @returns True if the month is disabled
+   */
+  public isMonthDisabled(month: number): boolean {
+    return this._disabledMonths.has(month);
+  }
+
+  /**
+   * Get all disabled months
+   * @returns An array of disabled months (0-11)
+   */
+  public getDisabledMonths(): number[] {
+    return Array.from(this._disabledMonths);
+  }
+
+  /**
+   * Get all available (not disabled) dates within a range
+   * @param startDate Range start date
+   * @param endDate Range end date
+   * @returns Array of available dates within the range
+   */
+  public getAvailableDatesInRange(startDate: Date | null, endDate: Date | null): Date[] {
+    if (!startDate || !endDate) return [];
+    
+    const availableDates: Date[] = [];
+    const current = new Date(startDate);
+    const end = new Date(endDate);
+    
+    // Ensure end date is included in the loop
+    end.setHours(23, 59, 59, 999);
+    
+    while (current <= end) {
+      // Add date to array if it's not disabled
+      if (!this.isDateDisabled(current)) {
+        availableDates.push(new Date(current));
+      }
+      
+      // Move to next day
+      current.setDate(current.getDate() + 1);
+    }
+    
+    return availableDates;
   }
 }
