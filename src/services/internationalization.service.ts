@@ -2,11 +2,21 @@
  * Internationalization service for handling translations and locale-specific formatting
  * Follows the Singleton pattern to ensure consistent language across the application
  */
+
+// Define a custom type for our named format options
+interface DateFormatOptions {
+  short: Intl.DateTimeFormatOptions;
+  medium: Intl.DateTimeFormatOptions;
+  long: Intl.DateTimeFormatOptions;
+  full: Intl.DateTimeFormatOptions;
+  [key: string]: Intl.DateTimeFormatOptions;
+}
+
 export class InternationalizationService {
   private static instance: InternationalizationService;
   private _locale: string;
   private _translations: Record<string, Record<string, string>> = {};
-  private _dateTimeFormats: Record<string, Intl.DateTimeFormatOptions> = {};
+  private _dateTimeFormats: Record<string, DateFormatOptions> = {};
   
   /**
    * Private constructor to enforce the Singleton pattern
@@ -138,7 +148,7 @@ export class InternationalizationService {
    */
   public setDateTimeFormat(locale: string, formatName: string, formatOptions: Intl.DateTimeFormatOptions): void {
     if (!this._dateTimeFormats[locale]) {
-      this._dateTimeFormats[locale] = {};
+      this._dateTimeFormats[locale] = {} as DateFormatOptions;
     }
     this._dateTimeFormats[locale][formatName] = formatOptions;
   }
