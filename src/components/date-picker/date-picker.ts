@@ -200,13 +200,16 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
     // First check if there's a slotted input before building the structure
     const slottedInput = this.querySelector('input[slot="input"]');
     
-    // Create HTML structure
+    // Create HTML structure with mobile close button
     this.innerHTML = `
         <div class="date-picker-input-wrapper">
           ${slottedInput ? '' : '<input type="text" class="date-picker-input" placeholder="Select date">'}
           <span class="date-picker-icon material-icons">calendar_today</span>
         </div>
         <div class="date-picker-dialog" tabindex="-1">
+          <button type="button" class="mobile-close-btn">
+            <span class="material-icons">close</span>
+          </button>
           <div class="date-picker-header"></div>
           <div class="date-picker-calendar"></div>
           <div class="date-picker-footer"></div>
@@ -247,6 +250,170 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
     
     // Initial UI update
     this.uiService.updateUI();
+    
+    // Initialize responsive behavior
+    this.initializeResponsiveBehavior();
+  }
+  
+  /**
+   * Initialize responsive behavior and touch gesture support
+   */
+  private initializeResponsiveBehavior(): void {
+    const mobileCloseButton = this.querySelector('.mobile-close-btn') as HTMLButtonElement;
+    if (mobileCloseButton) {
+      mobileCloseButton.addEventListener('click', () => {
+        this.stateService.isOpen = false;
+      });
+    }
+
+    // Enhanced touch gesture support
+    let touchStartY = 0;
+    let touchStartX = 0;
+    let initialTouchTime = 0;
+    const minSwipeDistance = 70; // Minimum swipe distance in pixels
+    const maxSwipeTime = 300; // Maximum time for swipe in milliseconds
+    
+    // Add touch gesture support for swiping to close the calendar
+    this.dialogElement.addEventListener('touchstart', (e: TouchEvent) => {
+      touchStartY = e.touches[0].clientY;
+      touchStartX = e.touches[0].clientX;
+      initialTouchTime = Date.now();
+    }, { passive: true });
+
+    this.dialogElement.addEventListener('touchmove', (e: TouchEvent) => {
+      if (window.matchMedia('(max-width: 768px)').matches) {
+        const touchY = e.touches[0].clientY;
+        const touchX = e.touches[0].clientX;
+        const deltaY = touchY - touchStartY;
+        const deltaX = touchX - touchStartX;
+        
+        // If swiping down, add a visual feedback by following the finger
+        if (deltaY > 0 && Math.abs(deltaY) > Math.abs(deltaX)) {
+          this.dialogElement.style.transform = `translateY(${deltaY / 3}px)`;
+          this.dialogElement.style.opacity = `${1 - (deltaY / 400)}`;
+        } 
+        // If swiping horizontally in calendar view, provide visual feedback for month navigation
+        else if (Math.abs(deltaX) > Math.abs(deltaY) && 
+                this.calendarElement.contains(e.target as Node) &&
+                this.stateService.currentView === 'calendar') {
+          this.calendarElement.style.transform = `translateX(${deltaX / 2}px)`;
+          this.calendarElement.style.opacity = `${1 - (Math.abs(deltaX) / 500)}`;
+        }
+      }
+    }, { passive: true });
+
+    this.dialogElement.addEventListener('touchend', (e: TouchEvent) => {
+      if (window.matchMedia('(max-width: 768px)').matches) {
+        const touchEndY = e.changedTouches[0].clientY;
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndTime = Date.now();
+        
+        const deltaY = touchEndY - touchStartY;
+        const deltaX = touchEndX - touchStartX;
+        const swipeTime = touchEndTime - initialTouchTime;
+        
+        // Reset the transform and opacity
+        this.dialogElement.style.transform = '';
+        this.dialogElement.style.opacity = '';
+        this.calendarElement.style.transform = '';
+        this.calendarElement.style.opacity = '';
+        
+        // Check if it's a vertical or horizontal swipe
+        const isVerticalSwipe = Math.abs(deltaY) > Math.abs(deltaX);
+        
+        // Close on fast or long downward swipe
+        if (isVerticalSwipe && deltaY > minSwipeDistance && 
+            (swipeTime < maxSwipeTime || deltaY > window.innerHeight / 3)) {
+          this.stateService.isOpen = false;
+        } 
+        // Navigate between months on horizontal swipe
+        else if (!isVerticalSwipe && Math.abs(deltaX) > minSwipeDistance && 
+                swipeTime < maxSwipeTime &&
+                this.stateService.currentView === 'calendar') {
+          
+          if (deltaX > 0) {
+            // Swiping right - go to previous month with animation
+            this.navigateWithAnimation('previous');
+          } else {
+            // Swiping left - go to next month with animation
+            this.navigateWithAnimation('next');
+          }
+        }
+      }
+    });
+
+    // Add extra accessibility features for mobile
+    this.dialogElement.setAttribute('role', 'dialog');
+    this.dialogElement.setAttribute('aria-modal', 'true');
+    this.dialogElement.setAttribute('aria-label', 'Date picker calendar');
+
+    // Handle orientation changes and viewport adjustments
+    window.addEventListener('resize', this.handleViewportChanges.bind(this));
+    window.addEventListener('orientationchange', this.handleViewportChanges.bind(this));
+  }
+  
+  /**
+   * Navigate to previous or next month with animation
+   * @param direction 'previous' or 'next'
+   */
+  private navigateWithAnimation(direction: 'previous' | 'next'): void {
+    // Create animation class on the calendar element
+    const animationClass = direction === 'previous' ? 'slide-right' : 'slide-left';
+    this.calendarElement.classList.add(animationClass);
+    
+    // Use setTimeout to ensure animation is visible
+    setTimeout(() => {
+      // Perform the actual navigation
+      const currentDate = this.stateService.viewDate;
+      const newDate = new Date(currentDate);
+      
+      if (direction === 'previous') {
+        newDate.setMonth(currentDate.getMonth() - 1);
+      } else {
+        newDate.setMonth(currentDate.getMonth() + 1);
+      }
+      
+      // Update state
+      this.stateService.viewDate = newDate;
+      
+      // Remove animation class after animation completes
+      setTimeout(() => {
+        this.calendarElement.classList.remove(animationClass);
+      }, 300);
+    }, 50);
+  }
+  
+  /**
+   * Handle viewport changes or orientation changes
+   */
+  private handleViewportChanges(): void {
+    // Adjust positioning for mobile view in case of orientation changes
+    if (window.matchMedia('(max-width: 768px)').matches && this.stateService.isOpen) {
+      // For mobile, ensure the calendar is correctly positioned and sized
+      // Calculate safe area and ensure the calendar fits within viewport
+      const viewHeight = window.innerHeight;
+      
+      // Adjust scrolling if needed
+      if (this.calendarElement) {
+        if (this.calendarElement.scrollHeight > viewHeight * 0.7) {
+          this.calendarElement.style.maxHeight = `${viewHeight * 0.65}px`;
+        } else {
+          this.calendarElement.style.maxHeight = '';
+        }
+      }
+      
+      // Apply iOS safe area insets if available
+      if (CSS.supports('padding-bottom: env(safe-area-inset-bottom)')) {
+        this.dialogElement.style.paddingBottom = 'env(safe-area-inset-bottom)';
+      }
+    } else {
+      // For desktop, reset any mobile-specific styles
+      if (this.calendarElement) {
+        this.calendarElement.style.maxHeight = '';
+      }
+      this.dialogElement.style.transform = '';
+      this.dialogElement.style.opacity = '';
+    }
   }
   
   /**
