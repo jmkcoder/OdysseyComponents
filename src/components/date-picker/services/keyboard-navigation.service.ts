@@ -1,5 +1,6 @@
 import { CalendarService } from './calendar.service';
 import { UIUpdaterService } from './ui-updater.service';
+import { UIService } from './ui.service';
 
 /**
  * Service responsible for keyboard navigation and accessibility
@@ -20,45 +21,47 @@ export class KeyboardNavigationService {
     currentDate: Date,
     isOpen: boolean,
     firstDayOfWeek: number
-  ): { 
+  ): 
+  { 
     newDate?: Date, 
     action?: 'select' | 'close' | 'focusOnly' | 'none',
     tabDirection?: 'forward' | 'backward' | 'none'
-  } {
+  } 
+  {
     if (!isOpen) return { action: 'none' };
     
     const focusedDate = new Date(currentDate);
     let newDate: Date | undefined;
     let action: 'select' | 'close' | 'focusOnly' | 'none' = 'focusOnly';
     let tabDirection: 'forward' | 'backward' | 'none' = 'none';
-    
+
     switch (e.key) {
       case 'ArrowLeft':
-        // Previous day
+        // Previous day (move backward)
+        e.preventDefault();
         newDate = new Date(focusedDate);
         newDate.setDate(focusedDate.getDate() - 1);
-        e.preventDefault();
         break;
         
       case 'ArrowRight':
-        // Next day
+        // Next day (move forward)
+        e.preventDefault();
         newDate = new Date(focusedDate);
         newDate.setDate(focusedDate.getDate() + 1);
-        e.preventDefault();
         break;
         
       case 'ArrowUp':
-        // Previous week
+        // Previous week (move up)
+        e.preventDefault();
         newDate = new Date(focusedDate);
         newDate.setDate(focusedDate.getDate() - 7);
-        e.preventDefault();
         break;
         
       case 'ArrowDown':
-        // Next week
+        // Next week (move down)
+        e.preventDefault();
         newDate = new Date(focusedDate);
         newDate.setDate(focusedDate.getDate() + 7);
-        e.preventDefault();
         break;
         
       case 'Home':
@@ -149,10 +152,40 @@ export class KeyboardNavigationService {
    */
   getFocusableElements(dialog: HTMLElement): HTMLElement[] {
     return Array.from(dialog.querySelectorAll(
-      'button, [tabindex]:not([tabindex="-1"]), input'
+      'button, [tabindex]:not([tabindex="-1"]), input, table[tabindex], td[tabindex="0"]'
     )) as HTMLElement[];
   }
-
+  
+  /**
+   * Structure focusable elements into logical sections for navigation
+   * This helps with understanding the tab flow through the dialog
+   */
+  getNavigationSections(dialog: HTMLElement): {
+    headerElements: HTMLElement[],
+    calendarElements: HTMLElement[],
+    footerElements: HTMLElement[]
+  } {
+    const allElements = this.getFocusableElements(dialog);
+    
+    const headerElements = allElements.filter(el => {
+      const header = dialog.querySelector('.date-picker-header');
+      return header && header.contains(el);
+    });
+    
+    const footerElements = allElements.filter(el => {
+      const footer = dialog.querySelector('.date-picker-footer');
+      return footer && footer.contains(el);
+    });
+    
+    const calendarElements = allElements.filter(el => {
+      const header = dialog.querySelector('.date-picker-header');
+      const footer = dialog.querySelector('.date-picker-footer');
+      return (!header || !header.contains(el)) && (!footer || !footer.contains(el));
+    });
+    
+    return { headerElements, calendarElements, footerElements };
+  }
+  
   /**
    * Set up a focus trap for the dialog
    */
@@ -176,6 +209,200 @@ export class KeyboardNavigationService {
     }
     
     return false;
+  }
+
+  /**
+   * Setup keyboard navigation for the date picker calendar dialog
+   */
+  setupKeyboardNavigation(
+    containerElement: HTMLElement,
+    calendarService: CalendarService,
+    uiUpdater: UIUpdaterService | UIService,
+    callbacks: {
+      onDateChange: (date: Date) => void;
+      onSelectDate: (date: Date) => void;
+      onPrevMonth: () => void;
+      onNextMonth: () => void;
+      onClose: () => void;
+      onSelectMonth?: (monthIndex: number) => void;
+      onSelectYear?: (year: number) => void;
+      getCurrentViewMode?: () => string;
+    }
+  ): void {
+    // Get dialog element
+    const dialog = uiUpdater.getDialog(containerElement);
+    if (!dialog) return;
+    
+    // Get the first day of week setting
+    const firstDayOfWeek = calendarService.getFirstDayOfWeekValue();
+    
+    // Initialize logical tab order - we'll do this on each render
+    this.setupTabOrder(dialog);
+    
+    // Event listener for keyboard navigation
+    dialog.addEventListener('keydown', (e: KeyboardEvent) => {
+      // Handle tab key separately for focus trapping and logical navigation
+      if (e.key === 'Tab') {
+        // Allow normal tab behavior - we want to be able to tab out of the grid
+        return;
+      }
+      
+      // Handle Escape key to close the dialog
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        callbacks.onClose();
+        return;
+      }
+      
+      // Find the currently focused element
+      const focusedElement = document.activeElement as HTMLElement;
+      
+      // Get current view mode
+      const currentViewMode = callbacks.getCurrentViewMode ? callbacks.getCurrentViewMode() : 'calendar';
+      
+      if (currentViewMode === 'months') {
+        this.handleMonthViewKeyDown(e, focusedElement, dialog, callbacks);
+        return;
+      } else if (currentViewMode === 'years') {
+        this.handleYearViewKeyDown(e, focusedElement, dialog, callbacks);
+        return;
+      }
+      
+      // Skip arrow key handling if focus is on buttons or other interactive elements
+      // that are not date cells
+      if (focusedElement.tagName === 'BUTTON' || 
+          !focusedElement.classList.contains('date-picker-cell')) {
+        return;
+      }
+      
+      // Handle calendar grid navigation for date cells
+      let focusedDate: Date | null = this.getFocusedDate(focusedElement, calendarService);
+      
+      // Use the handleKeyDown method to determine what to do
+      const { newDate, action } = this.handleKeyDown(
+        e,
+        focusedDate || new Date(),
+        true, // calendar is open
+        firstDayOfWeek
+      );
+      
+      // Handle the result from handleKeyDown
+      if (action === 'close') {
+        callbacks.onClose();
+        return;
+      }
+      
+      if (newDate) {
+        // Get the current view month/year info from the header or focused date
+        const monthYearElement = dialog.querySelector('.date-picker-header-title');
+        let viewYear = focusedDate ? focusedDate.getFullYear() : new Date().getFullYear();
+        let viewMonth = focusedDate ? focusedDate.getMonth() : new Date().getMonth();
+        
+        if (monthYearElement) {
+          const monthYearText = monthYearElement.textContent || '';
+          
+          // Extract month and year from the header if possible
+          const monthNames = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+          ];
+          
+          monthNames.forEach((name, index) => {
+            if (monthYearText.includes(name)) {
+              viewMonth = index;
+            }
+          });
+          
+          const yearMatch = monthYearText.match(/\d{4}/);
+          if (yearMatch) {
+            viewYear = parseInt(yearMatch[0], 10);
+          }
+        }
+        
+        // Check if the new date is in the current month view
+        const isInCurrentMonth = newDate.getMonth() === viewMonth && 
+                                newDate.getFullYear() === viewYear;
+        
+        if (!isInCurrentMonth) {
+          // If navigating to a different month, we need to update the view
+          const viewDate = new Date(newDate);
+          callbacks.onDateChange(viewDate);
+          
+          // After the view updates, we need to focus the correct day
+          setTimeout(() => {
+            this.focusDateCell(dialog, newDate);
+          }, 50);
+        } else {
+          // If within the current month, directly focus the date cell
+          this.focusDateCell(dialog, newDate);
+          
+          if (action === 'select') {
+            // Only select if the date is not disabled
+            if (!calendarService.isDateDisabled(newDate)) {
+              callbacks.onSelectDate(newDate);
+            }
+          }
+        }
+      } else if (action === 'select' && focusedElement && focusedElement.classList.contains('date-picker-cell')) {
+        // Handle selection on the focused cell
+        if (focusedDate) {
+          callbacks.onSelectDate(focusedDate);
+        }
+      }
+    });
+  }
+
+  /**
+   * Setup proper tab order for all focusable elements in the dialog
+   * This creates a logical tab flow: header -> calendar -> footer
+   */
+  private setupTabOrder(dialog: HTMLElement): void {
+    // Get all sections of the date picker
+    const headerEl = dialog.querySelector('.date-picker-header');
+    const calendarEl = dialog.querySelector('.date-picker-calendar');
+    const footerEl = dialog.querySelector('.date-picker-footer');
+    
+    // Define the tab order sequence
+    
+    // 1. Header buttons get tabindex="0" to be in the tab sequence
+    const headerButtons = headerEl?.querySelectorAll('button');
+    headerButtons?.forEach(button => {
+      button.setAttribute('tabindex', '0');
+    });
+    
+    // 2. Calendar table gets tabindex="0" to be in the tab sequence
+    const calendarTable = calendarEl?.querySelector('.date-picker-table');
+    if (calendarTable) {
+      calendarTable.setAttribute('tabindex', '0');
+    }
+    
+    // 3. All date cells get tabindex="-1" so they're not in the tab sequence
+    // Only one date cell should be keyboard focusable via arrow keys at a time
+    const dateCells = calendarEl?.querySelectorAll('.date-picker-cell:not(.weekday)');
+    dateCells?.forEach(cell => {
+      // All cells start with tabindex="-1" so they're not in the tab order
+      cell.setAttribute('tabindex', '-1');
+    });
+    
+    // Find active/focusable date cell (selected or today or first available)
+    let focusableCell = calendarEl?.querySelector('.date-picker-cell.selected') as HTMLElement;
+    if (!focusableCell) {
+      focusableCell = calendarEl?.querySelector('.date-picker-cell.today:not(.disabled):not(.other-month)') as HTMLElement;
+    }
+    if (!focusableCell) {
+      focusableCell = calendarEl?.querySelector('.date-picker-cell:not(.disabled):not(.other-month):not(.weekday)') as HTMLElement;
+    }
+    
+    // Make one cell keyboard focusable at a time
+    if (focusableCell) {
+      focusableCell.setAttribute('tabindex', '0'); // Set to 0 to make it focusable
+    }
+    
+    // 4. Footer buttons get tabindex="0" to be in the tab sequence
+    const footerButtons = footerEl?.querySelectorAll('button');
+    footerButtons?.forEach(button => {
+      button.setAttribute('tabindex', '0');
+    });
   }
 
   /**
@@ -219,130 +446,407 @@ export class KeyboardNavigationService {
   }
 
   /**
-   * Handle keyboard navigation for the date picker calendar dialog
+   * Get the date associated with a focused element
    */
-  setupKeyboardNavigation(
-    containerElement: HTMLElement,
-    calendarService: CalendarService,
-    uiUpdater: UIUpdaterService,
-    callbacks: {
-      onDateChange: (date: Date) => void;
-      onSelectDate: (date: Date) => void;
-      onPrevMonth: () => void;
-      onNextMonth: () => void;
-      onClose: () => void;
+  private getFocusedDate(element: HTMLElement | null, calendarService: CalendarService): Date | null {
+    if (!element || !element.classList.contains('date-picker-cell')) {
+      return null;
     }
-  ): void {
-    // Get dialog element
-    const dialog = uiUpdater.getDialog(containerElement);
-    if (!dialog) return;
     
-    // Event listener for keyboard navigation
-    dialog.addEventListener('keydown', (event: KeyboardEvent) => {
-      const key = event.key;
-      const ctrlKey = event.ctrlKey || event.metaKey;
-      
-      // Prevent default for arrow keys to avoid page scrolling
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape', 'Tab'].includes(key)) {
-        event.preventDefault();
-      }
-      
-      // Find the currently focused date
-      const focusedElement = document.activeElement as HTMLElement;
-      if (!focusedElement || !focusedElement.classList.contains('date-picker-cell')) {
-        // If no cell is focused, focus on today or the selected date
-        return;
-      }
-      
-      // Extract current date from focused element
-      const day = parseInt(focusedElement.textContent || '1', 10);
-      const currentFocusedDate = calendarService.getToday();
-      const focusedDate = new Date(currentFocusedDate);
-      focusedDate.setDate(day);
-      
-      // Handle different keys
-      switch (key) {
-        case 'ArrowLeft': {
-          // Previous day
-          const newDate = new Date(focusedDate);
-          newDate.setDate(focusedDate.getDate() - 1);
-          callbacks.onDateChange(newDate);
-          break;
-        }
-        case 'ArrowRight': {
-          // Next day
-          const newDate = new Date(focusedDate);
-          newDate.setDate(focusedDate.getDate() + 1);
-          callbacks.onDateChange(newDate);
-          break;
-        }
-        case 'ArrowUp': {
-          // Previous week
-          const newDate = new Date(focusedDate);
-          newDate.setDate(focusedDate.getDate() - 7);
-          callbacks.onDateChange(newDate);
-          break;
-        }
-        case 'ArrowDown': {
-          // Next week
-          const newDate = new Date(focusedDate);
-          newDate.setDate(focusedDate.getDate() + 7);
-          callbacks.onDateChange(newDate);
-          break;
-        }
-        case 'PageUp': {
-          // Previous month
-          if (ctrlKey) {
-            // Previous year
-            const newDate = new Date(focusedDate);
-            newDate.setFullYear(focusedDate.getFullYear() - 1);
-            callbacks.onDateChange(newDate);
-          } else {
-            callbacks.onPrevMonth();
-          }
-          break;
-        }
-        case 'PageDown': {
-          // Next month
-          if (ctrlKey) {
-            // Next year
-            const newDate = new Date(focusedDate);
-            newDate.setFullYear(focusedDate.getFullYear() + 1);
-            callbacks.onDateChange(newDate);
-          } else {
-            callbacks.onNextMonth();
-          }
-          break;
-        }
-        case 'Home': {
-          // First day of month
-          const newDate = new Date(focusedDate);
-          newDate.setDate(1);
-          callbacks.onDateChange(newDate);
-          break;
-        }
-        case 'End': {
-          // Last day of month
-          const newDate = new Date(focusedDate);
-          newDate.setMonth(newDate.getMonth() + 1, 0);
-          callbacks.onDateChange(newDate);
-          break;
-        }
-        case 'Enter':
-        case ' ': {
-          // Select the focused date
-          if (!calendarService.isDateDisabled(focusedDate)) {
-            callbacks.onSelectDate(focusedDate);
-          }
-          break;
-        }
-        case 'Escape': {
-          // Close the dialog
-          callbacks.onClose();
-          break;
-        }
+    // Extract date from data-date attribute
+    const dateAttr = element.getAttribute('data-date');
+    if (dateAttr) {
+      return calendarService.parseDate(dateAttr);
+    }
+    
+    // If no date attribute, try to extract from the cell's text content
+    const day = parseInt(element.textContent?.trim() || '0', 10);
+    if (isNaN(day) || day <= 0) {
+      return null;
+    }
+    
+    // Get current view month/year
+    const monthYearElement = document.querySelector('.date-picker-header-title');
+    if (!monthYearElement) {
+      return null;
+    }
+    
+    const monthYearText = monthYearElement.textContent || '';
+    const today = new Date();
+    
+    // This is an approximation - actual parsing would depend on locale formatting
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    
+    let month = today.getMonth();
+    let year = today.getFullYear();
+    
+    // Try to extract month and year from the header
+    monthNames.forEach((name, index) => {
+      if (monthYearText.includes(name)) {
+        month = index;
       }
     });
+    
+    // Try to extract the year
+    const yearMatch = monthYearText.match(/\d{4}/);
+    if (yearMatch) {
+      year = parseInt(yearMatch[0], 10);
+    }
+    
+    return new Date(year, month, day);
+  }
+  
+  /**
+   * Focus a specific date cell in the calendar
+   */
+  private focusDateCell(dialog: HTMLElement, date: Date): void {
+    // Format the date to match the data-date attribute format (YYYY-MM-DD)
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1; // JavaScript months are 0-indexed
+    const day = date.getDate();
+    
+    const dateString = [
+      year,
+      String(month).padStart(2, '0'),
+      String(day).padStart(2, '0')
+    ].join('-');
+    
+    // Try to find the cell by data-date attribute first
+    let cell = dialog.querySelector(`.date-picker-cell[data-date="${dateString}"]`) as HTMLElement;
+    
+    if (!cell) {
+      // If not found by data-date, try to find by day number within the current month view
+      const cells = Array.from(dialog.querySelectorAll('.date-picker-cell:not(.weekday)'));
+      
+      // Find the cell with matching day number
+      cell = cells.find(el => {
+        const dayText = el.textContent?.trim();
+        const isPrevMonth = el.classList.contains('prev-month');
+        const isNextMonth = el.classList.contains('next-month');
+        return dayText === String(day) && !isPrevMonth && !isNextMonth;
+      }) as HTMLElement;
+    }
+    
+    if (cell) {
+      // Update tabindex for all date cells
+      const allDateCells = dialog.querySelectorAll('.date-picker-cell:not(.weekday)');
+      allDateCells.forEach(dateCell => dateCell.setAttribute('tabindex', '-1'));
+      
+      // Make this cell focusable
+      cell.setAttribute('tabindex', '0');
+      
+      // Focus the cell
+      cell.focus();
+      
+      // Ensure it's visible (scroll into view if needed)
+      cell.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
+  
+  /**
+   * Handle keyboard navigation in month view
+   */
+  private handleMonthViewKeyDown(
+    e: KeyboardEvent, 
+    focusedElement: HTMLElement, 
+    dialog: HTMLElement,
+    callbacks: any
+  ): void {
+    // Skip if focus is not on a month cell
+    if (!focusedElement || !focusedElement.classList.contains('month-cell')) {
+      return;
+    }
+
+    // Get the current month index from the focused element
+    const monthIndex = parseInt(focusedElement.getAttribute('data-month-index') || '0', 10);
+    
+    // Calculate row and column in a 4x3 grid (0-based)
+    const row = Math.floor(monthIndex / 3);
+    const col = monthIndex % 3;
+    
+    let newRow = row;
+    let newCol = col;
+    let shouldSelect = false;
+    
+    switch (e.key) {
+      case 'ArrowLeft':
+        e.preventDefault();
+        newCol = Math.max(0, col - 1);
+        break;
+        
+      case 'ArrowRight':
+        e.preventDefault();
+        newCol = Math.min(2, col + 1);
+        break;
+        
+      case 'ArrowUp':
+        e.preventDefault();
+        newRow = Math.max(0, row - 1);
+        break;
+        
+      case 'ArrowDown':
+        e.preventDefault();
+        newRow = Math.min(3, row + 1);
+        break;
+        
+      case 'Home':
+        e.preventDefault();
+        newRow = 0;
+        newCol = 0;
+        break;
+        
+      case 'End':
+        e.preventDefault();
+        newRow = 3;
+        newCol = 2;
+        break;
+        
+      case 'PageUp':
+        // Go to previous year
+        e.preventDefault();
+        if (callbacks.onPrevMonth) {
+          callbacks.onPrevMonth(); // This will navigate to the previous year in month view
+          
+          // Focus the same month in the previous year
+          setTimeout(() => {
+            this.focusMonthCell(dialog, monthIndex);
+          }, 50);
+        }
+        return;
+        
+      case 'PageDown':
+        // Go to next year
+        e.preventDefault();
+        if (callbacks.onNextMonth) {
+          callbacks.onNextMonth(); // This will navigate to the next year in month view
+          
+          // Focus the same month in the next year
+          setTimeout(() => {
+            this.focusMonthCell(dialog, monthIndex);
+          }, 50);
+        }
+        return;
+        
+      case 'Enter':
+      case ' ': // Space
+        e.preventDefault();
+        shouldSelect = true;
+        break;
+    }
+    
+    // Calculate the new month index based on row and column
+    const newMonthIndex = newRow * 3 + newCol;
+    
+    // Only proceed if we actually moved
+    if (newMonthIndex !== monthIndex || shouldSelect) {
+      // Find and focus the month cell
+      this.focusMonthCell(dialog, newMonthIndex);
+      
+      // If should select, trigger the select callback
+      if (shouldSelect && callbacks.onSelectMonth) {
+        callbacks.onSelectMonth(newMonthIndex);
+      }
+    }
+  }
+
+  /**
+   * Focus a specific month cell in the months view
+   */
+  private focusMonthCell(dialog: HTMLElement, monthIndex: number): void {
+    // First make all month cells non-focusable
+    const allMonthCells = dialog.querySelectorAll('.month-cell');
+    allMonthCells.forEach(cell => {
+      cell.setAttribute('tabindex', '-1');
+    });
+    
+    // Find the cell for the target month
+    const monthCell = dialog.querySelector(`.month-cell[data-month-index="${monthIndex}"]`) as HTMLElement;
+    
+    if (monthCell) {
+      // Make it focusable
+      monthCell.setAttribute('tabindex', '0');
+      
+      // Focus it
+      monthCell.focus();
+    }
+  }
+  
+  /**
+   * Handle keyboard navigation in year view
+   */
+  private handleYearViewKeyDown(
+    e: KeyboardEvent, 
+    focusedElement: HTMLElement, 
+    dialog: HTMLElement,
+    callbacks: any
+  ): void {
+    // Skip if focus is not on a year cell
+    if (!focusedElement || !focusedElement.classList.contains('year-cell')) {
+      return;
+    }
+
+    // Get the current year from the focused element
+    const year = parseInt(focusedElement.getAttribute('data-year') || '0', 10);
+    
+    // Find all year cells to determine the grid structure
+    const yearCells = Array.from(dialog.querySelectorAll('.year-cell'));
+    const yearsPerRow = 4; // Typical layout is 4 years per row (4x4 grid)
+    
+    // Find the index of the current year in the grid
+    const yearIndex = yearCells.findIndex(cell => 
+      parseInt(cell.getAttribute('data-year') || '0', 10) === year
+    );
+    
+    if (yearIndex === -1) return; // Year not found in the grid
+    
+    // Calculate row and column (0-based)
+    const row = Math.floor(yearIndex / yearsPerRow);
+    const col = yearIndex % yearsPerRow;
+    
+    let newRow = row;
+    let newCol = col;
+    let shouldSelect = false;
+    
+    switch (e.key) {
+      case 'ArrowLeft':
+        e.preventDefault();
+        newCol = Math.max(0, col - 1);
+        break;
+        
+      case 'ArrowRight':
+        e.preventDefault();
+        newCol = Math.min(yearsPerRow - 1, col + 1);
+        break;
+        
+      case 'ArrowUp':
+        e.preventDefault();
+        newRow = Math.max(0, row - 1);
+        break;
+        
+      case 'ArrowDown':
+        e.preventDefault();
+        newRow = Math.min(3, row + 1); // Assuming 4 rows (0-3)
+        break;
+        
+      case 'Home':
+        e.preventDefault();
+        if (e.ctrlKey) {
+          // First year in the grid
+          newRow = 0;
+          newCol = 0;
+        } else {
+          // First year in the row
+          newCol = 0;
+        }
+        break;
+        
+      case 'End':
+        e.preventDefault();
+        if (e.ctrlKey) {
+          // Last year in the grid
+          newRow = 3; // Assuming 4 rows (0-3)
+          newCol = yearsPerRow - 1;
+        } else {
+          // Last year in the row
+          newCol = yearsPerRow - 1;
+        }
+        break;
+        
+      case 'PageUp':
+        // Go to previous decade
+        e.preventDefault();
+        if (callbacks.onPrevMonth) {
+          callbacks.onPrevMonth(); // This will navigate to the previous decade in year view
+          
+          // Try to focus the same relative position in the new decade
+          setTimeout(() => {
+            this.focusYearCell(dialog, year - 12);
+          }, 50);
+        }
+        return;
+        
+      case 'PageDown':
+        // Go to next decade
+        e.preventDefault();
+        if (callbacks.onNextMonth) {
+          callbacks.onNextMonth(); // This will navigate to the next decade in year view
+          
+          // Try to focus the same relative position in the new decade
+          setTimeout(() => {
+            this.focusYearCell(dialog, year + 12);
+          }, 50);
+        }
+        return;
+        
+      case 'Enter':
+      case ' ': // Space
+        e.preventDefault();
+        shouldSelect = true;
+        break;
+    }
+    
+    // Calculate the new index based on row and column
+    const newYearIndex = newRow * yearsPerRow + newCol;
+    
+    // Only proceed if the index is within bounds and we actually moved
+    if (newYearIndex !== yearIndex && newYearIndex >= 0 && newYearIndex < yearCells.length) {
+      // Get the year from the cell at the new index
+      const newYear = parseInt(yearCells[newYearIndex].getAttribute('data-year') || '0', 10);
+      
+      // Find and focus the year cell
+      this.focusYearCell(dialog, newYear);
+      
+      // If should select, trigger the select callback
+      if (shouldSelect && callbacks.onSelectYear) {
+        callbacks.onSelectYear(newYear);
+      }
+    } else if (shouldSelect && callbacks.onSelectYear) {
+      // If selection was triggered without movement
+      callbacks.onSelectYear(year);
+    }
+  }
+
+  /**
+   * Focus a specific year cell in the years view
+   */
+  private focusYearCell(dialog: HTMLElement, year: number): void {
+    // First make all year cells non-focusable
+    const allYearCells = dialog.querySelectorAll('.year-cell');
+    allYearCells.forEach(cell => {
+      cell.setAttribute('tabindex', '-1');
+    });
+    
+    // Find the cell for the target year
+    const yearCell = dialog.querySelector(`.year-cell[data-year="${year}"]`) as HTMLElement;
+    
+    if (yearCell) {
+      // Make it focusable
+      yearCell.setAttribute('tabindex', '0');
+      
+      // Focus it
+      yearCell.focus();
+    } else {
+      // If the exact year is not found, try to find the closest year
+      const availableYears = Array.from(allYearCells).map(
+        cell => parseInt(cell.getAttribute('data-year') || '0', 10)
+      );
+      
+      if (availableYears.length > 0) {
+        // Find the closest year to the target
+        const closestYear = availableYears.reduce((prev, curr) => {
+          return (Math.abs(curr - year) < Math.abs(prev - year)) ? curr : prev;
+        });
+        
+        const closestYearCell = dialog.querySelector(`.year-cell[data-year="${closestYear}"]`) as HTMLElement;
+        if (closestYearCell) {
+          closestYearCell.setAttribute('tabindex', '0');
+          closestYearCell.focus();
+        }
+      }
+    }
   }
   
   /**

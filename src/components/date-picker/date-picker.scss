@@ -382,6 +382,104 @@
   .date-picker-calendar {
     padding: 0.5rem;
 
+    /* Improved styles for the table structure */
+    .date-picker-table {
+      width: 100%;
+      border-collapse: collapse; /* Changed from separate to collapse */
+      table-layout: fixed;
+      
+      thead tr {
+        height: 2rem;
+        border-bottom: 2px solid transparent;
+      }
+      
+      th.date-picker-cell.weekday {
+        font-weight: bold;
+        color: var(--date-picker-text-color);
+        cursor: default;
+        padding-bottom: 0.5rem;
+        height: auto;
+        text-align: center;
+        vertical-align: middle;
+      }
+      
+      tbody tr {
+        height: var(--date-picker-cell-size);
+      }
+      
+      /* Fix cell spacing */
+      td.date-picker-cell {
+        padding: 1px;
+        vertical-align: middle;
+        text-align: center;
+        height: var(--date-picker-cell-size);
+        
+        .date-cell-content {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+          border-radius: 0.25rem;
+          transition: all 0.15s ease;
+        }
+        
+        /* Apply styles directly to cells for selected state */
+        &.selected {
+          .date-cell-content {
+            background-color: var(--date-picker-selected-bg-color);
+            color: var(--date-picker-selected-text-color);
+            font-weight: bold;
+            position: relative;
+            
+            &::after {
+              content: '';
+              position: absolute;
+              bottom: 0.25rem;
+              left: 50%;
+              width: 0.35rem;
+              height: 0.35rem;
+              border-radius: 50%;
+              background-color: var(--date-picker-selected-text-color);
+              transform: translateX(-50%);
+            }
+          }
+        }
+        
+        /* Apply styles directly to cells for today state */
+        &.today:not(.selected) {
+          .date-cell-content {
+            background-color: var(--date-picker-today-bg-color);
+            font-weight: bold;
+            border: 1px solid var(--date-picker-border-color);
+          }
+        }
+        
+        /* Apply styles to range related classes */
+        &.in-range .date-cell-content {
+          background-color: var(--date-picker-range-bg-color);
+          border-radius: 0;
+        }
+        
+        &.range-start .date-cell-content {
+          border-top-right-radius: 0;
+          border-bottom-right-radius: 0;
+          background-color: var(--date-picker-selected-bg-color);
+          color: var(--date-picker-selected-text-color);
+          font-weight: bold;
+        }
+        
+        &.range-end .date-cell-content {
+          border-top-left-radius: 0;
+          border-bottom-left-radius: 0;
+          background-color: var(--date-picker-selected-bg-color);
+          color: var(--date-picker-selected-text-color);
+          font-weight: bold;
+        }
+      }
+    }
+
     .date-picker-row.date-picker-weekdays {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
@@ -400,12 +498,22 @@
       align-items: center;
       justify-content: center;
       height: var(--date-picker-cell-size);
+      width: 100%;
       font-size: 0.875rem;
       border-radius: 0.25rem;
       cursor: pointer;
       transition: all 0.15s ease;
       color: var(--date-picker-text-color);
-      cursor: pointer;
+      
+      /* Center the content vertically and horizontally */
+      .date-cell-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
       
       &:hover:not(.weekday):not(.disabled):not(.prev-month):not(.next-month):not(.selected) {
         background-color: var(--date-picker-hover-bg-color);

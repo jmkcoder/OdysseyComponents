@@ -279,69 +279,8 @@ export class DatePickerServiceManager {
   setupEvents(): void {
     if (!this._container) return;
     
-    const dialog = this._uiUpdaterService.getDialog(this._container);
-    if (dialog) {
-      // Keyboard navigation in dialog
-      dialog.addEventListener('keydown', this.handleKeyDown.bind(this));
-    }
-    
     // Add document click listener for outside clicks
     document.addEventListener('click', this._documentClickHandler);
-  }
-  
-  /**
-   * Handle keyboard navigation
-   */
-  private handleKeyDown(e: KeyboardEvent): void {
-    if (!this._isOpen) return;
-    
-    const dialog = this._container ? this._uiUpdaterService.getDialog(this._container) : null;
-    if (!dialog) return;
-    
-    // Only handle keyboard navigation in day view
-    if (this._currentViewMode === CalendarViewMode.DAYS) {
-      const { newDate, action, tabDirection } = this._keyboardService.handleKeyDown(
-        e,
-        this._focusedDate,
-        this._isOpen,
-        this._calendarService.getFirstDayOfWeek(this._focusedDate).getDay()
-      );
-      
-      if (newDate) {
-        this.focusDate(newDate);
-      }
-      
-      if (action === 'select') {
-        this.selectDate(this._focusedDate);
-      } else if (action === 'close') {
-        this.closeCalendar();
-      } else if (tabDirection && tabDirection !== 'none') {
-        // Handle focus trap
-        const wasPrevented = this._keyboardService.handleFocusTrap(
-          dialog,
-          document.activeElement,
-          tabDirection
-        );
-        
-        if (wasPrevented) {
-          e.preventDefault();
-        }
-      }
-    } else {
-      // Handle Escape key to return to day view or close
-      if (e.key === 'Escape') {
-        if (this._currentViewMode === CalendarViewMode.YEARS) {
-          this.setViewMode(CalendarViewMode.MONTHS);
-          e.preventDefault();
-        } else if (this._currentViewMode === CalendarViewMode.MONTHS) {
-          this.setViewMode(CalendarViewMode.DAYS);
-          e.preventDefault();
-        } else {
-          this.closeCalendar();
-          e.preventDefault();
-        }
-      }
-    }
   }
   
   /**

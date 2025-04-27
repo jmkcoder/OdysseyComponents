@@ -27,13 +27,13 @@ export class HeaderView {
     // If in years view, create special centered header for year range
     if (this.config.currentView === 'years') {
       const headerContent = `
-        <button class="date-picker-nav-btn prev-month" aria-label="Previous">
+        <button class="date-picker-nav-btn prev-month" aria-label="Previous year range" tabindex="0">
           <span class="material-icons">chevron_left</span>
         </button>
         <div class="date-picker-selectors year-range-centered">
-          <button class="date-picker-year-selector">${this.getYearText()}</button>
+          <button class="date-picker-year-selector" tabindex="0">${this.getYearText()}</button>
         </div>
-        <button class="date-picker-nav-btn next-month" aria-label="Next">
+        <button class="date-picker-nav-btn next-month" aria-label="Next year range" tabindex="0">
           <span class="material-icons">chevron_right</span>
         </button>
       `;
@@ -58,14 +58,28 @@ export class HeaderView {
     } else {
       // Standard header for calendar and month views
       const headerContent = `
-        <button class="date-picker-nav-btn prev-month" aria-label="Previous">
+        <button class="date-picker-nav-btn prev-month" 
+                aria-label="Previous ${this.config.currentView === 'calendar' ? 'month' : 'year'}" 
+                tabindex="0">
           <span class="material-icons">chevron_left</span>
         </button>
         <div class="date-picker-selectors">
-          <button class="date-picker-month-selector">${this.getMonthText()}</button>
-          <button class="date-picker-year-selector">${this.getYearText()}</button>
+          <button class="date-picker-month-selector" 
+                  aria-label="Select month" 
+                  tabindex="0"
+                  ${this.config.currentView === 'months' ? 'aria-expanded="true"' : ''}>
+            ${this.getMonthText()}
+          </button>
+          <button class="date-picker-year-selector" 
+                  aria-label="Select year" 
+                  tabindex="0"
+                  ${this.config.currentView === 'years' ? 'aria-expanded="true"' : ''}>
+            ${this.getYearText()}
+          </button>
         </div>
-        <button class="date-picker-nav-btn next-month" aria-label="Next">
+        <button class="date-picker-nav-btn next-month" 
+                aria-label="Next ${this.config.currentView === 'calendar' ? 'month' : 'year'}" 
+                tabindex="0">
           <span class="material-icons">chevron_right</span>
         </button>
       `;
@@ -100,24 +114,58 @@ export class HeaderView {
   }
   
   private attachEventListeners(container: HTMLElement): void {
-    container.querySelector('.prev-month')?.addEventListener('click', (e) => {
+    const prevButton = container.querySelector('.prev-month');
+    const nextButton = container.querySelector('.next-month');
+    const monthSelector = container.querySelector('.date-picker-month-selector');
+    const yearSelector = container.querySelector('.date-picker-year-selector');
+    
+    prevButton?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.callbacks.onPrevClick();
     });
     
-    container.querySelector('.next-month')?.addEventListener('click', (e) => {
+    nextButton?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.callbacks.onNextClick();
     });
     
-    container.querySelector('.date-picker-month-selector')?.addEventListener('click', (e) => {
+    monthSelector?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.callbacks.onMonthSelectorClick();
     });
     
-    container.querySelector('.date-picker-year-selector')?.addEventListener('click', (e) => {
+    yearSelector?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.callbacks.onYearSelectorClick();
+    });
+
+    // Add keyboard event listeners for accessibility
+    prevButton?.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        this.callbacks.onPrevClick();
+      }
+    });
+    
+    nextButton?.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        this.callbacks.onNextClick();
+      }
+    });
+    
+    monthSelector?.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        this.callbacks.onMonthSelectorClick();
+      }
+    });
+    
+    yearSelector?.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        this.callbacks.onYearSelectorClick();
+      }
     });
   }
 }

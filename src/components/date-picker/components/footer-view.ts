@@ -29,9 +29,9 @@ export class FooterView {
     const footerContent = `
       <span class="date-picker-selected-date">${this.getSelectedDateText()}</span>
       <div class="date-picker-buttons">
-        <button class="date-picker-btn today-btn">Today</button>
-        <button class="date-picker-btn clear-btn">Clear</button>
-        <button class="date-picker-btn close-btn primary">Close</button>
+        <button class="date-picker-btn today-btn" tabindex="0" aria-label="Today">Today</button>
+        <button class="date-picker-btn clear-btn" tabindex="0" aria-label="Clear selection">Clear</button>
+        <button class="date-picker-btn close-btn primary" tabindex="0" aria-label="Close date picker">Close</button>
       </div>
     `;
     
@@ -60,19 +60,46 @@ export class FooterView {
   }
   
   private attachEventListeners(container: HTMLElement): void {
-    container.querySelector('.today-btn')?.addEventListener('click', (e) => {
+    const todayBtn = container.querySelector('.today-btn') as HTMLElement;
+    const clearBtn = container.querySelector('.clear-btn') as HTMLElement;
+    const closeBtn = container.querySelector('.close-btn') as HTMLElement;
+    
+    // Mouse event listeners
+    todayBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.callbacks.onTodayClick();
     });
     
-    container.querySelector('.clear-btn')?.addEventListener('click', (e) => {
+    clearBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.callbacks.onClearClick();
     });
     
-    container.querySelector('.close-btn')?.addEventListener('click', (e) => {
+    closeBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.callbacks.onCloseClick();
+    });
+    
+    // Keyboard event listeners
+    todayBtn?.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        this.callbacks.onTodayClick();
+      }
+    });
+    
+    clearBtn?.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        this.callbacks.onClearClick();
+      }
+    });
+    
+    closeBtn?.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        this.callbacks.onCloseClick();
+      }
     });
   }
 }

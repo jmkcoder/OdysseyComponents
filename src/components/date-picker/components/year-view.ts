@@ -19,10 +19,10 @@ export class YearView {
     const currentYear = this.config.viewDate.getFullYear();
     const startYear = currentYear - (currentYear % 12) - 3;
     
-    let yearsContent = '<div class="date-picker-years-grid">';
+    let yearsContent = '<div class="date-picker-years-grid" role="grid" aria-label="Year selection grid">';
     
     for (let i = 0; i < 5; i++) {
-      yearsContent += '<div class="date-picker-row">';
+      yearsContent += '<div class="date-picker-row" role="row">';
       
       for (let j = 0; j < 3; j++) {
         const yearValue = startYear + i * 3 + j;
@@ -33,8 +33,16 @@ export class YearView {
         if (isSelected) cellClass += ' selected';
         if (isCurrent) cellClass += ' current';
         
+        // Add tabindex="0" only to the selected year for keyboard navigation
+        const tabIndex = isSelected ? '0' : '-1';
+        
         yearsContent += `
-          <div class="${cellClass}" tabindex="0" data-year="${yearValue}">
+          <div class="${cellClass}" 
+               role="gridcell" 
+               tabindex="${tabIndex}" 
+               data-year="${yearValue}"
+               aria-selected="${isSelected ? 'true' : 'false'}"
+               aria-label="Year ${yearValue}">
             ${yearValue}
           </div>
         `;

@@ -21,14 +21,14 @@ export class MonthView {
   
   public render(container: HTMLElement): void {
     // Create months grid
-    let monthsContent = '<div class="date-picker-months-grid">';
+    let monthsContent = '<div class="date-picker-months-grid" role="grid" aria-label="Month selection grid">';
     const monthNames = this.getMonthNames('short');
     const currentYear = this.config.viewDate.getFullYear();
     const currentMonth = new Date().getFullYear() === currentYear ? new Date().getMonth() : -1;
     const selectedMonth = this.config.viewDate.getMonth();
     
     for (let i = 0; i < 4; i++) {
-      monthsContent += '<div class="date-picker-row">';
+      monthsContent += '<div class="date-picker-row" role="row">';
       
       for (let j = 0; j < 3; j++) {
         const monthIndex = i * 3 + j;
@@ -39,8 +39,17 @@ export class MonthView {
         if (isSelected) cellClass += ' selected';
         if (isCurrent) cellClass += ' current';
         
+        // Add tabindex="0" only to the selected month for keyboard navigation
+        const tabIndex = isSelected ? '0' : '-1';
+        
         monthsContent += `
-          <div class="${cellClass}" tabindex="0" data-month="${monthIndex}">
+          <div class="${cellClass}" 
+               role="gridcell" 
+               tabindex="${tabIndex}" 
+               data-month="${monthIndex}" 
+               data-month-index="${monthIndex}"
+               aria-selected="${isSelected ? 'true' : 'false'}"
+               aria-label="${monthNames[monthIndex]} ${currentYear}">
             ${monthNames[monthIndex]}
           </div>
         `;
