@@ -1521,7 +1521,25 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
     this._eventBatch.add('toggle-only');
     
     const wasOpen = this.stateService.isOpen;
+    
+    // If we're opening the calendar, reset to calendar view and use current date if no date selected
+    if (!wasOpen) {
+      // Always reset to calendar (day) view when opening
+      this.stateService.currentView = 'calendar';
+      
+      // If no date is selected, use current date for viewing
+      if ((!this.stateService.selectedDate && !this.stateService.isRangeMode) || 
+          (this.stateService.isRangeMode && !this.stateService.rangeStart)) {
+        const today = new Date();
+        this.stateService.viewDate = today;
+        console.log('Setting view to today:', today);
+      }
+    }
+    
+    // Toggle the open state
     this.stateService.isOpen = !wasOpen;
+    
+    console.log('Calendar toggled. IsOpen:', !wasOpen, 'View mode:', this.stateService.currentView);
   }
 }
 

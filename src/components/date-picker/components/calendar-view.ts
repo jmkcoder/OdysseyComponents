@@ -229,6 +229,17 @@ export class CalendarView {
         if (cell.classList.contains('disabled')) {
           return;
         }
+        
+        // Get the date from the data-date attribute and call the callback
+        const dateValue = cell.getAttribute('data-date');
+        if (dateValue) {
+          const date = this.config.formatter.parse(dateValue);
+          if (!isNaN(date.getTime())) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.callbacks.onDateSelect(date);
+          }
+        }
       });
     });
   }
