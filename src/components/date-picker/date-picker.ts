@@ -1527,9 +1527,20 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
       // Always reset to calendar (day) view when opening
       this.stateService.currentView = 'calendar';
       
-      // If no date is selected, use current date for viewing
-      if ((!this.stateService.selectedDate && !this.stateService.isRangeMode) || 
-          (this.stateService.isRangeMode && !this.stateService.rangeStart)) {
+      // Set view date based on the following priority:
+      // 1. Selected date (if exists)
+      // 2. Range start date (if in range mode)
+      // 3. Current date (if nothing is selected)
+      if (this.stateService.selectedDate) {
+        // Use the selected date for the view
+        this.stateService.viewDate = new Date(this.stateService.selectedDate);
+        console.log('Setting view to selected date:', this.stateService.viewDate);
+      } else if (this.stateService.isRangeMode && this.stateService.rangeStart) {
+        // In range mode, use the range start date for the view
+        this.stateService.viewDate = new Date(this.stateService.rangeStart);
+        console.log('Setting view to range start date:', this.stateService.viewDate);
+      } else {
+        // If no date is selected, use current date for viewing
         const today = new Date();
         this.stateService.viewDate = today;
         console.log('Setting view to today:', today);
