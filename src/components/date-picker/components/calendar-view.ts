@@ -123,19 +123,19 @@ export class CalendarView {
         let tabIndex = "-1";
         
         // Make selected date focusable
-        if (isSelected && !isDisabled && !isOtherMonth) {
+        if (isSelected && !isDisabled) {
           tabIndex = "0";
           isSelectedOrTodayCellFound = true;
         }
         
         // If no selected date, make today's date focusable
-        if (!isSelectedOrTodayCellFound && isToday && !isDisabled && !isOtherMonth) {
+        if (!isSelectedOrTodayCellFound && isToday && !isDisabled) {
           tabIndex = "0";
           isSelectedOrTodayCellFound = true;
         }
         
         // If neither selected nor today's date, make the first available date focusable
-        if (!isSelectedOrTodayCellFound && !isDisabled && !isOtherMonth && !initialFocusableCell) {
+        if (!isSelectedOrTodayCellFound && !isDisabled && !initialFocusableCell) {
           tabIndex = "0";
           initialFocusableCell = true;
         }
@@ -221,25 +221,14 @@ export class CalendarView {
   }
   
   private attachEventListeners(container: HTMLElement): void {
-    // Use the same specific selector as in handleDateCellKeyDown to ensure consistency
-    const dateCells = container.querySelectorAll('td.date-picker-cell');
-    const table = container.querySelector('.date-picker-table');
-    
+    // Add click handlers to date cells
+    const dateCells = container.querySelectorAll('.date-picker-cell:not(.weekday)');
     dateCells.forEach(cell => {
-      // Click event for mouse navigation
       cell.addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent event from closing calendar
-        
-        const dateStr = (cell as HTMLElement).dataset.date;
-        if (!dateStr || (cell as HTMLElement).classList.contains('disabled')) {
-          return; // Skip disabled dates
+        // Don't handle clicks on disabled dates
+        if (cell.classList.contains('disabled')) {
+          return;
         }
-        
-        const clickedDate = this.config.formatter.parse(dateStr);
-        this.callbacks.onDateSelect(clickedDate);
-        
-        // After selection, update the tabindex values to focus the selected cell
-        this.updateFocus(container, cell as HTMLElement);
       });
     });
   }

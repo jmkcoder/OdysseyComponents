@@ -276,79 +276,7 @@ export class KeyboardNavigationService {
       }
       
       // Handle calendar grid navigation for date cells
-      let focusedDate: Date | null = this.getFocusedDate(focusedElement, calendarService);
-      
-      // Use the handleKeyDown method to determine what to do
-      const { newDate, action } = this.handleKeyDown(
-        e,
-        focusedDate || new Date(),
-        true, // calendar is open
-        firstDayOfWeek
-      );
-      
-      // Handle the result from handleKeyDown
-      if (action === 'close') {
-        callbacks.onClose();
-        return;
-      }
-      
-      if (newDate) {
-        // Get the current view month/year info from the header or focused date
-        const monthYearElement = dialog.querySelector('.date-picker-header-title');
-        let viewYear = focusedDate ? focusedDate.getFullYear() : new Date().getFullYear();
-        let viewMonth = focusedDate ? focusedDate.getMonth() : new Date().getMonth();
-        
-        if (monthYearElement) {
-          const monthYearText = monthYearElement.textContent || '';
-          
-          // Extract month and year from the header if possible
-          const monthNames = [
-            'January', 'February', 'March', 'April', 'May', 'June',
-            'July', 'August', 'September', 'October', 'November', 'December'
-          ];
-          
-          monthNames.forEach((name, index) => {
-            if (monthYearText.includes(name)) {
-              viewMonth = index;
-            }
-          });
-          
-          const yearMatch = monthYearText.match(/\d{4}/);
-          if (yearMatch) {
-            viewYear = parseInt(yearMatch[0], 10);
-          }
-        }
-        
-        // Check if the new date is in the current month view
-        const isInCurrentMonth = newDate.getMonth() === viewMonth && 
-                                newDate.getFullYear() === viewYear;
-        
-        if (!isInCurrentMonth) {
-          // If navigating to a different month, we need to update the view
-          const viewDate = new Date(newDate);
-          callbacks.onDateChange(viewDate);
-          
-          // After the view updates, we need to focus the correct day
-          setTimeout(() => {
-            this.focusDateCell(dialog, newDate);
-          }, 50);
-        } else {
-          // If within the current month, directly focus the date cell
-          this.focusDateCell(dialog, newDate);
-          
-          if (action === 'select') {
-            // Only select if the date is not disabled
-            if (!calendarService.isDateDisabled(newDate)) {
-              callbacks.onSelectDate(newDate);
-            }
-          }
-        }
-      } else if (action === 'select' && focusedElement && focusedElement.classList.contains('date-picker-cell')) {
-        // Handle selection on the focused cell
-        if (focusedDate) {
-          callbacks.onSelectDate(focusedDate);
-        }
-      }
+      this.handleDayViewKeyDown(e, focusedElement, dialog, callbacks, calendarService);
     });
   }
 
@@ -503,49 +431,175 @@ export class KeyboardNavigationService {
    * Focus a specific date cell in the calendar
    */
   private focusDateCell(dialog: HTMLElement, date: Date): void {
-    // Format the date to match the data-date attribute format (YYYY-MM-DD)
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1; // JavaScript months are 0-indexed
-    const day = date.getDate();
+    const formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+    const dateCell = dialog.querySelector(`[data-date="${formattedDate}"]`) as HTMLElement;
     
-    const dateString = [
-      year,
-      String(month).padStart(2, '0'),
-      String(day).padStart(2, '0')
-    ].join('-');
-    
-    // Try to find the cell by data-date attribute first
-    let cell = dialog.querySelector(`.date-picker-cell[data-date="${dateString}"]`) as HTMLElement;
-    
-    if (!cell) {
-      // If not found by data-date, try to find by day number within the current month view
-      const cells = Array.from(dialog.querySelectorAll('.date-picker-cell:not(.weekday)'));
-      
-      // Find the cell with matching day number
-      cell = cells.find(el => {
-        const dayText = el.textContent?.trim();
-        const isPrevMonth = el.classList.contains('prev-month');
-        const isNextMonth = el.classList.contains('next-month');
-        return dayText === String(day) && !isPrevMonth && !isNextMonth;
-      }) as HTMLElement;
-    }
-    
-    if (cell) {
-      // Update tabindex for all date cells
+    if (dateCell) {
+      // Update tabindex to make this cell the focusable one
       const allDateCells = dialog.querySelectorAll('.date-picker-cell:not(.weekday)');
-      allDateCells.forEach(dateCell => dateCell.setAttribute('tabindex', '-1'));
+      allDateCells.forEach(cell => {
+        cell.setAttribute('tabindex', '-1');
+      });
       
-      // Make this cell focusable
-      cell.setAttribute('tabindex', '0');
+      dateCell.setAttribute('tabindex', '0');
+      dateCell.focus();
+    } else {
+      // If we couldn't find the exact cell, try to find cells from the same month
+      const year = date.getFullYear();
+      const month = date.getMonth();
       
-      // Focus the cell
-      cell.focus();
-      
-      // Ensure it's visible (scroll into view if needed)
-      cell.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      // Look for the first date cell from this month
+      const cells = dialog.querySelectorAll('.date-picker-cell:not(.weekday):not(.prev-month):not(.next-month)');
+      if (cells.length > 0) {
+        const firstCell = cells[0] as HTMLElement;
+        firstCell.setAttribute('tabindex', '0');
+        firstCell.focus();
+      }
     }
   }
-  
+
+  /**
+   * Calculate a new date based on keyboard navigation
+   */
+  private calculateNewDateFromKeyboard(
+    currentDate: Date,
+    key: string,
+    includePrevNextMonthDays: boolean = true
+  ): Date {
+    const newDate = new Date(currentDate);
+    
+    switch (key) {
+      case 'ArrowLeft':
+        newDate.setDate(newDate.getDate() - 1);
+        break;
+      case 'ArrowRight':
+        newDate.setDate(newDate.getDate() + 1);
+        break;
+      case 'ArrowUp':
+        newDate.setDate(newDate.getDate() - 7);
+        break;
+      case 'ArrowDown':
+        newDate.setDate(newDate.getDate() + 7);
+        break;
+      case 'Home':
+        // Go to first day of current week
+        const firstDayOfWeek = new Date(newDate);
+        const day = newDate.getDay();
+        firstDayOfWeek.setDate(newDate.getDate() - day);
+        return firstDayOfWeek;
+      case 'End':
+        // Go to last day of current week
+        const lastDayOfWeek = new Date(newDate);
+        const daysToAdd = 6 - newDate.getDay();
+        lastDayOfWeek.setDate(newDate.getDate() + daysToAdd);
+        return lastDayOfWeek;
+      case 'PageUp':
+        // Previous month, same day
+        newDate.setMonth(newDate.getMonth() - 1);
+        break;
+      case 'PageDown':
+        // Next month, same day
+        newDate.setMonth(newDate.getMonth() + 1);
+        break;
+      default:
+        break;
+    }
+    
+    return newDate;
+  }
+
+  /**
+   * Handle keyboard navigation in day view
+   */
+  private handleDayViewKeyDown(
+    e: KeyboardEvent, 
+    focusedElement: HTMLElement, 
+    dialog: HTMLElement,
+    callbacks: any,
+    calendarService: any
+  ): void {
+    // Skip if focus is not on a date cell
+    if (!focusedElement || !focusedElement.classList.contains('date-picker-cell') || 
+        focusedElement.classList.contains('weekday')) {
+      return;
+    }
+
+    // Get the current date from the focused element
+    const dateAttr = focusedElement.getAttribute('data-date');
+    if (!dateAttr) return;
+    
+    const dateParts = dateAttr.split('-').map(part => parseInt(part, 10));
+    const currentDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+    
+    // Handle navigation keys
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 
+         'Home', 'End', 'PageUp', 'PageDown'].includes(e.key)) {
+      e.preventDefault();
+      
+      const newDate = this.calculateNewDateFromKeyboard(currentDate, e.key, true);
+      const action = e.key === 'Enter' || e.key === ' ' ? 'select' : 'focus';
+      
+      // Get the current view month/year info from the header or focused date
+      const monthYearElement = dialog.querySelector('.date-picker-header-title');
+      let viewYear = currentDate ? currentDate.getFullYear() : new Date().getFullYear();
+      let viewMonth = currentDate ? currentDate.getMonth() : new Date().getMonth();
+      
+      if (monthYearElement) {
+        const monthYearText = monthYearElement.textContent || '';
+        
+        // Extract month and year from the header if possible
+        const monthNames = [
+          'January', 'February', 'March', 'April', 'May', 'June',
+          'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+        
+        monthNames.forEach((name, index) => {
+          if (monthYearText.includes(name)) {
+            viewMonth = index;
+          }
+        });
+        
+        const yearMatch = monthYearText.match(/\d{4}/);
+        if (yearMatch) {
+          viewYear = parseInt(yearMatch[0], 10);
+        }
+      }
+      
+      // Check if the new date is in the current month view
+      const isInCurrentMonth = newDate.getMonth() === viewMonth && 
+                              newDate.getFullYear() === viewYear;
+      
+      // Always navigate to the previous or next month if needed
+      if (!isInCurrentMonth) {
+        // Navigating to a different month - update the calendar view to show that month
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
+          if (callbacks.onPrevMonth) {
+            callbacks.onPrevMonth();
+          }
+        } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown') {
+          if (callbacks.onNextMonth) {
+            callbacks.onNextMonth();
+          }
+        }
+        
+        // After the view updates, focus the correct day
+        setTimeout(() => {
+          this.focusDateCell(dialog, newDate);
+        }, 50);
+      } else {
+        // If within the current month, directly focus the date cell
+        this.focusDateCell(dialog, newDate);
+      }
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      
+      // Only select if the date is not disabled
+      if (!focusedElement.classList.contains('disabled')) {
+        callbacks.onSelectDate(currentDate);
+      }
+    }
+  }
+
   /**
    * Handle keyboard navigation in month view
    */
@@ -563,9 +617,13 @@ export class KeyboardNavigationService {
     // Get the current month index from the focused element
     const monthIndex = parseInt(focusedElement.getAttribute('data-month-index') || '0', 10);
     
-    // Calculate row and column in a 4x3 grid (0-based)
-    const row = Math.floor(monthIndex / 3);
-    const col = monthIndex % 3;
+    // Use data attributes for more reliable grid position information
+    const row = parseInt(focusedElement.getAttribute('data-row') || '0', 10);
+    const col = parseInt(focusedElement.getAttribute('data-col') || '0', 10);
+    
+    // Define grid dimensions
+    const rows = 4;
+    const cols = 3;
     
     let newRow = row;
     let newCol = col;
@@ -574,34 +632,66 @@ export class KeyboardNavigationService {
     switch (e.key) {
       case 'ArrowLeft':
         e.preventDefault();
-        newCol = Math.max(0, col - 1);
+        if (col > 0) {
+          newCol = col - 1;
+        } else {
+          // Wrap to end of previous row
+          if (row > 0) {
+            newRow = row - 1;
+            newCol = cols - 1; // Last column in previous row
+          }
+        }
         break;
         
       case 'ArrowRight':
         e.preventDefault();
-        newCol = Math.min(2, col + 1);
+        if (col < cols - 1) {
+          newCol = col + 1;
+        } else {
+          // Wrap to start of next row
+          if (row < rows - 1) {
+            newRow = row + 1;
+            newCol = 0; // First column in next row
+          }
+        }
         break;
         
       case 'ArrowUp':
         e.preventDefault();
-        newRow = Math.max(0, row - 1);
+        if (row > 0) {
+          newRow = row - 1;
+        }
         break;
         
       case 'ArrowDown':
         e.preventDefault();
-        newRow = Math.min(3, row + 1);
+        if (row < rows - 1) {
+          newRow = row + 1;
+        }
         break;
         
       case 'Home':
         e.preventDefault();
-        newRow = 0;
-        newCol = 0;
+        if (e.ctrlKey) {
+          // First month in grid (January)
+          newRow = 0;
+          newCol = 0;
+        } else {
+          // First month in current row
+          newCol = 0;
+        }
         break;
         
       case 'End':
         e.preventDefault();
-        newRow = 3;
-        newCol = 2;
+        if (e.ctrlKey) {
+          // Last month in grid (December)
+          newRow = rows - 1;
+          newCol = cols - 1;
+        } else {
+          // Last month in current row
+          newCol = cols - 1;
+        }
         break;
         
       case 'PageUp':
@@ -635,20 +725,28 @@ export class KeyboardNavigationService {
         e.preventDefault();
         shouldSelect = true;
         break;
+        
+      default:
+        return;
     }
     
-    // Calculate the new month index based on row and column
-    const newMonthIndex = newRow * 3 + newCol;
+    // Find the cell based on data-row and data-col attributes for reliability
+    const newCell = dialog.querySelector(`.month-cell[data-row="${newRow}"][data-col="${newCol}"]`) as HTMLElement;
     
-    // Only proceed if we actually moved
-    if (newMonthIndex !== monthIndex || shouldSelect) {
-      // Find and focus the month cell
+    if (newCell) {
+      // Get the month index from the cell's data attribute
+      const newMonthIndex = parseInt(newCell.getAttribute('data-month-index') || '0', 10);
+      
+      // Focus the cell
       this.focusMonthCell(dialog, newMonthIndex);
       
       // If should select, trigger the select callback
       if (shouldSelect && callbacks.onSelectMonth) {
-        callbacks.onSelectMonth(newMonthIndex);
+        callbacks.onSelectMonth(monthIndex);
       }
+    } else if (shouldSelect && callbacks.onSelectMonth) {
+      // If selection was triggered without movement
+      callbacks.onSelectMonth(monthIndex);
     }
   }
 
@@ -691,20 +789,13 @@ export class KeyboardNavigationService {
     // Get the current year from the focused element
     const year = parseInt(focusedElement.getAttribute('data-year') || '0', 10);
     
-    // Find all year cells to determine the grid structure
-    const yearCells = Array.from(dialog.querySelectorAll('.year-cell'));
-    const yearsPerRow = 4; // Typical layout is 4 years per row (4x4 grid)
+    // Use data attributes for more reliable grid position information
+    const row = parseInt(focusedElement.getAttribute('data-row') || '0', 10);
+    const col = parseInt(focusedElement.getAttribute('data-col') || '0', 10);
     
-    // Find the index of the current year in the grid
-    const yearIndex = yearCells.findIndex(cell => 
-      parseInt(cell.getAttribute('data-year') || '0', 10) === year
-    );
-    
-    if (yearIndex === -1) return; // Year not found in the grid
-    
-    // Calculate row and column (0-based)
-    const row = Math.floor(yearIndex / yearsPerRow);
-    const col = yearIndex % yearsPerRow;
+    // Define correct grid structure - 5 rows x 3 columns
+    const rows = 5; 
+    const cols = 3;
     
     let newRow = row;
     let newCol = col;
@@ -713,32 +804,52 @@ export class KeyboardNavigationService {
     switch (e.key) {
       case 'ArrowLeft':
         e.preventDefault();
-        newCol = Math.max(0, col - 1);
+        if (col > 0) {
+          newCol = col - 1;
+        } else {
+          // Wrap to end of previous row
+          if (row > 0) {
+            newRow = row - 1;
+            newCol = cols - 1; // Last column in previous row
+          }
+        }
         break;
         
       case 'ArrowRight':
         e.preventDefault();
-        newCol = Math.min(yearsPerRow - 1, col + 1);
+        if (col < cols - 1) {
+          newCol = col + 1;
+        } else {
+          // Wrap to start of next row
+          if (row < rows - 1) {
+            newRow = row + 1;
+            newCol = 0; // First column in next row
+          }
+        }
         break;
         
       case 'ArrowUp':
         e.preventDefault();
-        newRow = Math.max(0, row - 1);
+        if (row > 0) {
+          newRow = row - 1;
+        }
         break;
         
       case 'ArrowDown':
         e.preventDefault();
-        newRow = Math.min(3, row + 1); // Assuming 4 rows (0-3)
+        if (row < rows - 1) {
+          newRow = row + 1;
+        }
         break;
         
       case 'Home':
         e.preventDefault();
         if (e.ctrlKey) {
-          // First year in the grid
+          // First year in grid
           newRow = 0;
           newCol = 0;
         } else {
-          // First year in the row
+          // First year in current row
           newCol = 0;
         }
         break;
@@ -746,12 +857,12 @@ export class KeyboardNavigationService {
       case 'End':
         e.preventDefault();
         if (e.ctrlKey) {
-          // Last year in the grid
-          newRow = 3; // Assuming 4 rows (0-3)
-          newCol = yearsPerRow - 1;
+          // Last year in grid
+          newRow = rows - 1;
+          newCol = cols - 1;
         } else {
-          // Last year in the row
-          newCol = yearsPerRow - 1;
+          // Last year in current row
+          newCol = cols - 1;
         }
         break;
         
@@ -763,7 +874,7 @@ export class KeyboardNavigationService {
           
           // Try to focus the same relative position in the new decade
           setTimeout(() => {
-            this.focusYearCell(dialog, year - 12);
+            this.focusYearCell(dialog, year - 15); // Move back 15 years (full grid)
           }, 50);
         }
         return;
@@ -776,7 +887,7 @@ export class KeyboardNavigationService {
           
           // Try to focus the same relative position in the new decade
           setTimeout(() => {
-            this.focusYearCell(dialog, year + 12);
+            this.focusYearCell(dialog, year + 15); // Move forward 15 years (full grid)
           }, 50);
         }
         return;
@@ -786,22 +897,24 @@ export class KeyboardNavigationService {
         e.preventDefault();
         shouldSelect = true;
         break;
+        
+      default:
+        return;
     }
     
-    // Calculate the new index based on row and column
-    const newYearIndex = newRow * yearsPerRow + newCol;
+    // Find and focus the cell based on data-row and data-col attributes for reliability
+    const newCell = dialog.querySelector(`.year-cell[data-row="${newRow}"][data-col="${newCol}"]`) as HTMLElement;
     
-    // Only proceed if the index is within bounds and we actually moved
-    if (newYearIndex !== yearIndex && newYearIndex >= 0 && newYearIndex < yearCells.length) {
-      // Get the year from the cell at the new index
-      const newYear = parseInt(yearCells[newYearIndex].getAttribute('data-year') || '0', 10);
+    if (newCell) {
+      // Get the year from the cell's data attribute
+      const newYear = parseInt(newCell.getAttribute('data-year') || '0', 10);
       
-      // Find and focus the year cell
+      // Focus the cell
       this.focusYearCell(dialog, newYear);
       
       // If should select, trigger the select callback
       if (shouldSelect && callbacks.onSelectYear) {
-        callbacks.onSelectYear(newYear);
+        callbacks.onSelectYear(year);
       }
     } else if (shouldSelect && callbacks.onSelectYear) {
       // If selection was triggered without movement

@@ -21,11 +21,15 @@ export class YearView {
     
     let yearsContent = '<div class="date-picker-years-grid" role="grid" aria-label="Year selection grid">';
     
-    for (let i = 0; i < 5; i++) {
+    // The year view renders a 5x3 grid (15 years)
+    const rows = 5;
+    const cols = 3;
+    
+    for (let i = 0; i < rows; i++) {
       yearsContent += '<div class="date-picker-row" role="row">';
       
-      for (let j = 0; j < 3; j++) {
-        const yearValue = startYear + i * 3 + j;
+      for (let j = 0; j < cols; j++) {
+        const yearValue = startYear + i * cols + j;
         const isSelected = currentYear === yearValue;
         const isCurrent = new Date().getFullYear() === yearValue;
         
@@ -41,6 +45,8 @@ export class YearView {
                role="gridcell" 
                tabindex="${tabIndex}" 
                data-year="${yearValue}"
+               data-row="${i}"
+               data-col="${j}"
                aria-selected="${isSelected ? 'true' : 'false'}"
                aria-label="Year ${yearValue}">
             ${yearValue}
@@ -65,5 +71,19 @@ export class YearView {
         this.callbacks.onYearSelect(yearValue);
       });
     });
+  }
+
+  /**
+   * Update focus management - make only one cell focusable at a time
+   */
+  private updateFocus(container: HTMLElement, focusedCell: HTMLElement): void {
+    // Reset all cells to tabindex="-1" (not in tab order)
+    const allCells = container.querySelectorAll('.year-cell');
+    allCells.forEach(cell => {
+      cell.setAttribute('tabindex', '-1');
+    });
+    
+    // Make the target cell focusable
+    focusedCell.setAttribute('tabindex', '0');
   }
 }

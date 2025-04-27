@@ -27,11 +27,15 @@ export class MonthView {
     const currentMonth = new Date().getFullYear() === currentYear ? new Date().getMonth() : -1;
     const selectedMonth = this.config.viewDate.getMonth();
     
-    for (let i = 0; i < 4; i++) {
+    // Month grid is 4 rows x 3 columns
+    const rows = 4;
+    const cols = 3;
+    
+    for (let i = 0; i < rows; i++) {
       monthsContent += '<div class="date-picker-row" role="row">';
       
-      for (let j = 0; j < 3; j++) {
-        const monthIndex = i * 3 + j;
+      for (let j = 0; j < cols; j++) {
+        const monthIndex = i * cols + j;
         const isSelected = selectedMonth === monthIndex;
         const isCurrent = currentMonth === monthIndex;
         
@@ -48,6 +52,8 @@ export class MonthView {
                tabindex="${tabIndex}" 
                data-month="${monthIndex}" 
                data-month-index="${monthIndex}"
+               data-row="${i}"
+               data-col="${j}"
                aria-selected="${isSelected ? 'true' : 'false'}"
                aria-label="${monthNames[monthIndex]} ${currentYear}">
             ${monthNames[monthIndex]}
