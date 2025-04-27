@@ -16,7 +16,7 @@ describe('StateService', () => {
         return date.toISOString();
       }),
       parse: jest.fn((dateString) => {
-        if (!dateString) return null;
+        if (!dateString) return new Date(NaN); // Return an invalid Date instead of null
         if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
           const [year, month, day] = dateString.split('-').map(Number);
           return new Date(year, month - 1, day);
@@ -24,9 +24,7 @@ describe('StateService', () => {
         return new Date(dateString);
       }),
       getMonthName: jest.fn(),
-      getMonthNames: jest.fn(),
       getWeekdayName: jest.fn(),
-      getWeekdayNames: jest.fn()
     };
 
     // Initialize the service with mock formatter

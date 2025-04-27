@@ -1,4 +1,5 @@
 import { EventDispatcherService } from '../../services/event-dispatcher.service';
+import { CalendarViewMode } from '../../services/ui-updater.service';
 
 describe('EventDispatcherService', () => {
   let eventDispatcherService: EventDispatcherService;
@@ -189,7 +190,7 @@ describe('EventDispatcherService', () => {
       hostElement.addEventListener('view-mode-change', viewModeChangeHandler);
       
       // Test view mode
-      const viewMode = 'months';
+      const viewMode: CalendarViewMode = CalendarViewMode.MONTHS;
       
       // Dispatch the event
       eventDispatcherService.dispatchViewModeChangeEvent(viewMode);
