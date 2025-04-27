@@ -803,6 +803,12 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
       // Add a dedicated click handler to the calendar icon
       calendarIcon.addEventListener('click', (e) => {
         e.stopPropagation(); // Prevent the event from reaching the document
+        
+        // Don't respond to clicks if the component is disabled
+        if (this.hasAttribute('disabled')) {
+          return;
+        }
+        
         this.toggleCalendar();
       });
     }
@@ -1517,6 +1523,11 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
    * Public method to allow developers to open/close the calendar programmatically
    */
   public toggleCalendar(): void {
+    // Check if the component is disabled - don't open if it is
+    if (this.hasAttribute('disabled') && !this.stateService.isOpen) {
+      return; // Don't open calendar if the component is disabled
+    }
+    
     // Set a flag to indicate this is just a toggle operation
     // This prevents date-clear events from being triggered accidentally
     this._eventBatch.add('toggle-only');

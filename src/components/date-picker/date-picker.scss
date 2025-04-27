@@ -115,6 +115,22 @@
         margin-right: -0.5rem; /* Increase tap area */
       }
     }
+    
+    /* Style for the calendar icon when the component is disabled */
+    &:has(input:disabled) .date-picker-icon {
+      opacity: 0.5;
+      cursor: not-allowed;
+      color: var(--date-picker-disabled-text-color);
+      pointer-events: none; /* Prevent interaction with the icon */
+    }
+    
+    /* Fallback for browsers that don't support :has() selector */
+    input:disabled ~ .date-picker-icon {
+      opacity: 0.5;
+      cursor: not-allowed;
+      color: var(--date-picker-disabled-text-color);
+      pointer-events: none; /* Prevent interaction with the icon */
+    }
   }
   
   /* Error message for invalid/disabled date input */
