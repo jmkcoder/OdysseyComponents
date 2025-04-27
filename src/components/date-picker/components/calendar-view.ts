@@ -69,18 +69,6 @@ export class CalendarView {
     // Create date grid (6 rows max)
     let currentDate = new Date(firstDisplayDay);
     
-    // Calculate current month display name for aria-label
-    const monthName = this.config.formatter.getMonthName(month, 'long', this.config.locale);
-    const calendarTitle = `${monthName} ${year}`;
-    
-    // Find the selected or today date to set initial focus
-    const selectedDate = this.config.selectedDate;
-    const today = new Date();
-    
-    // Keep track of the cell that should be initially focusable
-    let initialFocusableCell = false;
-    let isSelectedOrTodayCellFound = false;
-    
     for (let row = 0; row < 6; row++) {
       calendarContent += '<tr class="date-picker-row">';
       
@@ -89,7 +77,6 @@ export class CalendarView {
         const isSelected = this.isSameDate(currentDate, this.config.selectedDate);
         const isPrevMonth = currentDate.getMonth() < month || (currentDate.getMonth() === 11 && month === 0);
         const isNextMonth = currentDate.getMonth() > month || (currentDate.getMonth() === 0 && month === 11);
-        const isOtherMonth = isPrevMonth || isNextMonth;
         const hasEvents = this.hasEventsOnDate(currentDate);
         const isRangeStart = this.config.isRangeMode && this.isSameDate(currentDate, this.config.rangeStart);
         const isRangeEnd = this.config.isRangeMode && this.isSameDate(currentDate, this.config.rangeEnd);
@@ -110,35 +97,11 @@ export class CalendarView {
         
         // Generate accessible labels
         const day = currentDate.getDate();
-        const formattedDate = this.config.formatter.format(currentDate, 'full', this.config.locale);
-        const monthLabel = isOtherMonth ? 
-          this.config.formatter.getMonthName(currentDate.getMonth(), 'long', this.config.locale) : 
-          '';
           
         // Build accessibility attributes
         const ariaLabel = this.buildAriaLabel(currentDate, isToday, isSelected, isDisabled, hasEvents, isInRange);
         
-        // Only make one cell focusable with tabindex="0" - either selected or today's date or first available
-        // All other cells have tabindex="-1" so they're still focusable via arrow keys but not via tab
-        let tabIndex = "-1";
-        
-        // Make selected date focusable
-        if (isSelected && !isDisabled) {
-          tabIndex = "0";
-          isSelectedOrTodayCellFound = true;
-        }
-        
-        // If no selected date, make today's date focusable
-        if (!isSelectedOrTodayCellFound && isToday && !isDisabled) {
-          tabIndex = "0";
-          isSelectedOrTodayCellFound = true;
-        }
-        
-        // If neither selected nor today's date, make the first available date focusable
-        if (!isSelectedOrTodayCellFound && !isDisabled && !initialFocusableCell) {
-          tabIndex = "0";
-          initialFocusableCell = true;
-        }
+        let tabIndex = "0";
         
         const dateKey = this.formatDate(currentDate, 'yyyy-MM-dd');
         
@@ -242,20 +205,6 @@ export class CalendarView {
         }
       });
     });
-  }
-  
-  /**
-   * Update focus management - make only one cell focusable at a time
-   */
-  private updateFocus(container: HTMLElement, focusedCell: HTMLElement): void {
-    // Reset all cells to tabindex="-1" (focusable with JS but not in tab order)
-    const allCells = container.querySelectorAll('td.date-picker-cell');
-    allCells.forEach(cell => {
-      cell.setAttribute('tabindex', '-1');
-    });
-    
-    // Make the target cell focusable via keyboard
-    focusedCell.setAttribute('tabindex', '0');
   }
   
   private formatDate(date: Date, format: string): string {

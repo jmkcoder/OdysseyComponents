@@ -370,27 +370,6 @@ export class DatePickerServiceManager {
       this._isSelectingRange
     );
     
-    // Focus the dialog after render
-    const dialog = this._uiUpdaterService.getDialog(this._container);
-    if (dialog) {
-      // Focus on the appropriate date cell after a brief delay
-      setTimeout(() => {
-        dialog.focus();
-        
-        // Only focus on dates when in day view
-        if (this._currentViewMode === CalendarViewMode.DAYS) {
-          // Focus on the selected date or today
-          let dateToFocus;
-          if (this._selectionMode === DatePickerSelectionMode.SINGLE) {
-            dateToFocus = this._selectedDate || this._focusedDate;
-          } else {
-            dateToFocus = this._startDate || this._focusedDate;
-          }
-          this.focusDate(dateToFocus);
-        }
-      }, 0);
-    }
-    
     // Dispatch open event
     this._eventDispatcherService.dispatchOpenEvent();
   }
@@ -483,11 +462,6 @@ export class DatePickerServiceManager {
     }
     
     this.updateCalendarView();
-    
-    // Focus on the 1st of the new month or the closest available date
-    if (this._currentViewMode === CalendarViewMode.DAYS) {
-      this.focusDate(new Date(this._currentYear, this._currentMonth, 1));
-    }
   }
   
   /**
@@ -527,11 +501,6 @@ export class DatePickerServiceManager {
     }
     
     this.updateCalendarView();
-    
-    // Focus on the 1st of the new month or the closest available date
-    if (this._currentViewMode === CalendarViewMode.DAYS) {
-      this.focusDate(new Date(this._currentYear, this._currentMonth, 1));
-    }
   }
   
   /**

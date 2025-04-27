@@ -169,6 +169,7 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
   
   // State tracking for events
   private _wasOpen: boolean = false;
+  private _calendarJustOpened: boolean = false; // Track when calendar is initially opened vs navigation
   private _lastDateChangeEvent: number = 0;
   private _dateChangeDebounceTime: number = 100; // Increased from 50ms to 100ms
   private _pendingChangeEvent: boolean = false; // Flag to track if an event is pending
@@ -1527,6 +1528,9 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
       // Always reset to calendar (day) view when opening
       this.stateService.currentView = 'calendar';
       
+      // Set the calendarJustOpened flag to true when opening
+      this._calendarJustOpened = true;
+      
       // Set view date based on the following priority:
       // 1. Selected date (if exists)
       // 2. Range start date (if in range mode)
@@ -1534,23 +1538,21 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
       if (this.stateService.selectedDate) {
         // Use the selected date for the view
         this.stateService.viewDate = new Date(this.stateService.selectedDate);
-        console.log('Setting view to selected date:', this.stateService.viewDate);
       } else if (this.stateService.isRangeMode && this.stateService.rangeStart) {
         // In range mode, use the range start date for the view
         this.stateService.viewDate = new Date(this.stateService.rangeStart);
-        console.log('Setting view to range start date:', this.stateService.viewDate);
       } else {
         // If no date is selected, use current date for viewing
         const today = new Date();
         this.stateService.viewDate = today;
-        console.log('Setting view to today:', today);
       }
+    } else {
+      // Reset the flag when closing the calendar
+      this._calendarJustOpened = false;
     }
     
     // Toggle the open state
     this.stateService.isOpen = !wasOpen;
-    
-    console.log('Calendar toggled. IsOpen:', !wasOpen, 'View mode:', this.stateService.currentView);
   }
 }
 

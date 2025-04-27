@@ -168,38 +168,15 @@ export class UIService{
         this.state.isOpen,
         this.handleCloseClick.bind(this)
       );
-
-      // Set initial focus on a date cell when calendar opens
-      setTimeout(() => {
-        if (this.state.selectedDate) {
-          const selectedDate = this.state.selectedDate;
-          this.focusDateCell(selectedDate);
-        } else if (this.state.isRangeMode && this.state.rangeStart) {
-          this.focusDateCell(this.state.rangeStart);
-        } else {
-          // Try to focus today or the first available date
-          const today = new Date();
-          if (!this.state.isDateDisabled(today)) {
-            this.focusDateCell(today);
-          } else {
-            // Focus the first available date
-            const availableDateCell = this.dialogElement?.querySelector('.date-picker-cell:not(.disabled)') as HTMLElement;
-            if (availableDateCell) {
-              availableDateCell.focus();
-            } else {
-              // If no available date, focus the dialog itself
-              this.dialogElement?.focus();
-            }
-          }
-        }
-      }, 100);
     }
   }
 
   /**
    * Focus a specific date cell in the calendar
+   * @param date The date to focus
+   * @param setFocus Whether to actually set DOM focus on the element (true) or just highlight it visually (false)
    */
-  private focusDateCell(date: Date): void {
+  private focusDateCell(date: Date, setFocus: boolean = true): void {
     if (!this.dialogElement) return;
 
     // Format the date to match the data-date attribute format (YYYY-MM-DD)
@@ -213,7 +190,22 @@ export class UIService{
     const cell = this.dialogElement.querySelector(`.date-picker-cell[data-date="${dateString}"]`) as HTMLElement;
 
     if (cell) {
-      cell.focus();
+      // Add visual highlighting (if needed)
+      const allCells = this.dialogElement.querySelectorAll('.date-picker-cell');
+      allCells.forEach(c => {
+        c.classList.remove('focused');
+        if (c !== cell) {
+          c.setAttribute('tabindex', '-1');
+        }
+      });
+      
+      cell.classList.add('focused');
+      cell.setAttribute('tabindex', '0');
+      
+      // Only actually focus the element if setFocus is true
+      if (setFocus) {
+        cell.focus();
+      }
     }
   }
 
@@ -492,36 +484,49 @@ export class UIService{
     if (this.state.isOpen) {
       this.dialogElement.classList.add('open');
 
+      // Access the parent DatePicker component to check if this is the initial open
+      // We need to get access to the parent DatePicker component that contains our _calendarJustOpened flag
+      const datePicker = this.dialogElement.closest('odyssey-date-picker') as any;
+      const isInitialOpen = datePicker && datePicker._calendarJustOpened;
+
       // Set initial focus after dialog is visible
       setTimeout(() => {
-        // Focus strategy: First try selected date, then today, then first available date
-        if (this.state.selectedDate) {
-          this.focusDateCell(this.state.selectedDate);
-        } else if (this.state.isRangeMode && this.state.rangeStart) {
-          this.focusDateCell(this.state.rangeStart);
-        } else {
-          // Try to focus today or the first available date
-          const today = new Date();
-          if (!this.state.isDateDisabled(today)) {
-            this.focusDateCell(today);
+        // Only focus on selected date or today when initially opening
+        if (isInitialOpen) {
+          // Focus strategy: First try selected date, then today, then first available date
+          if (this.state.selectedDate) {
+            this.focusDateCell(this.state.selectedDate, true);
+          } else if (this.state.isRangeMode && this.state.rangeStart) {
+            this.focusDateCell(this.state.rangeStart, true);
           } else {
-            // Focus the first available date cell (or a navigation button if no dates available)
-            const firstCell = this.dialogElement?.querySelector(
-              '.date-picker-cell:not(.disabled):not(.other-month):not(.weekday)'
-            ) as HTMLElement;
-
-            if (firstCell) {
-              firstCell.focus();
+            // Try to focus today or the first available date
+            const today = new Date();
+            if (!this.state.isDateDisabled(today)) {
+              this.focusDateCell(today, true);
             } else {
-              // If no dates are available, focus the header navigation button
-              const navButton = this.dialogElement?.querySelector('.date-picker-nav-btn') as HTMLElement;
-              if (navButton) {
-                navButton.focus();
+              // Focus the first available date cell (or a navigation button if no dates available)
+              const firstCell = this.dialogElement?.querySelector(
+                '.date-picker-cell:not(.disabled):not(.other-month):not(.weekday)'
+              ) as HTMLElement;
+
+              if (firstCell) {
+                firstCell.focus();
               } else {
-                // Last resort, focus the dialog itself
-                this.dialogElement?.focus();
+                // If no dates are available, focus the header navigation button
+                const navButton = this.dialogElement?.querySelector('.date-picker-nav-btn') as HTMLElement;
+                if (navButton) {
+                  navButton.focus();
+                } else {
+                  // Last resort, focus the dialog itself
+                  this.dialogElement?.focus();
+                }
               }
             }
+          }
+          
+          // Reset the flag after we've used it
+          if (datePicker) {
+            datePicker._calendarJustOpened = false;
           }
         }
       }, 50); // Small delay to ensure DOM is updated

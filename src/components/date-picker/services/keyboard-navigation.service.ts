@@ -429,8 +429,11 @@ export class KeyboardNavigationService {
   
   /**
    * Focus a specific date cell in the calendar
+   * @param dialog The dialog container
+   * @param date The date to focus
+   * @param setFocus Whether to actually set DOM focus on the element (true) or just mark it visually (false)
    */
-  private focusDateCell(dialog: HTMLElement, date: Date): void {
+  private focusDateCell(dialog: HTMLElement, date: Date, setFocus: boolean = true): void {
     const formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD format
     const dateCell = dialog.querySelector(`[data-date="${formattedDate}"]`) as HTMLElement;
     
@@ -442,7 +445,11 @@ export class KeyboardNavigationService {
       });
       
       dateCell.setAttribute('tabindex', '0');
-      dateCell.focus();
+      
+      // Only actually focus the element if setFocus is true
+      if (setFocus) {
+        dateCell.focus();
+      }
     } else {
       // If we couldn't find the exact cell, try to find cells from the same month
       const year = date.getFullYear();
@@ -453,7 +460,11 @@ export class KeyboardNavigationService {
       if (cells.length > 0) {
         const firstCell = cells[0] as HTMLElement;
         firstCell.setAttribute('tabindex', '0');
-        firstCell.focus();
+        
+        // Only actually focus the element if setFocus is true
+        if (setFocus) {
+          firstCell.focus();
+        }
       }
     }
   }
@@ -583,12 +594,14 @@ export class KeyboardNavigationService {
         }
         
         // After the view updates, focus the correct day
+        // When using keyboard navigation, we DO want to set focus to the new cell
         setTimeout(() => {
-          this.focusDateCell(dialog, newDate);
+          this.focusDateCell(dialog, newDate, true);
         }, 50);
       } else {
         // If within the current month, directly focus the date cell
-        this.focusDateCell(dialog, newDate);
+        // When using keyboard navigation, we DO want to set focus to the new cell
+        this.focusDateCell(dialog, newDate, true);
       }
     } else if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
