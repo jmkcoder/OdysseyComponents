@@ -200,7 +200,27 @@ export class CalendarView {
           if (!isNaN(date.getTime())) {
             e.preventDefault();
             e.stopPropagation();
+            
+            // Store reference to the clicked cell before potentially re-rendering
+            const clickedCell = cell as HTMLElement;
+            
+            // Call the date selection callback
             this.callbacks.onDateSelect(date);
+            
+            // Ensure focus is maintained on the cell after selection
+            setTimeout(() => {
+              // Try to focus the original cell if it's still in the DOM
+              if (clickedCell && document.body.contains(clickedCell)) {
+                clickedCell.focus();
+              } else {
+                // If the original cell is no longer available (e.g. due to re-render),
+                // find and focus the cell with the same date
+                const updatedCell = container.querySelector(`[data-date="${dateValue}"]`) as HTMLElement;
+                if (updatedCell) {
+                  updatedCell.focus();
+                }
+              }
+            }, 100);
           }
         }
       });

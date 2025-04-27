@@ -608,7 +608,22 @@ export class KeyboardNavigationService {
       
       // Only select if the date is not disabled
       if (!focusedElement.classList.contains('disabled')) {
+        // Store the focused element so we can restore focus after selection
+        const currentFocusedElement = focusedElement;
+        
+        // Call select callback
         callbacks.onSelectDate(currentDate);
+        
+        // Ensure focus is maintained after selection
+        setTimeout(() => {
+          // Try to focus the original element if it's still in the DOM
+          if (currentFocusedElement && document.body.contains(currentFocusedElement)) {
+            currentFocusedElement.focus();
+          } else {
+            // Fallback to focusing any visible date cell if original is no longer available
+            this.focusDateCell(dialog, currentDate, true);
+          }
+        }, 100);
       }
     }
   }
