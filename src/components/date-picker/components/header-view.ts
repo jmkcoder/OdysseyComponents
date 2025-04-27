@@ -1,10 +1,11 @@
 import { IDateFormatter } from '../services';
+import { CalendarViewMode } from '../services/ui-updater.service';
 
 export interface HeaderViewConfig {
   formatter: IDateFormatter;
   locale: string;
   viewDate: Date;
-  currentView: 'calendar' | 'months' | 'years';
+  currentView: CalendarViewMode;
 }
 
 export interface HeaderViewCallbacks {
@@ -25,7 +26,7 @@ export class HeaderView {
   
   public render(container: HTMLElement): void {
     // If in years view, create special centered header for year range
-    if (this.config.currentView === 'years') {
+    if (this.config.currentView === CalendarViewMode.YEARS) {
       const headerContent = `
         <button class="date-picker-nav-btn prev-month" aria-label="Previous year range" tabindex="0">
           <span class="material-icons">chevron_left</span>
@@ -57,9 +58,12 @@ export class HeaderView {
       }
     } else {
       // Standard header for calendar and month views
+      const isMonthView = this.config.currentView === CalendarViewMode.MONTHS;
+      const isYearView = !(this.config.currentView === CalendarViewMode.DAYS || this.config.currentView === CalendarViewMode.MONTHS);
+      
       const headerContent = `
         <button class="date-picker-nav-btn prev-month" 
-                aria-label="Previous ${this.config.currentView === 'calendar' ? 'month' : 'year'}" 
+                aria-label="Previous ${this.config.currentView === CalendarViewMode.DAYS ? 'month' : 'year'}" 
                 tabindex="0">
           <span class="material-icons">chevron_left</span>
         </button>
@@ -67,18 +71,18 @@ export class HeaderView {
           <button class="date-picker-month-selector" 
                   aria-label="Select month" 
                   tabindex="0"
-                  ${this.config.currentView === 'months' ? 'aria-expanded="true"' : ''}>
+                  ${isMonthView ? 'aria-expanded="true"' : ''}>
             ${this.getMonthText()}
           </button>
           <button class="date-picker-year-selector" 
                   aria-label="Select year" 
                   tabindex="0"
-                  ${this.config.currentView === 'years' ? 'aria-expanded="true"' : ''}>
+                  ${isYearView ? 'aria-expanded="true"' : ''}>
             ${this.getYearText()}
           </button>
         </div>
         <button class="date-picker-nav-btn next-month" 
-                aria-label="Next ${this.config.currentView === 'calendar' ? 'month' : 'year'}" 
+                aria-label="Next ${this.config.currentView === CalendarViewMode.DAYS ? 'month' : 'year'}" 
                 tabindex="0">
           <span class="material-icons">chevron_right</span>
         </button>
@@ -140,28 +144,28 @@ export class HeaderView {
     });
 
     // Add keyboard event listeners for accessibility
-    prevButton?.addEventListener('keydown', (e: KeyboardEvent) => {
+    (prevButton as HTMLElement)?.addEventListener('keydown', (e: KeyboardEvent) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         this.callbacks.onPrevClick();
       }
     });
     
-    nextButton?.addEventListener('keydown', (e: KeyboardEvent) => {
+    (nextButton as HTMLElement)?.addEventListener('keydown', (e: KeyboardEvent) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         this.callbacks.onNextClick();
       }
     });
     
-    monthSelector?.addEventListener('keydown', (e: KeyboardEvent) => {
+    (monthSelector as HTMLElement)?.addEventListener('keydown', (e: KeyboardEvent) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         this.callbacks.onMonthSelectorClick();
       }
     });
     
-    yearSelector?.addEventListener('keydown', (e: KeyboardEvent) => {
+    (yearSelector as HTMLElement)?.addEventListener('keydown', (e: KeyboardEvent) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         this.callbacks.onYearSelectorClick();
