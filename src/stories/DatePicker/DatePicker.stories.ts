@@ -21,6 +21,10 @@ const meta: Meta = {
         end-date=${args.endDate || ''}
         events=${args.events ? JSON.stringify(args.events) : ''}
         format=${args.format || ''}
+        @date-change=${args.onDateChange}
+        @calendar-open=${args.onCalendarOpen}
+        @calendar-close=${args.onCalendarClose}
+        @date-clear=${args.onDateClear}
       ></odyssey-date-picker>
     `;
   },
@@ -65,7 +69,11 @@ const meta: Meta = {
     format: {
       control: 'text',
       description: 'Custom date format pattern'
-    }
+    },
+    onDateChange: { action: 'date-change' },
+    onCalendarOpen: { action: 'calendar-open' },
+    onCalendarClose: { action: 'calendar-close' },
+    onDateClear: { action: 'date-clear' }
   },
   args: {
     disabled: false,
@@ -81,6 +89,11 @@ const meta: Meta = {
     endDate: '',
     events: {},
     format: ''
+  },
+  parameters: {
+    actions: {
+      handles: ['date-change', 'calendar-open', 'calendar-close', 'date-clear']
+    }
   }
 };
 
@@ -161,6 +174,82 @@ export const WithEvents: Story = {
       '2025-04-15': ['Meeting'],
       '2025-04-22': ['Important deadline', 'Call with client'],
       '2025-04-30': ['End of month report']
+    }
+  },
+  render: (args) => {
+    // Actions argument defined in props would be added automatically by Storybook
+    return html`
+      <div class="event-example-container">
+        <h3>DatePicker with Event Indicators</h3>
+        <p>Calendar will open automatically to show events. The following dates have events:</p>
+        <ul>
+          <li><strong>Apr 15, 2025:</strong> Meeting</li>
+          <li><strong>Apr 22, 2025:</strong> Important deadline, Call with client</li>
+          <li><strong>Apr 30, 2025:</strong> End of month report</li>
+        </ul>
+        
+        <odyssey-date-picker
+          id="event-demo-picker"
+          value=${args.value || ''}
+          events=${JSON.stringify(args.events)}
+          @date-change=${args.onDateChange}
+          @calendar-open=${args.onCalendarOpen}
+          @calendar-close=${args.onCalendarClose}
+          @date-clear=${args.onDateClear}
+        ></odyssey-date-picker>
+      </div>
+      
+      <script>
+        // Open the calendar automatically after a short delay to show events
+        setTimeout(() => {
+          const datePicker = document.getElementById('event-demo-picker');
+          if (datePicker && typeof datePicker.toggleCalendar === 'function') {
+            datePicker.toggleCalendar();
+            
+            // Set up the events programmatically as well as a backup
+            if (datePicker.addEvent) {
+              datePicker.addEvent(new Date(2025, 3, 15), 'Meeting');
+              datePicker.addEvent(new Date(2025, 3, 22), 'Important deadline');
+              datePicker.addEvent(new Date(2025, 3, 22), 'Call with client');
+              datePicker.addEvent(new Date(2025, 3, 30), 'End of month report');
+            }
+          }
+        }, 500);
+      </script>
+
+      <style>
+        .event-example-container {
+          padding: 16px;
+          max-width: 500px;
+        }
+        
+        .event-example-container h3 {
+          margin-top: 0;
+          margin-bottom: 8px;
+        }
+        
+        .event-example-container p {
+          margin-bottom: 12px;
+        }
+        
+        .event-example-container ul {
+          margin-bottom: 20px;
+          padding-left: 20px;
+        }
+      </style>
+    `;
+  },
+  argTypes: {
+    onDateChange: { action: 'date-change' },
+    onCalendarOpen: { action: 'calendar-open' },
+    onCalendarClose: { action: 'calendar-close' },
+    onDateClear: { action: 'date-clear' }
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Shows event indicators on specific dates with color-coded dots and tooltips on hover. Events are displayed in the Actions panel when dates are selected or cleared.'
+      }
     }
   }
 };

@@ -201,6 +201,15 @@ export class StateService {
   }
   
   /**
+   * Get events for a specific date
+   * @param dateKey Date key in yyyy-MM-dd format
+   * @returns Array of event strings for the date or empty array if none
+   */
+  public getEvents(dateKey: string): string[] {
+    return this._events.get(dateKey) || [];
+  }
+  
+  /**
    * Date selection methods
    */
   public resetRangeSelection(): void {

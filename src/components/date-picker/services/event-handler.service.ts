@@ -38,12 +38,18 @@ export class EventHandlerService {
     
     if (input && inputWrapper) {
       // Click on input or wrapper opens calendar
-      inputWrapper.addEventListener('click', callbacks.onToggleDialog);
+      // Use a custom event first to flag this as just a toggle operation
+      inputWrapper.addEventListener('click', (e) => {
+        // Dispatch a custom event to mark this as just a toggle operation
+        containerElement.dispatchEvent(new CustomEvent('input-click-toggle', { bubbles: true }));
+        callbacks.onToggleDialog();
+      });
       
       // Enter or space on input opens calendar
       input.addEventListener('keydown', (e: KeyboardEvent) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
+          containerElement.dispatchEvent(new CustomEvent('input-click-toggle', { bubbles: true }));
           callbacks.onToggleDialog();
         }
       });
@@ -115,6 +121,8 @@ export class EventHandlerService {
     
     if (clearBtn) {
       clearBtn.addEventListener('click', () => {
+        // Dispatch a custom event to mark this as an explicit clear action
+        containerElement.dispatchEvent(new CustomEvent('clear-action', { bubbles: true }));
         // Use null to clear the date
         callbacks.onSelectDate(null as any);
       });
