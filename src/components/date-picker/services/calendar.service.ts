@@ -1,195 +1,274 @@
-import { DateUtils } from '../../../utilities/date-utils';
+// Calendar Service for the date-picker component
+import { areDatesEqual } from '../../../utilities/date-utils';
 
-/**
- * Service for calendar-related calculations and date management
- */
+export interface CalendarDay {
+  date: Date;
+  isCurrentMonth: boolean;
+  isToday: boolean;
+  isSelected: boolean;
+  isDisabled: boolean;
+  hasEvents: boolean;
+}
+
+export interface CalendarServiceOptions {
+  firstDayOfWeek: number; // 0 = Sunday, 1 = Monday, etc.
+  locale: string;
+  minDate: Date | null;
+  maxDate: Date | null;
+  disabledDates: Date[];
+  disabledDaysOfWeek: number[];
+}
+
 export class CalendarService {
-  private _firstDayOfWeek: number = 0; // 0 = Sunday, 1 = Monday, etc.
-  private _minDate: Date | null = null;
-  private _maxDate: Date | null = null;
-  private _events: Map<string, string[]> = new Map();
+  private options: CalendarServiceOptions;
+  private events: { [key: string]: string[] } = {};
 
-  /**
-   * Get the first day of the week containing the given date
-   * @param date Optional date to determine the week
-   * @returns Date object for the first day of the week
-   */
-  getFirstDayOfWeek(date?: Date): Date {
-    const targetDate = date ? new Date(date) : new Date();
-    const day = targetDate.getDay(); // 0 = Sunday, 6 = Saturday
-    const diff = (day - this._firstDayOfWeek + 7) % 7;
-    return DateUtils.addDays(targetDate, -diff);
+  constructor(options: CalendarServiceOptions) {
+    this.options = {
+      firstDayOfWeek: 0,
+      locale: 'en-US',
+      minDate: null,
+      maxDate: null,
+      disabledDates: [],
+      disabledDaysOfWeek: [],
+      ...options
+    };
   }
 
   /**
-   * Get the last day of the week containing the given date
+   * Gets the first day of week value (0-6)
    */
-  getLastDayOfWeek(date: Date): Date {
-    const day = date.getDay(); // 0 = Sunday, 6 = Saturday
-    return DateUtils.addDays(date, 6 - day);
+  getFirstDayOfWeekValue(): number {
+    return this.options.firstDayOfWeek;
   }
 
   /**
-   * Generate an array of dates for a given month to display in the calendar
+   * Formats a date as YYYY-MM-DD string
    */
-  generateCalendarDays(year: number, month: number): Date[] {
-    const result: Date[] = [];
-    const firstDay = new Date(year, month, 1);
+  private formatDateKey(date: Date): string {
+    return date.toISOString().split('T')[0];
+  }
+
+  /**
+   * Returns a matrix of calendar days for a specific month
+   * @param year The year
+   * @param month The month (0-11)
+   * @param selectedDate Optional selected date
+   * @returns A 6x7 matrix representing weeks and days
+   */
+  getMonthData(year: number, month: number, selectedDate?: Date): CalendarDay[][] {
+    const result: CalendarDay[][] = [];
+    const today = new Date();
     
-    // Start from the first day of the week that contains the first day of the month
-    let currentDate = this.getFirstDayOfWeek(firstDay);
+    // First day of the month
+    const firstDayOfMonth = new Date(year, month, 1);
     
-    // Generate 6 weeks (42 days) to ensure we always have enough days
-    // This covers all possible month layouts
-    for (let i = 0; i < 42; i++) {
-      result.push(new Date(currentDate));
-      currentDate = DateUtils.addDays(currentDate, 1);
+    // Last day of the month
+    const lastDayOfMonth = new Date(year, month + 1, 0);
+    
+    // First day of the calendar grid (might be from previous month)
+    const firstDayOfCalendar = this.getFirstDayOfCalendarGrid(firstDayOfMonth);
+    
+    // Create the calendar grid (6 weeks x 7 days)
+    let currentDate = new Date(firstDayOfCalendar);
+    
+    for (let week = 0; week < 6; week++) {
+      const weekDays: CalendarDay[] = [];
+      
+      for (let day = 0; day < 7; day++) {
+        const isCurrentMonth = currentDate.getMonth() === month;
+        const dateKey = this.formatDateKey(currentDate);
+        
+        weekDays.push({
+          date: new Date(currentDate),
+          isCurrentMonth,
+          isToday: this.isSameDay(currentDate, today),
+          isSelected: selectedDate ? this.isSameDay(currentDate, selectedDate) : false,
+          isDisabled: this.isDateDisabled(currentDate),
+          hasEvents: this.hasEvents(dateKey)
+        });
+        
+        // Move to next day
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      result.push(weekDays);
     }
     
     return result;
   }
 
   /**
-   * Check if a date is selectable based on min/max constraints
+   * Get the first day that should appear on the calendar grid
    */
-  isDateSelectable(date: Date, minDate?: Date | null, maxDate?: Date | null): boolean {
-    if (minDate && date < minDate) {
-      return false;
-    }
-    if (maxDate && date > maxDate) {
-      return false;
-    }
-    return true;
+  private getFirstDayOfCalendarGrid(firstDayOfMonth: Date): Date {
+    const firstDayOfWeek = this.options.firstDayOfWeek;
+    const firstDay = new Date(firstDayOfMonth);
+    const dayOfWeek = firstDayOfMonth.getDay();
+    
+    // Calculate how many days we need to go back
+    const diff = (dayOfWeek - firstDayOfWeek + 7) % 7;
+    firstDay.setDate(firstDayOfMonth.getDate() - diff);
+    
+    return firstDay;
   }
 
   /**
-   * Set the first day of the week
+   * Checks if two dates represent the same day
    */
-  setFirstDayOfWeek(day: number): void {
-    if (day >= 0 && day <= 6) {
-      this._firstDayOfWeek = day;
+  private isSameDay(date1: Date, date2: Date): boolean {
+    return areDatesEqual(date1, date2);
+  }
+
+  /**
+   * Get the list of localized weekday names
+   */
+  getWeekdays(): string[] {
+    const weekdays = [];
+    const date = new Date(2021, 0, 3); // Use a Sunday as reference
+    
+    // Start with the configured first day of the week
+    let dayIndex = this.options.firstDayOfWeek;
+    
+    // Generate 7 days starting from the first day of the week
+    for (let i = 0; i < 7; i++) {
+      date.setDate(3 + ((dayIndex + i) % 7));
+      const formatter = new Intl.DateTimeFormat(this.options.locale, { weekday: 'short' });
+      weekdays.push(formatter.format(date));
     }
+    
+    return weekdays;
   }
 
   /**
-   * Get the configured first day of the week value
-   * @returns Number from 0 (Sunday) to 6 (Saturday)
+   * Get the localized name of a month
    */
-  getFirstDayOfWeekValue(): number {
-    return this._firstDayOfWeek;
+  getMonthName(monthIndex: number): string {
+    const date = new Date(2021, monthIndex, 1);
+    return new Intl.DateTimeFormat(this.options.locale, { month: 'long' }).format(date);
   }
 
   /**
-   * Set the minimum selectable date
+   * Get all localized month names
    */
-  setMinDate(date: Date | null): void {
-    if (date) {
-      const minDate = new Date(date);
-      minDate.setHours(0, 0, 0, 0);
-      this._minDate = minDate;
-    } else {
-      this._minDate = null;
+  getMonthNames(): string[] {
+    return Array.from({ length: 12 }, (_, i) => this.getMonthName(i));
+  }
+
+  /**
+   * Get the first day of the week containing the given date
+   */
+  getFirstDayOfWeek(date: Date): Date {
+    const result = new Date(date);
+    const day = date.getDay();
+    const diff = (day - this.options.firstDayOfWeek + 7) % 7;
+    result.setDate(date.getDate() - diff);
+    return result;
+  }
+
+  /**
+   * Get the last day of the week containing the given date
+   */
+  getLastDayOfWeek(date: Date): Date {
+    const firstDay = this.getFirstDayOfWeek(date);
+    const result = new Date(firstDay);
+    result.setDate(firstDay.getDate() + 6);
+    return result;
+  }
+
+  /**
+   * Create an array of dates from start to end (inclusive)
+   */
+  createDateRange(start: Date, end: Date): Date[] {
+    const result: Date[] = [];
+    
+    // Ensure start date is before end date
+    let startDate = new Date(start);
+    let endDate = new Date(end);
+    
+    if (startDate > endDate) {
+      [startDate, endDate] = [endDate, startDate];
     }
-  }
-
-  /**
-   * Set the maximum selectable date
-   */
-  setMaxDate(date: Date | null): void {
-    if (date) {
-      const maxDate = new Date(date);
-      maxDate.setHours(0, 0, 0, 0);
-      this._maxDate = maxDate;
-    } else {
-      this._maxDate = null;
+    
+    const currentDate = new Date(startDate);
+    
+    while (currentDate <= endDate) {
+      result.push(new Date(currentDate));
+      currentDate.setDate(currentDate.getDate() + 1);
     }
+    
+    return result;
   }
 
   /**
-   * Check if a date is disabled (outside min/max range)
+   * Check if a date is disabled based on the calendar options
    */
   isDateDisabled(date: Date): boolean {
-    return DateUtils.isDateDisabled(date, this._minDate, this._maxDate);
+    // Check min date
+    if (this.options.minDate && date < this.options.minDate) {
+      return true;
+    }
+    
+    // Check max date
+    if (this.options.maxDate && date > this.options.maxDate) {
+      return true;
+    }
+    
+    // Check disabled days of week
+    if (this.options.disabledDaysOfWeek.includes(date.getDay())) {
+      return true;
+    }
+    
+    // Check specifically disabled dates
+    return this.options.disabledDates.some(disabledDate => 
+      this.isSameDay(date, disabledDate)
+    );
   }
 
   /**
    * Add events to specific dates
    */
-  addEvents(events: Record<string, string[]>): void {
-    if (!events) return;
-    
-    Object.entries(events).forEach(([dateStr, eventsList]) => {
-      // Normalize the date string to YYYY-MM-DD
-      const date = DateUtils.parseDate(dateStr);
-      if (date) {
-        const normalizedDateStr = DateUtils.formatDate(date);
-        
-        // Get existing events or create new array
-        const existingEvents = this._events.get(normalizedDateStr) || [];
-        
-        // Merge and deduplicate events
-        const uniqueEvents = Array.from(new Set([...existingEvents, ...eventsList]));
-        this._events.set(normalizedDateStr, uniqueEvents);
+  addEvents(eventsMap: { [dateKey: string]: string[] }): void {
+    for (const dateKey in eventsMap) {
+      if (!this.events[dateKey]) {
+        this.events[dateKey] = [];
       }
-    });
+      this.events[dateKey].push(...eventsMap[dateKey]);
+    }
   }
 
   /**
-   * Remove events from a specific date
+   * Check if a date has events
    */
-  removeEvents(dateStr: string): void {
-    const date = DateUtils.parseDate(dateStr);
-    if (date) {
-      const normalizedDateStr = DateUtils.formatDate(date);
-      this._events.delete(normalizedDateStr);
-    }
+  hasEvents(dateKey: string): boolean {
+    return !!this.events[dateKey] && this.events[dateKey].length > 0;
+  }
+
+  /**
+   * Get events for a specific date
+   */
+  getEvents(dateKey: string): string[] {
+    return this.events[dateKey] || [];
+  }
+
+  /**
+   * Remove all events for a specific date
+   */
+  removeEvents(dateKey: string): void {
+    delete this.events[dateKey];
   }
 
   /**
    * Clear all events
    */
   clearEvents(): void {
-    this._events.clear();
+    this.events = {};
   }
 
   /**
-   * Check if a date has events
+   * Get all events as an object
    */
-  hasEvents(dateStr: string): boolean {
-    const events = this._events.get(dateStr);
-    return !!events && events.length > 0;
+  getEventsAsObject(): { [dateKey: string]: string[] } {
+    return { ...this.events };
   }
-
-  /**
-   * Get events for a specific date
-   */
-  getEvents(dateStr: string): string[] {
-    return this._events.get(dateStr) || [];
-  }
-
-  /**
-   * Get all events as a plain object
-   */
-  getEventsAsObject(): Record<string, string[]> {
-    const eventsObj: Record<string, string[]> = {};
-    this._events.forEach((events, date) => {
-      eventsObj[date] = events;
-    });
-    return eventsObj;
-  }
-
-  // Provide direct access to DateUtils methods that don't need internal state
-  // This allows calling code to continue working without changes
-  formatDate = DateUtils.formatDate;
-  formatISODate = DateUtils.formatISODate;
-  parseDate = DateUtils.parseDate;
-  parseISODate = DateUtils.parseISODate;
-  isSameDay = DateUtils.isSameDay;
-  addDays = DateUtils.addDays;
-  addMonths = DateUtils.addMonths;
-  getFirstDayOfMonth = DateUtils.getFirstDayOfMonth;
-  getLastDayOfMonth = DateUtils.getLastDayOfMonth;
-  isToday = DateUtils.isToday;
-  isCurrentMonth = DateUtils.isCurrentMonth;
-  getToday = DateUtils.getToday;
 }
