@@ -464,48 +464,65 @@ export class UIService{
       this.dialogElement.classList.add('open');
 
       // Access the parent DatePicker component to check if this is the initial open
-      // We need to get access to the parent DatePicker component that contains our _calendarJustOpened flag
+      // We need to get access to the parent DatePicker component that contains our flags
       const datePicker = this.dialogElement.closest('odyssey-date-picker') as any;
       const isInitialOpen = datePicker && datePicker._calendarJustOpened;
 
       // Set initial focus after dialog is visible
       setTimeout(() => {
-        // Only focus on selected date or today when initially opening
         if (isInitialOpen) {
-          // Focus strategy: First try selected date, then today, then first available date
-          if (this.state.selectedDate) {
-            this.focusDateCell(this.state.selectedDate, true);
-          } else if (this.state.isRangeMode && this.state.rangeStart) {
-            this.focusDateCell(this.state.rangeStart, true);
-          } else {
-            // Try to focus today or the first available date
-            const today = new Date();
-            if (!this.state.isDateDisabled(today)) {
-              this.focusDateCell(today, true);
+          // Store current _dateChangePrevented value to restore it later
+          const wasDateChangePrevented = datePicker._dateChangePrevented;
+          
+          // Set the flag to prevent date-change events during initial focus
+          if (datePicker && datePicker._preventDateChangeOnFocus) {
+            datePicker._dateChangePrevented = true;
+          }
+          
+          // Focus strategy: First try to focus on a date cell in the calendar grid
+          const currentMonth = this.dialogElement?.querySelector('.date-picker-calendar');
+          if (currentMonth) {
+            // Try to focus on the selected date if available
+            if (this.state.selectedDate) {
+              this.focusDateCell(this.state.selectedDate, true);
+            } else if (this.state.isRangeMode && this.state.rangeStart) {
+              this.focusDateCell(this.state.rangeStart, true);
             } else {
-              // Focus the first available date cell (or a navigation button if no dates available)
-              const firstCell = this.dialogElement?.querySelector(
-                '.date-picker-cell:not(.disabled):not(.other-month):not(.weekday)'
-              ) as HTMLElement;
-
-              if (firstCell) {
-                firstCell.focus();
+              // Try to focus today or the first available date
+              const today = new Date();
+              if (!this.state.isDateDisabled(today)) {
+                this.focusDateCell(today, true);
               } else {
-                // If no dates are available, focus the header navigation button
-                const navButton = this.dialogElement?.querySelector('.date-picker-nav-btn') as HTMLElement;
-                if (navButton) {
-                  navButton.focus();
+                // Focus the first available date cell (or a navigation button if no dates available)
+                const firstCell = this.dialogElement?.querySelector(
+                  '.date-picker-cell:not(.disabled):not(.other-month):not(.weekday)'
+                ) as HTMLElement;
+
+                if (firstCell) {
+                  firstCell.focus();
                 } else {
-                  // Last resort, focus the dialog itself
-                  this.dialogElement?.focus();
+                  // If no dates are available, focus the header navigation button
+                  const navButton = this.dialogElement?.querySelector('.date-picker-nav-btn') as HTMLElement;
+                  if (navButton) {
+                    navButton.focus();
+                  } else {
+                    // Last resort, focus the dialog itself
+                    this.dialogElement?.focus();
+                  }
                 }
               }
             }
           }
           
-          // Reset the flag after we've used it
+          // Reset the flags after we've used them
           if (datePicker) {
             datePicker._calendarJustOpened = false;
+            
+            // Restore the previous _dateChangePrevented value after a short delay
+            // to allow the focus event to complete
+            setTimeout(() => {
+              datePicker._dateChangePrevented = wasDateChangePrevented;
+            }, 50);
           }
         }
       }, 50); // Small delay to ensure DOM is updated

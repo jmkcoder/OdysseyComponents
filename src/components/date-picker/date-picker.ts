@@ -176,6 +176,9 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
   private _lastSelectedDate: string | null = null; // Track the last selected date to prevent duplicate events
   private _dateChangePrevented: boolean = false; // Flag to prevent duplicate date-change events
   private _isInitializing: boolean = true; // Flag to prevent multiple events during initialization
+  private _preventInputFocus: boolean = false; // Flag to prevent input focus when toggling calendar
+  _calendarJustOpened: boolean = false; // Flag to indicate calendar was just opened
+  private _preventDateChangeOnFocus: boolean = false; // Flag to prevent date-change when focusing on calendar cells
   
   constructor() {
     super();
@@ -800,6 +803,7 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
       // Add a dedicated click handler to the calendar icon
       calendarIcon.addEventListener('click', (e) => {
         e.stopPropagation(); // Prevent the event from reaching the document
+        e.preventDefault(); // Prevent any default actions
         
         // Don't respond to clicks if the component is disabled
         if (this.hasAttribute('disabled')) {
@@ -861,10 +865,12 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
    */
   handleEvent(event: Event): void {
     if (event.type === 'click') {
-      // Only handle document clicks to close the calendar
+      // Only handle document clicks to close the calendar if it's already open
       if (event.currentTarget === document && !this.contains(event.target as Node)) {
-        // Close calendar when clicking outside
-        this.stateService.isOpen = false;
+        // Close calendar when clicking outside, but only if it's currently open
+        if (this.stateService.isOpen) {
+          this.stateService.isOpen = false;
+        }
       }
     }
   }
@@ -1529,10 +1535,17 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
     // This prevents date-clear events from being triggered accidentally
     this._eventBatch.add('toggle-only');
     
+    // Set flag to prevent input focus when toggling calendar
+    this._preventInputFocus = true;
+    
     const wasOpen = this.stateService.isOpen;
     
     // If we're opening the calendar, reset to calendar view and use current date if no date selected
     if (!wasOpen) {
+      // Set flags to indicate calendar was just opened and to prevent date-change events
+      this._calendarJustOpened = true;
+      this._preventDateChangeOnFocus = true;
+      
       // Always reset to calendar (day) view when opening
       this.stateService.currentView = 'calendar';
       
@@ -1555,6 +1568,13 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
     
     // Toggle the open state
     this.stateService.isOpen = !wasOpen;
+    
+    // Reset focus prevention flag after a short delay
+    setTimeout(() => {
+      this._preventInputFocus = false;
+      // Also reset the date-change prevention flag
+      this._preventDateChangeOnFocus = false;
+    }, 100);
   }
 }
 
