@@ -1536,9 +1536,6 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
       // Always reset to calendar (day) view when opening
       this.stateService.currentView = 'calendar';
       
-      // Set the calendarJustOpened flag to true when opening
-      this._calendarJustOpened = true;
-      
       // Set view date based on the following priority:
       // 1. Selected date (if exists)
       // 2. Range start date (if in range mode)
@@ -1554,9 +1551,6 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
         const today = new Date();
         this.stateService.viewDate = today;
       }
-    } else {
-      // Reset the flag when closing the calendar
-      this._calendarJustOpened = false;
     }
     
     // Toggle the open state
