@@ -23,8 +23,14 @@ export class CalendarService {
   private options: CalendarServiceOptions;
   private events: { [key: string]: string[] } = {};
 
-  constructor(options: CalendarServiceOptions) {
+  constructor(options: Partial<CalendarServiceOptions> = {}) {
     this.options = {
+      firstDayOfWeek: 0,
+      locale: 'en-US',
+      minDate: null,
+      maxDate: null,
+      disabledDates: [],
+      disabledDaysOfWeek: [],
       ...options
     };
   }

@@ -169,11 +169,8 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
   
   // State tracking for events
   private _wasOpen: boolean = false;
-  private _calendarJustOpened: boolean = false; // Track when calendar is initially opened vs navigation
-  private _lastDateChangeEvent: number = 0;
   private _dateChangeDebounceTime: number = 100; // Increased from 50ms to 100ms
   private _pendingChangeEvent: boolean = false; // Flag to track if an event is pending
-  private _lastChangeType: string = ''; // Track the type of the last state change
   private _eventBatch: Set<string> = new Set(); // Track state change types in a batch
   private _eventBatchTimer: number | null = null; // Timer for batch processing
   private _lastSelectedDate: string | null = null; // Track the last selected date to prevent duplicate events

@@ -3,7 +3,7 @@ import { IDateFormatter } from './date-formatter.interface';
 import { StateService } from './state.service';
 import { KeyboardNavigationService } from './keyboard-navigation.service';
 import { CalendarService } from './calendar.service';
-import { UIUpdaterService } from './ui-updater.service';
+import { CalendarViewMode, UIUpdaterService } from './ui-updater.service';
 
 /**
  * Service responsible for rendering the UI components
@@ -84,27 +84,6 @@ export class UIService{
     var service = new CalendarService();
     service.isDateDisabled = (date: Date) => this.state.isDateDisabled(date);
     service.getFirstDayOfWeekValue = () => this.state.firstDayOfWeek;
-    service.isCurrentMonth = (date: Date) => {
-      const viewMonth = this.state.viewDate.getMonth();
-      const viewYear = this.state.viewDate.getFullYear();
-      return date.getMonth() === viewMonth && date.getFullYear() === viewYear;
-    };
-    service.parseDate = (dateString: string) => {
-      try {
-        // Try to parse as ISO format first (YYYY-MM-DD)
-        const parts = dateString.split('-');
-        if (parts.length === 3) {
-          const year = parseInt(parts[0], 10);
-          const month = parseInt(parts[1], 10) - 1;
-          const day = parseInt(parts[2], 10);
-          return new Date(year, month, day);
-        }
-        return new Date();
-      } catch (e) {
-        console.error('Error parsing date', e);
-        return new Date();
-      }
-    };
 
     return service;
   }
@@ -399,7 +378,7 @@ export class UIService{
         formatter: this.formatter,
         locale: this.state.locale,
         viewDate: this.state.viewDate,
-        currentView: this.state.currentView
+        currentView: this.state.currentView as CalendarViewMode
       },
       {
         onPrevClick: this.handlePrevMonth.bind(this),
