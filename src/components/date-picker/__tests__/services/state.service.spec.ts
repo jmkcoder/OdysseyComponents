@@ -24,7 +24,14 @@ describe('StateService', () => {
         return new Date(dateString);
       }),
       getMonthName: jest.fn(),
+      getMonthNames: jest.fn(() => {
+        return ['January', 'February', 'March', 'April', 'May', 'June', 
+                'July', 'August', 'September', 'October', 'November', 'December'];
+      }),
       getWeekdayName: jest.fn(),
+      getWeekdayNames: jest.fn(() => {
+        return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      })
     };
 
     // Initialize the service with mock formatter

@@ -31,6 +31,14 @@ export interface IDateFormatter {
   getMonthName(monthIndex: number, format?: 'long' | 'short', locale?: string): string;
   
   /**
+   * Get an array of all month names
+   * @param format Format of the month names ('long' or 'short')
+   * @param locale The locale to use
+   * @returns Array of localized month names
+   */
+  getMonthNames(format?: 'long' | 'short', locale?: string): string[];
+  
+  /**
    * Get the name of a weekday in the specified locale
    * @param dayIndex Zero-based day index (0-6, where 0 is Sunday)
    * @param format Format of the weekday name ('long', 'short', or 'narrow')
@@ -38,4 +46,12 @@ export interface IDateFormatter {
    * @returns The localized weekday name
    */
   getWeekdayName(dayIndex: number, format?: 'long' | 'short' | 'narrow', locale?: string): string;
+  
+  /**
+   * Get an array of all weekday names
+   * @param format Format of the weekday names ('long', 'short', or 'narrow')
+   * @param locale The locale to use
+   * @returns Array of localized weekday names
+   */
+  getWeekdayNames(format?: 'long' | 'short' | 'narrow', locale?: string): string[];
 }

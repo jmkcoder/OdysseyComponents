@@ -43,10 +43,56 @@ export class CalendarService {
   }
 
   /**
+   * Sets the first day of the week
+   */
+  setFirstDayOfWeek(dayIndex: number): void {
+    this.options.firstDayOfWeek = dayIndex;
+  }
+
+  /**
    * Formats a date as YYYY-MM-DD string
    */
   private formatDateKey(date: Date): string {
     return date.toISOString().split('T')[0];
+  }
+
+  /**
+   * Format date according to specified format
+   */
+  formatDate(date: Date | null, format: string = 'yyyy-mm-dd', locale?: string): string {
+    if (!date) return '';
+    
+    const localeToUse = locale || this.options.locale;
+    
+    // Simple formatting implementation
+    switch (format.toLowerCase()) {
+      case 'yyyy-mm-dd':
+        return this.formatDateKey(date);
+      case 'mmmm yyyy':
+        return new Intl.DateTimeFormat(localeToUse, { month: 'long', year: 'numeric' }).format(date);
+      case 'mmm yyyy':
+        return new Intl.DateTimeFormat(localeToUse, { month: 'short', year: 'numeric' }).format(date);
+      case 'mmm':
+        return new Intl.DateTimeFormat(localeToUse, { month: 'short' }).format(date);
+      case 'yyyy':
+        return date.getFullYear().toString();
+      default:
+        return new Intl.DateTimeFormat(localeToUse).format(date);
+    }
+  }
+
+  /**
+   * Parse a string date into a Date object
+   */
+  parseDate(dateString: string | Date): Date | null {
+    if (!dateString) return null;
+    if (dateString instanceof Date) return new Date(dateString);
+    
+    try {
+      return new Date(dateString);
+    } catch (e) {
+      return null;
+    }
   }
 
   /**
@@ -99,6 +145,13 @@ export class CalendarService {
   }
 
   /**
+   * Generate calendar days for a month
+   */
+  generateCalendarDays(year: number, month: number, selectedDate?: Date): CalendarDay[][] {
+    return this.getMonthData(year, month, selectedDate);
+  }
+
+  /**
    * Get the first day that should appear on the calendar grid
    */
   private getFirstDayOfCalendarGrid(firstDayOfMonth: Date): Date {
@@ -118,6 +171,14 @@ export class CalendarService {
    */
   private isSameDay(date1: Date, date2: Date): boolean {
     return areDatesEqual(date1, date2);
+  }
+
+  /**
+   * Check if a date is today
+   */
+  isToday(date: Date): boolean {
+    const today = new Date();
+    return this.isSameDay(date, today);
   }
 
   /**
@@ -223,6 +284,20 @@ export class CalendarService {
     return this.options.disabledDates.some(disabledDate => 
       this.isSameDay(date, disabledDate)
     );
+  }
+
+  /**
+   * Set minimum selectable date
+   */
+  setMinDate(date: Date | null): void {
+    this.options.minDate = date;
+  }
+
+  /**
+   * Set maximum selectable date
+   */
+  setMaxDate(date: Date | null): void {
+    this.options.maxDate = date;
   }
 
   /**

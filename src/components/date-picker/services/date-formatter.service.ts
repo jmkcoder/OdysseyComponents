@@ -327,4 +327,18 @@ export class DateFormatter implements IDateFormatter {
     date.setDate(date.getDate() - date.getDay() + dayIndex);
     return date.toLocaleDateString(useLocale, { weekday: format });
   }
+
+  /**
+   * Get all weekday names for a locale
+   * @param format Format of the weekday names ('long', 'short', or 'narrow')
+   * @param locale The locale to use
+   * @returns Array of localized weekday names
+   */
+  getWeekdayNames(format: 'long' | 'short' | 'narrow' = 'short', locale?: string): string[] {
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      days.push(this.getWeekdayName(i, format, locale));
+    }
+    return days;
+  }
 }

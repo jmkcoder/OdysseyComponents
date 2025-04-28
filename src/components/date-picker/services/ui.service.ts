@@ -542,7 +542,7 @@ export class UIService{
   private formatDateByLocale(date: Date | null): string {
     if (!date) return '';
 
-    // Use explicit format if provided
+    // Use explicit format if provided, always passing format and locale parameters
     return this.formatter.format(date, this.state.format, this.state.locale);
   }
 

@@ -1,13 +1,85 @@
 import { UIService } from '../../services/ui.service';
 import { StateService } from '../../services/state.service';
 import { IDateFormatter } from '../../services/date-formatter.interface';
+import { StateChangeListener } from '../../services/state.service';
+
+// Instead of extending StateService, create a complete mock with the same interface
+class TestStateService implements Partial<StateService> {
+  private _formatter: IDateFormatter;
+  private _listeners: StateChangeListener[] = [];
+  
+  // States that we need to mock
+  public selectedDate: Date | null = null;
+  public viewDate: Date = new Date();
+  public isOpen: boolean = false;
+  public currentView: any = 'calendar';
+  public isRangeMode: boolean = false;
+  public rangeStart: Date | null = null;
+  public rangeEnd: Date | null = null;
+  public rangeSelectionInProgress: boolean = false;
+  public format: string = 'yyyy-MM-dd';
+  public locale: string = 'en-US';
+  public firstDayOfWeek: number = 0;
+  
+  constructor(formatter: IDateFormatter) {
+    this._formatter = formatter;
+  }
+  
+  public addListener(listener: StateChangeListener): void {
+    this._listeners.push(listener);
+  }
+  
+  public removeListener(listener: StateChangeListener): void {
+    const index = this._listeners.indexOf(listener);
+    if (index !== -1) {
+      this._listeners.splice(index, 1);
+    }
+  }
+  
+  public notifyListeners(): void {
+    for (const listener of this._listeners) {
+      listener.onStateChange();
+    }
+  }
+  
+  public selectSingleDate(date: Date): void {
+    this.selectedDate = date;
+  }
+  
+  public selectRangeDate(date: Date): void {
+    if (!this.rangeStart) {
+      this.rangeStart = date;
+    } else {
+      this.rangeEnd = date;
+    }
+  }
+  
+  public resetRangeSelection(): void {
+    this.rangeStart = null;
+    this.rangeEnd = null;
+  }
+  
+  public navigateToNextPeriod(): void {
+    // Mock implementation
+  }
+  
+  public navigateToPreviousPeriod(): void {
+    // Mock implementation
+  }
+
+  public isDateDisabled(date: Date): boolean {
+    // Always return false for testing purposes
+    return false;
+  }
+}
 
 // Mock components properly
 jest.mock('../../components', () => {
+  // Create a named export for mockRenderFn
   const mockRenderFn = jest.fn();
   
   // Factory for creating component mock classes
-  const createComponentMock = (name) => {
+  const createComponentMock = (name: string) => {
     return jest.fn().mockImplementation(() => ({
       render: mockRenderFn
     }));
@@ -19,17 +91,19 @@ jest.mock('../../components', () => {
     FooterView: createComponentMock('FooterView'),
     MonthView: createComponentMock('MonthView'),
     YearView: createComponentMock('YearView'),
-    // Export the render function so we can verify it was called
+    // Export the mock render function
     mockRenderFn
   };
 });
 
-// Import the mockRenderFn to verify it's being called
-import { mockRenderFn } from '../../components';
+// Import mockRenderFn from the mocked module
+import * as components from '../../components';
+// Get the mockRenderFn from the imported module
+const { mockRenderFn } = jest.requireMock('../../components') as { mockRenderFn: jest.Mock };
 
 describe('UIService', () => {
   let uiService: UIService;
-  let mockState: StateService;
+  let mockState: TestStateService;
   let mockFormatter: IDateFormatter;
   let mockCalendarContainer: HTMLElement;
   let mockHeaderContainer: HTMLElement;
@@ -66,7 +140,7 @@ describe('UIService', () => {
     document.body.appendChild(mockDialogElement);
     document.body.appendChild(mockInputElement);
     
-    // Create mock state
+    // Create mock formatter
     mockFormatter = {
       format: jest.fn((date, format, locale) => {
         if (!date) return '';
@@ -78,22 +152,25 @@ describe('UIService', () => {
                        'July', 'August', 'September', 'October', 'November', 'December'];
         return months[month];
       }),
-      getMonthNames: jest.fn(() => []),
+      getMonthNames: jest.fn(() => {
+        return ['January', 'February', 'March', 'April', 'May', 'June', 
+                'July', 'August', 'September', 'October', 'November', 'December'];
+      }),
       getWeekdayName: jest.fn(() => ''),
-      getWeekdayNames: jest.fn(() => [])
+      getWeekdayNames: jest.fn(() => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'])
     };
     
-    // Mock the state methods that might trigger updateUI
-    mockState = new StateService(mockFormatter);
+    // Use the TestStateService instead of regular StateService
+    mockState = new TestStateService(mockFormatter);
     
-    // Prevent automatic UI updates during tests by mocking notifyListeners
-    jest.spyOn(mockState, 'notifyListeners').mockImplementation(() => {});
+    // Create a proper spy on our test state object
+    jest.spyOn(mockState, 'notifyListeners');
     
     // Set some test data in the state
     mockState.viewDate = new Date(2025, 3, 15); // April 15, 2025
     
     // Create the UIService
-    uiService = new UIService(mockState, mockFormatter);
+    uiService = new UIService(mockState as unknown as StateService, mockFormatter);
     
     // Initialize the UI service with our mock DOM elements
     uiService.initialize(
@@ -105,7 +182,7 @@ describe('UIService', () => {
     );
 
     // Reset the mock render function before each test
-    (mockRenderFn as jest.Mock).mockClear();
+    mockRenderFn.mockClear();
   });
 
   afterEach(() => {
@@ -231,8 +308,7 @@ describe('UIService', () => {
       mockState.rangeEnd = new Date(2025, 3, 15);
       
       // Mock formatter to return specific values for range dates
-      mockFormatter.format
-        .mockReturnValueOnce('2025-04-10')
+      (mockFormatter.format as jest.Mock).mockReturnValueOnce('2025-04-10')
         .mockReturnValueOnce('2025-04-15');
       
       // Call the private method
@@ -249,7 +325,7 @@ describe('UIService', () => {
       mockState.rangeEnd = null;
       
       // Mock formatter to return specific value for start date
-      mockFormatter.format.mockReturnValueOnce('2025-04-10');
+      (mockFormatter.format as jest.Mock).mockReturnValueOnce('2025-04-10');
       
       // Call the private method
       (uiService as any).updateInputValue();
@@ -339,7 +415,7 @@ describe('UIService', () => {
       
       // Add handler method to the service prototype if not already there
       if (!(uiService as any).handleDateSelect) {
-        (uiService as any).handleDateSelect = function(date) {
+        (uiService as any).handleDateSelect = function(date: Date) {
           if (this.state.isRangeMode) {
             this.state.selectRangeDate(date);
           } else {
@@ -365,7 +441,7 @@ describe('UIService', () => {
       
       // Add handler method if not already there
       if (!(uiService as any).handleDateSelect) {
-        (uiService as any).handleDateSelect = function(date) {
+        (uiService as any).handleDateSelect = function(date: Date) {
           if (this.state.isRangeMode) {
             this.state.selectRangeDate(date);
           } else {
@@ -454,7 +530,7 @@ describe('UIService', () => {
       
       // Add handler method if not already there
       if (!(uiService as any).handleMonthSelect) {
-        (uiService as any).handleMonthSelect = function(monthIndex) {
+        (uiService as any).handleMonthSelect = function(monthIndex: number) {
           const newDate = new Date(this.state.viewDate);
           newDate.setMonth(monthIndex);
           this.state.viewDate = newDate;
@@ -479,7 +555,7 @@ describe('UIService', () => {
       
       // Add handler method if not already there
       if (!(uiService as any).handleYearSelect) {
-        (uiService as any).handleYearSelect = function(year) {
+        (uiService as any).handleYearSelect = function(year: number) {
           const newDate = new Date(this.state.viewDate);
           newDate.setFullYear(year);
           this.state.viewDate = newDate;

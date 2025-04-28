@@ -468,7 +468,7 @@ export class UIUpdaterService {
     container.appendChild(weekdaysRow);
     
     // Generate calendar days
-    const calendarDays = calendarService.generateCalendarDays(year, month);
+    const calendarDaysMatrix = calendarService.generateCalendarDays(year, month);
     
     // Create grid for days (6 weeks x 7 days)
     let week: HTMLDivElement | null = null;
@@ -482,7 +482,12 @@ export class UIUpdaterService {
       return time > startDate.getTime() && time < endDate.getTime();
     };
     
-    for (const currentDate of calendarDays) {
+    // Flatten the matrix of calendar days
+    const calendarDays = calendarDaysMatrix.flat();
+    
+    for (const calendarDay of calendarDays) {
+      const currentDate = calendarDay.date; // Use the date property from CalendarDay
+      
       // Create a new row for each week
       if (dayCount % 7 === 0) {
         if (week) {
@@ -499,9 +504,8 @@ export class UIUpdaterService {
       // Set text content to day number
       dayCell.textContent = currentDate.getDate().toString();
       
-      // Check if current month
-      const isCurrentMonth = currentDate.getMonth() === month;
-      if (!isCurrentMonth) {
+      // Check if current month - using the isCurrentMonth property from CalendarDay
+      if (!calendarDay.isCurrentMonth) {
         if (currentDate.getMonth() < month || 
           (currentDate.getMonth() === 11 && month === 0)) {
           dayCell.classList.add('prev-month');
@@ -510,8 +514,8 @@ export class UIUpdaterService {
         }
       }
       
-      // Check if day is today
-      if (calendarService.isToday(currentDate)) {
+      // Check if day is today - using the isToday property from CalendarDay
+      if (calendarDay.isToday) {
         dayCell.classList.add('today');
       }
       
@@ -566,7 +570,7 @@ export class UIUpdaterService {
       }
       
       // Check if day is disabled
-      if (calendarService.isDateDisabled(currentDate)) {
+      if (calendarDay.isDisabled) {
         dayCell.classList.add('disabled');
       } else {
         // Add click event only if not disabled
