@@ -197,6 +197,21 @@ export const WithEvents: Story = {
           @date-clear=${args.onDateClear}
         ></odyssey-date-picker>
       </div>
+
+      <script>
+        // Open the calendar automatically after a short delay to show events
+        setTimeout(() => {
+          const datePicker = document.getElementById('event-demo-picker');
+          if (datePicker) {
+            // Set up the events programmatically as well as a backup
+            if (datePicker.addEvent) {
+              datePicker.addEvent(new Date(2025, 3, 15), 'Meeting');
+              datePicker.addEvent(new Date(2025, 3, 22), 'Important deadline');
+              datePicker.addEvent(new Date(2025, 3, 22), 'Call with client');
+              datePicker.addEvent(new Date(2025, 3, 30), 'End of month report');
+            }
+          }
+        }, 500);
       </script>
 
       <style>
