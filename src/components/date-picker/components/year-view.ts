@@ -26,18 +26,8 @@ export class YearView {
     const rows = 5;
     const cols = 3;
     
-    // Initialize with no year highlighted
-    let yearToHighlight = -1;
-    
-    // Only highlight a year if it's the one we're currently viewing/focused on
-    if (this.config.viewDate) {
-      const viewYear = this.config.viewDate.getFullYear();
-      
-      // Only highlight if the view year is within the display range
-      if (viewYear >= startYear && viewYear <= startYear + (rows * cols - 1)) {
-        yearToHighlight = viewYear;
-      }
-    }
+    // Highlight the current year from viewDate (the one shown in header)
+    const yearToHighlight = this.config.viewDate.getFullYear();
     
     for (let i = 0; i < rows; i++) {
       yearsContent += '<div class="date-picker-row" role="row">';

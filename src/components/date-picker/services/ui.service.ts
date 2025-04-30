@@ -606,6 +606,11 @@ export class UIService{
     if (!this.state.isRangeMode && !this.state.isDateDisabled(today)) {
       this.state.selectedDate = today;
     }
+    
+    // Always navigate back to the calendar view if we're not already there
+    if (this.state.currentView !== 'calendar') {
+      this.state.currentView = 'calendar';
+    }
   }
 
   private handleClearClick(): void {
