@@ -25,9 +25,10 @@ describe('DateUtils', () => {
       const result = DateUtils.parseDate(dateStr);
       
       expect(result).toBeInstanceOf(Date);
-      expect(result.getFullYear()).toBe(2025);
-      expect(result.getMonth()).toBe(3); // April (0-based)
-      expect(result.getDate()).toBe(15);
+      expect(result).not.toBeNull();
+      expect(result!.getFullYear()).toBe(2025);
+      expect(result!.getMonth()).toBe(3); // April (0-based)
+      expect(result!.getDate()).toBe(15);
     });
 
     it('should parse European format date string (DD-MM-YYYY)', () => {
@@ -35,9 +36,10 @@ describe('DateUtils', () => {
       const result = DateUtils.parseDate(dateStr);
       
       expect(result).toBeInstanceOf(Date);
-      expect(result.getFullYear()).toBe(2025);
-      expect(result.getMonth()).toBe(3); // April (0-based)
-      expect(result.getDate()).toBe(15);
+      expect(result).not.toBeNull();
+      expect(result!.getFullYear()).toBe(2025);
+      expect(result!.getMonth()).toBe(3); // April (0-based)
+      expect(result!.getDate()).toBe(15);
     });
 
     it('should parse European format with slash separator (DD/MM/YYYY)', () => {
@@ -45,9 +47,10 @@ describe('DateUtils', () => {
       const result = DateUtils.parseDate(dateStr);
       
       expect(result).toBeInstanceOf(Date);
-      expect(result.getFullYear()).toBe(2025);
-      expect(result.getMonth()).toBe(3);
-      expect(result.getDate()).toBe(15);
+      expect(result).not.toBeNull();
+      expect(result!.getFullYear()).toBe(2025);
+      expect(result!.getMonth()).toBe(3);
+      expect(result!.getDate()).toBe(15);
     });
 
     it('should parse European format with dot separator (DD.MM.YYYY)', () => {
@@ -55,9 +58,10 @@ describe('DateUtils', () => {
       const result = DateUtils.parseDate(dateStr);
       
       expect(result).toBeInstanceOf(Date);
-      expect(result.getFullYear()).toBe(2025);
-      expect(result.getMonth()).toBe(3);
-      expect(result.getDate()).toBe(15);
+      expect(result).not.toBeNull();
+      expect(result!.getFullYear()).toBe(2025);
+      expect(result!.getMonth()).toBe(3);
+      expect(result!.getDate()).toBe(15);
     });
 
     it('should handle ambiguous date formats', () => {
@@ -67,9 +71,10 @@ describe('DateUtils', () => {
       const result = DateUtils.parseDate(ambiguousDateStr);
       
       expect(result).toBeInstanceOf(Date);
+      expect(result).not.toBeNull();
       // Check that either April 1 or January 4 is parsed consistently
-      const isApril1 = result.getMonth() === 3 && result.getDate() === 1;
-      const isJanuary4 = result.getMonth() === 0 && result.getDate() === 4;
+      const isApril1 = result!.getMonth() === 3 && result!.getDate() === 1;
+      const isJanuary4 = result!.getMonth() === 0 && result!.getDate() === 4;
       expect(isApril1 || isJanuary4).toBe(true);
     });
 

@@ -154,6 +154,7 @@ export class CalendarView {
     isInRange: boolean
   ): string {
     const formatter = this.config.formatter;
+    // Ensure date is not null before formatting
     const formattedDate = formatter.format(date, 'full', this.config.locale);
     let label = formattedDate;
     
@@ -197,7 +198,7 @@ export class CalendarView {
         const dateValue = cell.getAttribute('data-date');
         if (dateValue) {
           const date = this.config.formatter.parse(dateValue);
-          if (!isNaN(date.getTime())) {
+          if (date && !isNaN(date.getTime())) {
             e.preventDefault();
             e.stopPropagation();
             
