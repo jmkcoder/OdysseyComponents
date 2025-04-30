@@ -4,6 +4,7 @@ export interface MonthViewConfig {
   formatter: IDateFormatter;
   locale: string;
   viewDate: Date;
+  selectedDate?: Date | null; // Add selectedDate to determine which month to highlight
 }
 
 export interface MonthViewCallbacks {
@@ -25,7 +26,13 @@ export class MonthView {
     const monthNames = this.getMonthNames('short');
     const currentYear = this.config.viewDate.getFullYear();
     const currentMonth = new Date().getFullYear() === currentYear ? new Date().getMonth() : -1;
-    const selectedMonth = this.config.viewDate.getMonth();
+    
+    // Determine which month to highlight as selected
+    // This is the key change: only mark a month as selected if the selectedDate is in the current view year
+    let selectedMonth = -1;
+    if (this.config.selectedDate && this.config.selectedDate.getFullYear() === currentYear) {
+      selectedMonth = this.config.selectedDate.getMonth();
+    }
     
     // Month grid is 4 rows x 3 columns
     const rows = 4;

@@ -1,5 +1,6 @@
 export interface YearViewConfig {
   viewDate: Date;
+  selectedDate?: Date | null; // Add selectedDate property to decide what to highlight
 }
 
 export interface YearViewCallbacks {
@@ -25,12 +26,22 @@ export class YearView {
     const rows = 5;
     const cols = 3;
     
+    // Only highlight the year if it's in the current view range
+    let yearToHighlight = -1;
+    if (this.config.selectedDate) {
+      const selectedYear = this.config.selectedDate.getFullYear();
+      // Only highlight if the selected year is within the display range
+      if (selectedYear >= startYear && selectedYear <= startYear + (rows * cols - 1)) {
+        yearToHighlight = selectedYear;
+      }
+    }
+    
     for (let i = 0; i < rows; i++) {
       yearsContent += '<div class="date-picker-row" role="row">';
       
       for (let j = 0; j < cols; j++) {
         const yearValue = startYear + i * cols + j;
-        const isSelected = currentYear === yearValue;
+        const isSelected = yearValue === yearToHighlight;
         const isCurrent = new Date().getFullYear() === yearValue;
         
         let cellClass = 'date-picker-cell year-cell';

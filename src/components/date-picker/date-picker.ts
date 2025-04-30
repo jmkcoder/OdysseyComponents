@@ -516,26 +516,19 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
     
     // Use setTimeout to ensure animation is visible
     setTimeout(() => {
-      // Perform the actual navigation
-      const currentDate = this.stateService.viewDate;
-      const newDate = new Date(currentDate);
-      
       if (direction === 'previous') {
-        newDate.setMonth(currentDate.getMonth() - 1);
+        this.stateService.navigateToPreviousPeriod();
       } else if (direction === 'next') {
-        newDate.setMonth(currentDate.getMonth() + 1);
+        this.stateService.navigateToNextPeriod();
       } else if (direction === 'previous-year') {
-        newDate.setFullYear(currentDate.getFullYear() - 1);
+        this.stateService.navigateToPreviousPeriod();
       } else if (direction === 'next-year') {
-        newDate.setFullYear(currentDate.getFullYear() + 1);
+        this.stateService.navigateToNextPeriod();
       } else if (direction === 'previous-decade') {
-        newDate.setFullYear(currentDate.getFullYear() - 10);
+        this.stateService.navigateToPreviousPeriod();
       } else if (direction === 'next-decade') {
-        newDate.setFullYear(currentDate.getFullYear() + 10);
+        this.stateService.navigateToNextPeriod();
       }
-      
-      // Update state
-      this.stateService.viewDate = newDate;
       
       // Remove animation class after animation completes
       setTimeout(() => {

@@ -341,7 +341,8 @@ export class UIService{
       {
         formatter: this.formatter,
         locale: this.state.locale,
-        viewDate: this.state.viewDate
+        viewDate: this.state.viewDate,
+        selectedDate: this.state.selectedDate  // Pass selected date to determine which month to highlight
       },
       {
         onMonthSelect: this.handleMonthSelect.bind(this)
@@ -357,7 +358,8 @@ export class UIService{
   private renderYearView(): void {
     const yearView = new YearView(
       {
-        viewDate: this.state.viewDate
+        viewDate: this.state.viewDate,
+        selectedDate: this.state.selectedDate  // Pass selected date to determine which year to highlight
       },
       {
         onYearSelect: this.handleYearSelect.bind(this)

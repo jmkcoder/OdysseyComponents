@@ -628,7 +628,11 @@ export class UIUpdaterService {
     monthsContainer.classList.add('date-picker-months-grid');
     monthsContainer.setAttribute('role', 'grid');
     
-    // Create months grid (3x4)
+    // Current date for highlighting today's month if in current year
+    const today = new Date();
+    const isCurrentYear = today.getFullYear() === year;
+    
+    // Create months grid (4x3)
     for (let row = 0; row < 4; row++) {
       const monthRow = document.createElement('div');
       monthRow.classList.add('date-picker-row');
@@ -639,8 +643,14 @@ export class UIUpdaterService {
         const monthElement = document.createElement('div');
         monthElement.classList.add('date-picker-cell', 'month-cell');
         monthElement.setAttribute('role', 'gridcell');
+        monthElement.setAttribute('data-month', monthIndex.toString());
         
-        // Check if month is selected
+        // Only add selected class if we're looking at the current month in the current view
+        // This is the key fix: Only highlight the month if it's the selected month AND in the current year
+        const currentDate = new Date();
+        currentDate.setFullYear(year);
+        currentDate.setMonth(monthIndex);
+        
         if (monthIndex === currentMonth) {
           monthElement.classList.add('selected');
           monthElement.setAttribute('tabindex', '0');
@@ -649,8 +659,7 @@ export class UIUpdaterService {
         }
         
         // Check if it's current month in current year
-        const today = new Date();
-        if (today.getMonth() === monthIndex && today.getFullYear() === year) {
+        if (isCurrentYear && today.getMonth() === monthIndex) {
           monthElement.classList.add('current');
         }
         
@@ -687,8 +696,8 @@ export class UIUpdaterService {
     yearsContainer.classList.add('date-picker-years-grid');
     yearsContainer.setAttribute('role', 'grid');
     
-    // Track if the selected year is in the displayed range
-    let selectedYearVisible = false;
+    // Only highlight the year if it's within the current view range
+    const shouldHighlight = currentYear >= startYear && currentYear <= endYear;
     
     // Create years grid (4x3)
     let yearIndex = startYear;
@@ -703,13 +712,14 @@ export class UIUpdaterService {
           const yearElement = document.createElement('div');
           yearElement.classList.add('date-picker-cell', 'year-cell');
           yearElement.setAttribute('role', 'gridcell');
+          yearElement.setAttribute('data-year', yearIndex.toString());
           
-          // Check if year is selected
-          const isSelected = yearIndex === currentYear;
+          // Only highlight if the year is in the current view range
+          const isSelected = shouldHighlight && (yearIndex === currentYear);
+          
           if (isSelected) {
             yearElement.classList.add('selected');
             yearElement.setAttribute('tabindex', '0');
-            selectedYearVisible = true;
           } else {
             yearElement.setAttribute('tabindex', '-1');
           }
@@ -729,8 +739,6 @@ export class UIUpdaterService {
             // Prevent the event from bubbling up which might cause the calendar to close
             e.stopPropagation();
             e.preventDefault();
-            // Log which year was selected for debugging
-            console.log(`Year selected: ${actualYear}`);
             onSelectYear(actualYear);
           });
           
