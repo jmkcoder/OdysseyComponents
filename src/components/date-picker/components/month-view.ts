@@ -27,12 +27,9 @@ export class MonthView {
     const currentYear = this.config.viewDate.getFullYear();
     const currentMonth = new Date().getFullYear() === currentYear ? new Date().getMonth() : -1;
     
-    // Determine which month to highlight as selected
-    // This is the key change: only mark a month as selected if the selectedDate is in the current view year
-    let selectedMonth = -1;
-    if (this.config.selectedDate && this.config.selectedDate.getFullYear() === currentYear) {
-      selectedMonth = this.config.selectedDate.getMonth();
-    }
+    // Always highlight the viewDate month when in month selection mode
+    // This ensures the clicked month will be highlighted
+    let selectedMonth = this.config.viewDate.getMonth();
     
     // Month grid is 4 rows x 3 columns
     const rows = 4;

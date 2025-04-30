@@ -742,6 +742,12 @@ export class UIUpdaterService {
             onSelectYear(actualYear);
           });
           
+          // Store row and column for keyboard navigation
+          yearElement.setAttribute('data-row', row.toString());
+          yearElement.setAttribute('data-col', col.toString());
+          yearElement.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+          yearElement.setAttribute('aria-label', `Year ${yearIndex}`);
+          
           yearRow.appendChild(yearElement);
           yearIndex++;
         }

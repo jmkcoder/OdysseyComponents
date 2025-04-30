@@ -570,16 +570,26 @@ export class UIService{
   }
 
   private handleMonthSelect(monthIndex: number): void {
-    const newViewDate = new Date(this.state.viewDate);
-    newViewDate.setMonth(monthIndex);
-    this.state.viewDate = newViewDate;
+    // Create a new date based on the clicked month
+    const newDate = new Date(this.state.viewDate);
+    newDate.setMonth(monthIndex);
+    
+    // Update the viewDate to show the selected month, but don't change selectedDate
+    this.state.viewDate = newDate;
+    
+    // Navigate to calendar view after selecting a month
     this.state.currentView = 'calendar';
   }
 
   private handleYearSelect(year: number): void {
-    const newViewDate = new Date(this.state.viewDate);
-    newViewDate.setFullYear(year);
-    this.state.viewDate = newViewDate;
+    // Create a new date based on the clicked year
+    const newDate = new Date(this.state.viewDate);
+    newDate.setFullYear(year);
+    
+    // Update the viewDate to show the selected year, but don't change selectedDate
+    this.state.viewDate = newDate;
+    
+    // Navigate to months view after selecting a year
     this.state.currentView = 'months';
   }
 

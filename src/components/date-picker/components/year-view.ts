@@ -26,13 +26,16 @@ export class YearView {
     const rows = 5;
     const cols = 3;
     
-    // Only highlight the year if it's in the current view range
+    // Initialize with no year highlighted
     let yearToHighlight = -1;
-    if (this.config.selectedDate) {
-      const selectedYear = this.config.selectedDate.getFullYear();
-      // Only highlight if the selected year is within the display range
-      if (selectedYear >= startYear && selectedYear <= startYear + (rows * cols - 1)) {
-        yearToHighlight = selectedYear;
+    
+    // Only highlight a year if it's the one we're currently viewing/focused on
+    if (this.config.viewDate) {
+      const viewYear = this.config.viewDate.getFullYear();
+      
+      // Only highlight if the view year is within the display range
+      if (viewYear >= startYear && viewYear <= startYear + (rows * cols - 1)) {
+        yearToHighlight = viewYear;
       }
     }
     
@@ -49,7 +52,14 @@ export class YearView {
         if (isCurrent) cellClass += ' current';
         
         // Add tabindex="0" only to the selected year for keyboard navigation
-        const tabIndex = isSelected ? '0' : '-1';
+        // If no year is selected, make the first year focusable for keyboard access
+        let tabIndex = "-1";
+        
+        if (isSelected) {
+          tabIndex = "0";
+        } else if (i === 0 && j === 0 && yearToHighlight === -1) {
+          tabIndex = "0";
+        }
         
         yearsContent += `
           <div class="${cellClass}" 
