@@ -266,7 +266,7 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
         if (this.stateService.isRangeMode && newValue) {
           try {
             const startDate = this.formatter.parse(newValue);
-            if (!isNaN(startDate.getTime())) {
+            if (startDate && !isNaN(startDate.getTime())) {
               this.stateService.rangeStart = startDate;
               this.stateService.viewDate = new Date(startDate);
             }
@@ -279,7 +279,7 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
         if (this.stateService.isRangeMode && newValue) {
           try {
             const endDate = this.formatter.parse(newValue);
-            if (!isNaN(endDate.getTime())) {
+            if (endDate && !isNaN(endDate.getTime())) {
               this.stateService.rangeEnd = endDate;
             }
           } catch (e) {
@@ -620,7 +620,7 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
         const startDateStr = this.getAttribute('start-date') || '';
         try {
           const startDate = this.formatter.parse(startDateStr);
-          if (!isNaN(startDate.getTime())) {
+          if (startDate && !isNaN(startDate.getTime())) {
             this.stateService.rangeStart = startDate;
             this.stateService.viewDate = new Date(startDate);
           }
@@ -633,7 +633,7 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
         const endDateStr = this.getAttribute('end-date') || '';
         try {
           const endDate = this.formatter.parse(endDateStr);
-          if (!isNaN(endDate.getTime())) {
+          if (endDate && !isNaN(endDate.getTime())) {
             this.stateService.rangeEnd = endDate;
           }
         } catch (e) {
@@ -672,7 +672,7 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
         }
         
         const date = this.formatter.parse(value);
-        if (!isNaN(date.getTime())) {
+        if (date && !isNaN(date.getTime())) {
           this.stateService.selectedDate = date;
           this.stateService.viewDate = new Date(date);
         }
@@ -774,7 +774,7 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
         const start = this.formatter.parse(rangeParts[0]);
         const end = this.formatter.parse(rangeParts[1]);
         
-        if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+        if (start && !isNaN(start.getTime()) && end && !isNaN(end.getTime())) {
           // Check if this is actually a change from the current selection
           const isSameRange = 
             this.stateService.rangeStart && 
@@ -949,7 +949,7 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
         // Single date handling
         const date = this.formatter.parse(inputValue);
         
-        if (!isNaN(date.getTime())) {
+        if (date && !isNaN(date.getTime())) {
           // Check if the date is disabled before setting it
           if (this.stateService.isDateDisabled(date)) {
             this.showDisabledDateFeedback(date);

@@ -217,19 +217,138 @@ export class DateFormatter implements IDateFormatter {
    * Parse a string into a Date object
    * @param dateStr The date string to parse
    * @param format Optional format of the input string
-   * @returns A Date object
+   * @returns A Date object or null if parsing fails
    */
-  parse(dateStr: string, format?: string): Date {
-    // If it's in ISO format, use the built-in parsing
+  parse(dateStr: string, format?: string): Date | null {
+    if (!dateStr) return null;
+    
+    try {
+      return this.parseWithFormat(dateStr, format);
+    } catch (e) {
+      throw new Error(`Failed to parse date string: ${dateStr}`);
+    }
+  }
+
+  /**
+   * Internal parsing method that handles different format patterns
+   * @param dateStr The date string to parse
+   * @param format Optional format pattern
+   * @returns A Date object or null if parsing fails
+   */
+  private parseWithFormat(dateStr: string, format?: string): Date | null {
+    // If a specific format is provided, parse according to that format
+    if (format && format !== 'locale') {
+      // Determine the expected position of day, month, and year based on the format
+      const isDayFirst = format.indexOf('d') < format.indexOf('M'); 
+      const isYearFirst = format.indexOf('y') === 0;
+
+      // Get the separator from the format - look for common separators
+      let formatSeparator = format.replace(/[a-zA-Z]/g, '')[0];
+      if (!formatSeparator || formatSeparator === ' ') {
+        // If we couldn't find a separator in the format, try to infer from dateStr
+        for (const sep of ['-', '/', '.', ' ']) {
+          if (dateStr.includes(sep)) {
+            formatSeparator = sep;
+            break;
+          }
+        }
+      }
+      // Default separator if we still don't have one
+      formatSeparator = formatSeparator || '-';
+      
+      // Split the date string using the same separator as in the format
+      const parts = dateStr.split(formatSeparator).map(part => part.trim());
+      if (parts.length === 3) {
+        let yearPart: number, monthPart: number, dayPart: number;
+
+        if (isYearFirst) {
+          // Format is year-month-day (e.g. yyyy-MM-dd)
+          yearPart = parseInt(parts[0], 10);
+          monthPart = parseInt(parts[1], 10) - 1; // 0-based month
+          dayPart = parseInt(parts[2], 10);
+        } else if (isDayFirst) {
+          // Format is day-month-year (e.g. dd-MM-yyyy)
+          dayPart = parseInt(parts[0], 10);
+          monthPart = parseInt(parts[1], 10) - 1; // 0-based month
+          yearPart = parseInt(parts[2], 10);
+        } else {
+          // Format is month-day-year (e.g. MM-dd-yyyy)
+          monthPart = parseInt(parts[0], 10) - 1; // 0-based month
+          dayPart = parseInt(parts[1], 10);
+          yearPart = parseInt(parts[2], 10);
+        }
+
+        // Handle two-digit years
+        if (yearPart < 100) {
+          yearPart = yearPart + (yearPart > 50 ? 1900 : 2000);
+        }
+
+        // Validate the parsed date parts
+        if (isNaN(yearPart) || isNaN(monthPart) || isNaN(dayPart)) {
+          return null;
+        }
+
+        // Check for valid month and day ranges
+        if (monthPart < 0 || monthPart > 11 || dayPart < 1 || dayPart > 31) {
+          return null;
+        }
+
+        // Use noon time to avoid timezone issues
+        return new Date(yearPart, monthPart, dayPart, 12, 0, 0);
+      }
+    }
+    
+    // If it's in ISO format (yyyy-MM-dd), use specialized parsing
     if (dateStr.includes('-') && dateStr.split('-').length === 3) {
       const [yearStr, monthStr, dayStr] = dateStr.split('-');
       const year = parseInt(yearStr, 10);
       const month = parseInt(monthStr, 10) - 1; // Convert from 1-based to 0-based month
       const day = parseInt(dayStr, 10);
       
+      // Validate the parsed date parts
+      if (isNaN(year) || isNaN(month) || isNaN(day)) {
+        return null;
+      }
+
+      // Check for valid month and day ranges
+      if (month < 0 || month > 11 || day < 1 || day > 31) {
+        return null;
+      }
+      
       // Use noon time to avoid timezone issues
       return new Date(year, month, day, 12, 0, 0);
     } 
+    
+    // European format (dd.MM.yyyy or dd/MM/yyyy)
+    if ((dateStr.includes('.') || dateStr.includes('/')) && 
+        (dateStr.split('.').length === 3 || dateStr.split('/').length === 3)) {
+      const separator = dateStr.includes('.') ? '.' : '/';
+      const [dayStr, monthStr, yearStr] = dateStr.split(separator);
+      
+      const day = parseInt(dayStr, 10);
+      const month = parseInt(monthStr, 10) - 1; // Convert from 1-based to 0-based month
+      const year = parseInt(yearStr, 10);
+      
+      // Validate the parsed date parts
+      if (isNaN(year) || isNaN(month) || isNaN(day)) {
+        return null;
+      }
+
+      // Check for valid month and day ranges - this helps disambiguate between MM/dd and dd/MM
+      if (month < 0 || month > 11 || day < 1 || day > 31) {
+        // Try the alternative interpretation (maybe it's MM/dd instead of dd/MM)
+        const alternateMonth = parseInt(dayStr, 10) - 1;
+        const alternateDay = parseInt(monthStr, 10);
+        
+        if (alternateMonth >= 0 && alternateMonth <= 11 && alternateDay >= 1 && alternateDay <= 31) {
+          return new Date(year, alternateMonth, alternateDay, 12, 0, 0);
+        }
+        return null;
+      }
+      
+      // Use noon time to avoid timezone issues
+      return new Date(year, month, day, 12, 0, 0);
+    }
     
     // If format is specified as 'locale', use the locale's date format for parsing
     if (format === 'locale') {
@@ -237,6 +356,7 @@ export class DateFormatter implements IDateFormatter {
       const separator = this.i18nService.getDateSeparator();
       
       const parts = dateStr.split(separator);
+      if (parts.length !== 3) return null;
       
       // Extract year, month, day based on the locale format pattern
       let year: number, month: number, day: number;
@@ -260,22 +380,61 @@ export class DateFormatter implements IDateFormatter {
         year = parseInt(parts[2], 10);
       }
       
+      // Validate the parsed date parts
+      if (isNaN(year) || isNaN(month) || isNaN(day)) {
+        return null;
+      }
+
+      // Check for valid month and day ranges
+      if (month < 0 || month > 11 || day < 1 || day > 31) {
+        return null;
+      }
+      
       return new Date(year, month, day, 12, 0, 0);
     }
     
-    // If no specific format is provided, use the native parser with noon time
-    const parsedDate = new Date(dateStr);
-    if (!isNaN(parsedDate.getTime())) {
-      return new Date(
-        parsedDate.getFullYear(),
-        parsedDate.getMonth(),
-        parsedDate.getDate(),
-        12, 0, 0
-      );
+    // If no specific format is provided, try to intelligently guess the format
+    if (dateStr.match(/^\d{1,2}[\/\.\-]\d{1,2}[\/\.\-]\d{4}$/)) {
+      // This looks like either MM/DD/YYYY or DD/MM/YYYY
+      const separator = dateStr.includes('/') ? '/' : (dateStr.includes('-') ? '-' : '.');
+      const [first, second, third] = dateStr.split(separator);
+      
+      // Try both interpretations and use the one that produces a valid date
+      // First try DD/MM/YYYY
+      const day = parseInt(first, 10);
+      const month = parseInt(second, 10) - 1;
+      const year = parseInt(third, 10);
+      
+      if (day >= 1 && day <= 31 && month >= 0 && month <= 11) {
+        return new Date(year, month, day, 12, 0, 0);
+      }
+      
+      // If that doesn't work, try MM/DD/YYYY
+      const altMonth = parseInt(first, 10) - 1;
+      const altDay = parseInt(second, 10);
+      
+      if (altMonth >= 0 && altMonth <= 11 && altDay >= 1 && altDay <= 31) {
+        return new Date(year, altMonth, altDay, 12, 0, 0);
+      }
     }
     
-    // If parsing fails, throw an error
-    throw new Error(`Failed to parse date string: ${dateStr}`);
+    // If still no success, try the native parser with noon time
+    try {
+      const parsedDate = new Date(dateStr);
+      if (!isNaN(parsedDate.getTime())) {
+        return new Date(
+          parsedDate.getFullYear(),
+          parsedDate.getMonth(),
+          parsedDate.getDate(),
+          12, 0, 0
+        );
+      }
+    } catch {
+      // Ignore parsing errors and continue
+    }
+    
+    // If all parsing attempts fail, return null
+    return null;
   }
 
   /**

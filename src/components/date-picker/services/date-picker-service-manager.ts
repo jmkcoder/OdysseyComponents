@@ -113,6 +113,9 @@ export class DatePickerServiceManager {
       this._i18nService.setLocale(localeAttr);
     }
     
+    // Get format attribute for date parsing
+    const formatAttr = this._element.getAttribute('format') || 'yyyy-MM-dd';
+    
     // Set first day of week
     const firstDayAttr = this._element.getAttribute('first-day-of-week');
     if (firstDayAttr) {
@@ -125,7 +128,7 @@ export class DatePickerServiceManager {
     // Set min date
     const minDateAttr = this._element.getAttribute('min-date');
     if (minDateAttr) {
-      const minDate = this._calendarService.parseDate(minDateAttr);
+      const minDate = this._calendarService.parseDate(minDateAttr, formatAttr);
       if (minDate) {
         this._calendarService.setMinDate(minDate);
       }
@@ -134,7 +137,7 @@ export class DatePickerServiceManager {
     // Set max date
     const maxDateAttr = this._element.getAttribute('max-date');
     if (maxDateAttr) {
-      const maxDate = this._calendarService.parseDate(maxDateAttr);
+      const maxDate = this._calendarService.parseDate(maxDateAttr, formatAttr);
       if (maxDate) {
         this._calendarService.setMaxDate(maxDate);
       }
@@ -150,7 +153,7 @@ export class DatePickerServiceManager {
     if (this._selectionMode === DatePickerSelectionMode.SINGLE) {
       const valueAttr = this._element.getAttribute('value');
       if (valueAttr) {
-        const value = this._calendarService.parseDate(valueAttr);
+        const value = this._calendarService.parseDate(valueAttr, formatAttr);
         if (value) {
           this._selectedDate = value;
           this._currentMonth = value.getMonth();
@@ -163,7 +166,7 @@ export class DatePickerServiceManager {
     else {
       const startDateAttr = this._element.getAttribute('start-date');
       if (startDateAttr) {
-        const startDate = this._calendarService.parseDate(startDateAttr);
+        const startDate = this._calendarService.parseDate(startDateAttr, formatAttr);
         if (startDate) {
           this._startDate = startDate;
           
@@ -176,7 +179,7 @@ export class DatePickerServiceManager {
       
       const endDateAttr = this._element.getAttribute('end-date');
       if (endDateAttr) {
-        const endDate = this._calendarService.parseDate(endDateAttr);
+        const endDate = this._calendarService.parseDate(endDateAttr, formatAttr);
         if (endDate) {
           this._endDate = endDate;
           

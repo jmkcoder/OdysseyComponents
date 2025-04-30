@@ -1,5 +1,6 @@
 // Calendar Service for the date-picker component
 import { areDatesEqual } from '../../../utilities/date-utils';
+import { DateFormatter } from './date-formatter.service';
 
 export interface CalendarDay {
   date: Date;
@@ -22,6 +23,7 @@ export interface CalendarServiceOptions {
 export class CalendarService {
   private options: CalendarServiceOptions;
   private events: { [key: string]: string[] } = {};
+  private dateFormatter: DateFormatter;
 
   constructor(options: Partial<CalendarServiceOptions> = {}) {
     this.options = {
@@ -33,6 +35,9 @@ export class CalendarService {
       disabledDaysOfWeek: [],
       ...options
     };
+    
+    // Initialize date formatter
+    this.dateFormatter = new DateFormatter(this.options.locale);
   }
 
   /**
@@ -83,14 +88,19 @@ export class CalendarService {
 
   /**
    * Parse a string date into a Date object
+   * @param dateString The date string or Date object to parse
+   * @param format Optional format string to use for parsing
+   * @returns A Date object or null if parsing fails
    */
-  parseDate(dateString: string | Date): Date | null {
+  parseDate(dateString: string | Date, format?: string): Date | null {
     if (!dateString) return null;
     if (dateString instanceof Date) return new Date(dateString);
     
     try {
-      return new Date(dateString);
+      // Use the DateFormatter for consistent parsing across the application
+      return this.dateFormatter.parse(dateString, format);
     } catch (e) {
+      console.error('Error parsing date:', e);
       return null;
     }
   }
@@ -103,45 +113,50 @@ export class CalendarService {
    * @returns A 6x7 matrix representing weeks and days
    */
   getMonthData(year: number, month: number, selectedDate?: Date): CalendarDay[][] {
-    const result: CalendarDay[][] = [];
+    // Create date for first day of the month
+    const firstDay = new Date(year, month, 1);
+    
+    // Get the first day that should appear on the calendar grid
+    const firstDayOnGrid = this.getFirstDayOfCalendarGrid(firstDay);
+    
+    // Today's date for highlighting
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
-    // First day of the month
-    const firstDayOfMonth = new Date(year, month, 1);
+    // Create calendar grid (6 weeks x 7 days)
+    const calendarGrid: CalendarDay[][] = [];
+    let currentDate = new Date(firstDayOnGrid);
     
-    // Last day of the month
-    const lastDayOfMonth = new Date(year, month + 1, 0);
-    
-    // First day of the calendar grid (might be from previous month)
-    const firstDayOfCalendar = this.getFirstDayOfCalendarGrid(firstDayOfMonth);
-    
-    // Create the calendar grid (6 weeks x 7 days)
-    let currentDate = new Date(firstDayOfCalendar);
-    
+    // Create 6 weeks
     for (let week = 0; week < 6; week++) {
-      const weekDays: CalendarDay[] = [];
+      const weekData: CalendarDay[] = [];
       
+      // Create 7 days per week
       for (let day = 0; day < 7; day++) {
-        const isCurrentMonth = currentDate.getMonth() === month;
-        const dateKey = this.formatDateKey(currentDate);
+        const date = new Date(currentDate);
+        const isCurrentMonth = date.getMonth() === month;
+        const isToday = this.isSameDay(date, today);
+        const isSelected = selectedDate ? this.isSameDay(date, selectedDate) : false;
+        const isDisabled = this.isDateDisabled(date);
+        const hasEvents = this.hasEvents(this.formatDateKey(date));
         
-        weekDays.push({
-          date: new Date(currentDate),
+        weekData.push({
+          date,
           isCurrentMonth,
-          isToday: this.isSameDay(currentDate, today),
-          isSelected: selectedDate ? this.isSameDay(currentDate, selectedDate) : false,
-          isDisabled: this.isDateDisabled(currentDate),
-          hasEvents: this.hasEvents(dateKey)
+          isToday,
+          isSelected,
+          isDisabled,
+          hasEvents
         });
         
         // Move to next day
         currentDate.setDate(currentDate.getDate() + 1);
       }
       
-      result.push(weekDays);
+      calendarGrid.push(weekData);
     }
     
-    return result;
+    return calendarGrid;
   }
 
   /**
@@ -266,13 +281,29 @@ export class CalendarService {
    */
   isDateDisabled(date: Date): boolean {
     // Check min date
-    if (this.options.minDate && date < this.options.minDate) {
-      return true;
+    if (this.options.minDate) {
+      // Set the minDate hours to 0 for consistent comparison
+      const minDate = new Date(this.options.minDate);
+      minDate.setHours(0, 0, 0, 0);
+      
+      // Set the check date hours to 0 for consistent comparison
+      const checkDate = new Date(date);
+      checkDate.setHours(0, 0, 0, 0);
+      
+      if (checkDate < minDate) return true;
     }
     
     // Check max date
-    if (this.options.maxDate && date > this.options.maxDate) {
-      return true;
+    if (this.options.maxDate) {
+      // Set the maxDate hours to 0 for consistent comparison
+      const maxDate = new Date(this.options.maxDate);
+      maxDate.setHours(0, 0, 0, 0);
+      
+      // Set the check date hours to 0 for consistent comparison
+      const checkDate = new Date(date);
+      checkDate.setHours(0, 0, 0, 0);
+      
+      if (checkDate > maxDate) return true;
     }
     
     // Check disabled days of week
@@ -280,10 +311,8 @@ export class CalendarService {
       return true;
     }
     
-    // Check specifically disabled dates
-    return this.options.disabledDates.some(disabledDate => 
-      this.isSameDay(date, disabledDate)
-    );
+    // Check specific disabled dates
+    return this.options.disabledDates.some(disabledDate => this.isSameDay(date, disabledDate));
   }
 
   /**

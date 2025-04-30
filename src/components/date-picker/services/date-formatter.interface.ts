@@ -19,7 +19,7 @@ export interface IDateFormatter {
    * @param format Optional format of the input string
    * @returns A Date object
    */
-  parse(dateStr: string, format?: string): Date;
+  parse(dateStr: string, format?: string): Date | null;
   
   /**
    * Get the name of a month in the specified locale
