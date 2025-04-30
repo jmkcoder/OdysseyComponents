@@ -181,7 +181,6 @@ export const WithEvents: Story = {
     return html`
       <div class="event-example-container">
         <h3>DatePicker with Event Indicators</h3>
-        <p>Calendar will open automatically to show events. The following dates have events:</p>
         <ul>
           <li><strong>Apr 15, 2025:</strong> Meeting</li>
           <li><strong>Apr 22, 2025:</strong> Important deadline, Call with client</li>
@@ -198,23 +197,6 @@ export const WithEvents: Story = {
           @date-clear=${args.onDateClear}
         ></odyssey-date-picker>
       </div>
-      
-      <script>
-        // Open the calendar automatically after a short delay to show events
-        setTimeout(() => {
-          const datePicker = document.getElementById('event-demo-picker');
-          if (datePicker && typeof datePicker.toggleCalendar === 'function') {
-            datePicker.toggleCalendar();
-            
-            // Set up the events programmatically as well as a backup
-            if (datePicker.addEvent) {
-              datePicker.addEvent(new Date(2025, 3, 15), 'Meeting');
-              datePicker.addEvent(new Date(2025, 3, 22), 'Important deadline');
-              datePicker.addEvent(new Date(2025, 3, 22), 'Call with client');
-              datePicker.addEvent(new Date(2025, 3, 30), 'End of month report');
-            }
-          }
-        }, 500);
       </script>
 
       <style>

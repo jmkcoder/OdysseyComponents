@@ -528,11 +528,6 @@ export class UIService{
       }, 50); // Small delay to ensure DOM is updated
     } else {
       this.dialogElement.classList.remove('open');
-
-      // Return focus to the input when closing
-      if (this.inputElement) {
-        this.inputElement.focus();
-      }
     }
   }
 

@@ -775,14 +775,57 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
         const end = this.formatter.parse(rangeParts[1]);
         
         if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
-          if (start > end) {
-            this.stateService.rangeStart = end;
-            this.stateService.rangeEnd = start;
-          } else {
-            this.stateService.rangeStart = start;
-            this.stateService.rangeEnd = end;
+          // Check if this is actually a change from the current selection
+          const isSameRange = 
+            this.stateService.rangeStart && 
+            this.stateService.rangeEnd &&
+            this.stateService.rangeStart.getDate() === start.getDate() &&
+            this.stateService.rangeStart.getMonth() === start.getMonth() &&
+            this.stateService.rangeStart.getFullYear() === start.getFullYear() &&
+            this.stateService.rangeEnd.getDate() === end.getDate() &&
+            this.stateService.rangeEnd.getMonth() === end.getMonth() &&
+            this.stateService.rangeEnd.getFullYear() === end.getFullYear();
+          
+          if (!isSameRange) {
+            // Prevent event dispatching in processBatchedEvents since we'll dispatch our own
+            this._dateChangePrevented = true;
+            
+            // Set the range values
+            if (start > end) {
+              this.stateService.rangeStart = end;
+              this.stateService.rangeEnd = start;
+            } else {
+              this.stateService.rangeStart = start;
+              this.stateService.rangeEnd = end;
+            }
+            this.stateService.viewDate = new Date(this.stateService.rangeStart);
+            
+            // Get available dates within the range
+            const availableDates = this.getAvailableDatesInRange();
+            const formattedDates = availableDates.map(date => 
+              this.formatter.format(date, this.stateService.format)
+            );
+            
+            // Update the last selected date to prevent duplicate events
+            this._lastSelectedDate = `${this.formatter.format(this.stateService.rangeStart, 'yyyy-MM-dd')}-${this.formatter.format(this.stateService.rangeEnd, 'yyyy-MM-dd')}`;
+            
+            // Dispatch manual input event
+            this.dispatchEvent(
+              new CustomEvent('date-change', {
+                detail: {
+                  rangeStart: this.formatter.format(this.stateService.rangeStart, this.stateService.format),
+                  rangeEnd: this.formatter.format(this.stateService.rangeEnd, this.stateService.format),
+                  availableDates: formattedDates,
+                  availableDatesObjects: availableDates,
+                  source: 'manual-input'
+                },
+                bubbles: true,
+                composed: true
+              })
+            );
           }
-          this.stateService.viewDate = new Date(this.stateService.rangeStart);
+          
+          this.clearDateInputError();
           return;
         }
       }

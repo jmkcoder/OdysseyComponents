@@ -415,12 +415,6 @@ export class DatePickerServiceManager {
       this._isSelectingRange
     );
     
-    // Return focus to input
-    const inputField = this._uiUpdaterService.getInputField(this._container);
-    if (inputField) {
-      inputField.focus();
-    }
-    
     // Dispatch close event
     this._eventDispatcherService.dispatchCloseEvent();
   }
