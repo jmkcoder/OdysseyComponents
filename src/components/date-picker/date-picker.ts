@@ -401,7 +401,7 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
       touchStartY = e.touches[0].clientY;
       touchStartX = e.touches[0].clientX;
       initialTouchTime = Date.now();
-    }, { passive: true });
+    }, { passive: false });
 
     this.dialogElement.addEventListener('touchmove', (e: TouchEvent) => {
       if (window.matchMedia('(max-width: 768px)').matches) {
@@ -409,6 +409,12 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
         const touchX = e.touches[0].clientX;
         const deltaY = touchY - touchStartY;
         const deltaX = touchX - touchStartX;
+        
+        // Prevent pull-to-refresh when swiping inside the calendar dialog
+        // This prevents the browser's native pull-to-refresh behavior
+        if (deltaY > 0) {
+          e.preventDefault();
+        }
         
         // If swiping down, add a visual feedback by following the finger
         if (deltaY > 0 && Math.abs(deltaY) > Math.abs(deltaX)) {
@@ -422,7 +428,7 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
           this.calendarElement.style.opacity = `${1 - (Math.abs(deltaX) / 500)}`;
         }
       }
-    }, { passive: true });
+    }, { passive: false });
 
     this.dialogElement.addEventListener('touchend', (e: TouchEvent) => {
       if (window.matchMedia('(max-width: 768px)').matches) {
