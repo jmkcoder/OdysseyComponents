@@ -56,6 +56,103 @@ describe('DateFormatter', () => {
       expect(result.getDate()).toBe(15);
     });
 
+    it('should parse European format date string (dd-MM-yyyy)', () => {
+      const dateStr = '15-04-2025'; // April 15, 2025 in dd-MM-yyyy format
+      const result = dateFormatter.parse(dateStr, 'dd-MM-yyyy');
+      
+      expect(result).toBeInstanceOf(Date);
+      expect(result.getFullYear()).toBe(2025);
+      expect(result.getMonth()).toBe(3); // April (0-based)
+      expect(result.getDate()).toBe(15);
+    });
+    
+    it('should parse US format date string (MM-dd-yyyy)', () => {
+      const dateStr = '04-15-2025'; // April 15, 2025 in MM-dd-yyyy format
+      const result = dateFormatter.parse(dateStr, 'MM-dd-yyyy');
+      
+      expect(result).toBeInstanceOf(Date);
+      expect(result.getFullYear()).toBe(2025);
+      expect(result.getMonth()).toBe(3); // April (0-based)
+      expect(result.getDate()).toBe(15);
+    });
+
+    it('should parse date strings with various separators', () => {
+      // With slash separator
+      const slashDateStr = '15/04/2025'; // dd/MM/yyyy
+      const slashResult = dateFormatter.parse(slashDateStr, 'dd/MM/yyyy');
+      
+      expect(slashResult).toBeInstanceOf(Date);
+      expect(slashResult.getFullYear()).toBe(2025);
+      expect(slashResult.getMonth()).toBe(3);
+      expect(slashResult.getDate()).toBe(15);
+      
+      // With dot separator
+      const dotDateStr = '15.04.2025'; // dd.MM.yyyy
+      const dotResult = dateFormatter.parse(dotDateStr, 'dd.MM.yyyy');
+      
+      expect(dotResult).toBeInstanceOf(Date);
+      expect(dotResult.getFullYear()).toBe(2025);
+      expect(dotResult.getMonth()).toBe(3);
+      expect(dotResult.getDate()).toBe(15);
+    });
+
+    it('should auto-detect date format if format is not explicitly provided', () => {
+      // European format without explicit format pattern
+      const euDateStr = '15/04/2025'; // dd/MM/yyyy
+      const euResult = dateFormatter.parse(euDateStr);
+      
+      expect(euResult).toBeInstanceOf(Date);
+      expect(euResult.getFullYear()).toBe(2025);
+      expect(euResult.getMonth()).toBe(3);
+      expect(euResult.getDate()).toBe(15);
+      
+      // ISO format without explicit format pattern
+      const isoDateStr = '2025-04-15'; // yyyy-MM-dd
+      const isoResult = dateFormatter.parse(isoDateStr);
+      
+      expect(isoResult).toBeInstanceOf(Date);
+      expect(isoResult.getFullYear()).toBe(2025);
+      expect(isoResult.getMonth()).toBe(3);
+      expect(isoResult.getDate()).toBe(15);
+    });
+
+    it('should handle ambiguous date formats intelligently', () => {
+      // This could be either MM/DD/YYYY (US) or DD/MM/YYYY (EU)
+      // Since our implementation prefers DD/MM/YYYY when both are valid,
+      // we expect it to be interpreted as January 4th, not April 1st
+      const ambiguousDateStr = '01/04/2025';
+      const result = dateFormatter.parse(ambiguousDateStr);
+      
+      expect(result).toBeInstanceOf(Date);
+      expect(result.getMonth()).toBe(3); // Should be April (0-based)
+      expect(result.getDate()).toBe(1); 
+    });
+
+    it('should handle two-digit years', () => {
+      // Two-digit year in European format
+      const twoDigitYearDateStr = '15-04-25'; // 15-Apr-2025
+      const result = dateFormatter.parse(twoDigitYearDateStr, 'dd-MM-yy');
+      
+      expect(result).toBeInstanceOf(Date);
+      expect(result.getFullYear()).toBe(2025);
+      expect(result.getMonth()).toBe(3);
+      expect(result.getDate()).toBe(15);
+    });
+
+    it('should return null for invalid date parts', () => {
+      // Invalid month (13)
+      const invalidMonthStr = '2025-13-15';
+      const invalidMonthResult = dateFormatter.parse(invalidMonthStr);
+      
+      expect(invalidMonthResult).toBeNull();
+      
+      // Invalid day (32)
+      const invalidDayStr = '2025-04-32';
+      const invalidDayResult = dateFormatter.parse(invalidDayStr);
+      
+      expect(invalidDayResult).toBeNull();
+    });
+
     it('should handle invalid date strings', () => {
       const invalidDateStr = 'not-a-date';
       
