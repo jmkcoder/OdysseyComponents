@@ -407,6 +407,10 @@ export class UIService{
   private renderFooter(): void {
     if (!this.footerContainer) return;
 
+    // Check if today's date is disabled
+    const today = new Date();
+    const isTodayDisabled = this.state.isDateDisabled(today);
+
     const footerView = new FooterView(
       {
         formatter: this.formatter,
@@ -415,7 +419,8 @@ export class UIService{
         isRangeMode: this.state.isRangeMode,
         rangeStart: this.state.rangeStart,
         rangeEnd: this.state.rangeEnd,
-        format: this.state.format
+        format: this.state.format,
+        isTodayDisabled: isTodayDisabled
       },
       {
         onTodayClick: this.handleTodayClick.bind(this),

@@ -8,6 +8,7 @@ export interface FooterViewConfig {
   rangeStart: Date | null;
   rangeEnd: Date | null;
   format: string;
+  isTodayDisabled?: boolean; // Flag to indicate if today's date is disabled
 }
 
 export interface FooterViewCallbacks {
@@ -26,10 +27,17 @@ export class FooterView {
   }
   
   public render(container: HTMLElement): void {
+    const todayDisabled = this.config.isTodayDisabled ? 'disabled' : '';
+    const todayAriaDisabled = this.config.isTodayDisabled ? 'aria-disabled="true"' : '';
+    
     const footerContent = `
       <span class="date-picker-selected-date">${this.getSelectedDateText()}</span>
       <div class="date-picker-buttons">
-        <button class="date-picker-btn today-btn" tabindex="0" aria-label="Today">Today</button>
+        <button class="date-picker-btn today-btn ${this.config.isTodayDisabled ? 'disabled' : ''}" 
+                tabindex="0" 
+                aria-label="Today"
+                ${todayAriaDisabled}
+                ${todayDisabled}>Today</button>
         <button class="date-picker-btn clear-btn" tabindex="0" aria-label="Clear selection">Clear</button>
         <button class="date-picker-btn close-btn primary" tabindex="0" aria-label="Close date picker">Close</button>
       </div>
@@ -67,7 +75,10 @@ export class FooterView {
     // Mouse event listeners
     todayBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
-      this.callbacks.onTodayClick();
+      // Skip if today button is disabled
+      if (!this.config.isTodayDisabled) {
+        this.callbacks.onTodayClick();
+      }
     });
     
     clearBtn?.addEventListener('click', (e) => {
@@ -84,7 +95,10 @@ export class FooterView {
     todayBtn?.addEventListener('keydown', (e: KeyboardEvent) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        this.callbacks.onTodayClick();
+        // Skip if today button is disabled
+        if (!this.config.isTodayDisabled) {
+          this.callbacks.onTodayClick();
+        }
       }
     });
     

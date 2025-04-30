@@ -1265,7 +1265,7 @@
         cursor: pointer;
         transition: all 0.2s ease;
         
-        &:hover {
+        &:hover:not(.disabled) {
           background-color: var(--date-picker-hover-bg-color);
         }
         
@@ -1279,9 +1279,15 @@
           border-color: var(--date-picker-selected-bg-color);
           color: var(--date-picker-selected-text-color);
           
-          &:hover {
+          &:hover:not(.disabled) {
             opacity: 0.9;
           }
+        }
+        
+        &.disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          color: var(--date-picker-disabled-text-color);
         }
       }
     }
