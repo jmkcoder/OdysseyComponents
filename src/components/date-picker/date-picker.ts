@@ -660,8 +660,18 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
       
       // Try to parse both parts as dates
       if (rangeParts.length === 2) {
-        const start = this.formatter.parse(rangeParts[0]);
-        const end = this.formatter.parse(rangeParts[1]);
+        // First try parsing with the current display format
+        let start = this.formatter.parse(rangeParts[0], this.stateService.format);
+        let end = this.formatter.parse(rangeParts[1], this.stateService.format);
+        
+        // If that fails, fall back to the default parser
+        if (!start || isNaN(start.getTime())) {
+          start = this.formatter.parse(rangeParts[0]);
+        }
+        
+        if (!end || isNaN(end.getTime())) {
+          end = this.formatter.parse(rangeParts[1]);
+        }
         
         if (start && !isNaN(start.getTime()) && end && !isNaN(end.getTime())) {
           // Check if this is actually a change from the current selection
@@ -721,9 +731,11 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
       
       // If we get here, we couldn't parse the input as a valid range
       console.warn("Could not parse input as date range:", value);
+      this.showInvalidDateFormatFeedback();
       this.updateInputDisplay(); // Restore previous valid value
     } catch (e) {
       console.error("Error parsing date range:", e);
+      this.showInvalidDateFormatFeedback();
       this.updateInputDisplay(); // Restore previous valid value
     }
   }
@@ -836,7 +848,13 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
         this.setRangeFromString(inputValue);
       } else {
         // Single date handling
-        const date = this.formatter.parse(inputValue);
+        // First, try to parse the date using the current format that's being displayed
+        let date = this.formatter.parse(inputValue, this.stateService.format);
+        
+        // If that fails, try the default parsing which handles various formats
+        if (!date || isNaN(date.getTime())) {
+          date = this.formatter.parse(inputValue);
+        }
         
         if (date && !isNaN(date.getTime())) {
           // Check if the date is disabled before setting it
@@ -961,8 +979,12 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
     // Add error class to the input
     this.inputElement.classList.add('date-picker-input-invalid');
     
-    // Show a format hint
-    errorElement.textContent = `Invalid date. Please use format: ${this.stateService.format}`;
+    // Create a sample date formatted in the current format to show as an example
+    const today = new Date();
+    const exampleDate = this.formatter.format(today, this.stateService.format);
+    
+    // Show a format hint with example
+    errorElement.textContent = `Invalid date format. Please use format: ${this.stateService.format} (e.g., ${exampleDate})`;
     
     // Auto-hide the error after 5 seconds
     setTimeout(() => {
