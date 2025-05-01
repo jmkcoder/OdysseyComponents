@@ -236,11 +236,17 @@ export class DateFormatter implements IDateFormatter {
    * @returns A Date object or null if parsing fails
    */
   private parseWithFormat(dateStr: string, format?: string): Date | null {
+    // Special handling for two-digit year formats (like dd-MM-yy)
+    // Store the last successfully parsed format for consistent results
+    // This helps prevent the date from switching back and forth
+    const originalDateStr = dateStr;
+    
     // If a specific format is provided, parse according to that format
     if (format && format !== 'locale') {
       // Determine the expected position of day, month, and year based on the format
       const isDayFirst = format.indexOf('d') < format.indexOf('M'); 
       const isYearFirst = format.indexOf('y') === 0;
+      const isYearTwoDigit = format.includes('yy') && !format.includes('yyyy');
 
       // Get the separator from the format - look for common separators
       let formatSeparator = format.replace(/[a-zA-Z]/g, '')[0];
@@ -262,25 +268,40 @@ export class DateFormatter implements IDateFormatter {
         let yearPart: number, monthPart: number, dayPart: number;
 
         if (isYearFirst) {
-          // Format is year-month-day (e.g. yyyy-MM-dd)
+          // Format is year-month-day (e.g. yyyy-MM-dd or yy-MM-dd)
           yearPart = parseInt(parts[0], 10);
           monthPart = parseInt(parts[1], 10) - 1; // 0-based month
           dayPart = parseInt(parts[2], 10);
         } else if (isDayFirst) {
-          // Format is day-month-year (e.g. dd-MM-yyyy)
+          // Format is day-month-year (e.g. dd-MM-yyyy or dd-MM-yy)
           dayPart = parseInt(parts[0], 10);
           monthPart = parseInt(parts[1], 10) - 1; // 0-based month
           yearPart = parseInt(parts[2], 10);
         } else {
-          // Format is month-day-year (e.g. MM-dd-yyyy)
+          // Format is month-day-year (e.g. MM-dd-yyyy or MM-dd-yy)
           monthPart = parseInt(parts[0], 10) - 1; // 0-based month
           dayPart = parseInt(parts[1], 10);
           yearPart = parseInt(parts[2], 10);
         }
 
-        // Handle two-digit years
+        // Handle two-digit years based on the format
         if (yearPart < 100) {
-          yearPart = yearPart + (yearPart > 50 ? 1900 : 2000);
+          if (isYearTwoDigit) {
+            // If format explicitly uses 'yy', treat as 21st century date unless it would result in a future date > 30 years ahead
+            const currentYear = new Date().getFullYear();
+            const currentCentury = Math.floor(currentYear / 100) * 100;
+            const fullYear = currentCentury + yearPart;
+            
+            // If resulting date would be > 30 years in the future, use previous century
+            if (fullYear > currentYear + 30) {
+              yearPart = fullYear - 100;
+            } else {
+              yearPart = fullYear;
+            }
+          } else {
+            // Default behavior for formats that don't specify yy
+            yearPart = yearPart + (yearPart > 50 ? 1900 : 2000);
+          }
         }
 
         // Validate the parsed date parts
@@ -293,9 +314,22 @@ export class DateFormatter implements IDateFormatter {
           return null;
         }
 
-        // Use noon time to avoid timezone issues
-        return new Date(yearPart, monthPart, dayPart, 12, 0, 0);
+        // Store this successfully parsed date in a static map to ensure consistency
+        // This helps prevent switching between different interpretations
+        if (!DateFormatter._parsedDatesCache) {
+          DateFormatter._parsedDatesCache = new Map<string, Date>();
+        }
+        
+        const resultDate = new Date(yearPart, monthPart, dayPart, 12, 0, 0);
+        DateFormatter._parsedDatesCache.set(originalDateStr, resultDate);
+        
+        return resultDate;
       }
+    }
+    
+    // Before proceeding with fallback parsing, check if we've already parsed this string previously
+    if (DateFormatter._parsedDatesCache?.has(originalDateStr)) {
+      return DateFormatter._parsedDatesCache.get(originalDateStr)!;
     }
     
     // If it's in ISO format (yyyy-MM-dd), use specialized parsing
@@ -304,6 +338,20 @@ export class DateFormatter implements IDateFormatter {
       const year = parseInt(yearStr, 10);
       const month = parseInt(monthStr, 10) - 1; // Convert from 1-based to 0-based month
       const day = parseInt(dayStr, 10);
+      
+      // Special handling for ambiguous dates like 22-04-25
+      // If both parts could be valid days, and this looks like it could be a dd-MM-yy format:
+      if (yearStr.length === 2 && monthStr.length <= 2 && dayStr.length <= 2) {
+        // Check if both the first and last segments could be days (1-31)
+        const firstNum = parseInt(yearStr, 10);
+        const lastNum = parseInt(dayStr, 10);
+        
+        if (firstNum >= 1 && firstNum <= 31 && lastNum >= 1 && lastNum <= 31) {
+          // This might be a misinterpreted dd-MM-yy as yy-MM-dd
+          // Don't try to interpret it without a format - return null to avoid confusion
+          return null;
+        }
+      }
       
       // Validate the parsed date parts
       if (isNaN(year) || isNaN(month) || isNaN(day)) {
@@ -316,10 +364,18 @@ export class DateFormatter implements IDateFormatter {
       }
       
       // Use noon time to avoid timezone issues
-      return new Date(year, month, day, 12, 0, 0);
+      const resultDate = new Date(year, month, day, 12, 0, 0);
+      
+      // Cache the result
+      if (!DateFormatter._parsedDatesCache) {
+        DateFormatter._parsedDatesCache = new Map<string, Date>();
+      }
+      DateFormatter._parsedDatesCache.set(originalDateStr, resultDate);
+      
+      return resultDate;
     } 
     
-    // European format (dd.MM.yyyy or dd/MM/yyyy)
+    // Rest of the method remains the same...
     if ((dateStr.includes('.') || dateStr.includes('/')) && 
         (dateStr.split('.').length === 3 || dateStr.split('/').length === 3)) {
       const separator = dateStr.includes('.') ? '.' : '/';
@@ -436,6 +492,9 @@ export class DateFormatter implements IDateFormatter {
     // If all parsing attempts fail, return null
     return null;
   }
+  
+  // Static cache to help prevent inconsistent parsing of the same string
+  private static _parsedDatesCache: Map<string, Date> | null = null;
 
   /**
    * Get the name of a month in the specified locale
