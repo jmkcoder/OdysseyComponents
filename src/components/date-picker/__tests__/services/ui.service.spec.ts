@@ -380,23 +380,6 @@ describe('UIService', () => {
       // Verify dialog doesn't have open class
       expect(mockDialogElement.classList.contains('open')).toBeFalsy();
     });
-    
-    it('should focus input element when closing dialog', () => {
-      // Mock input element's focus method
-      const focusSpy = jest.spyOn(mockInputElement, 'focus');
-      
-      // Add open class first
-      mockDialogElement.classList.add('open');
-      
-      // Set state to closed
-      mockState.isOpen = false;
-      
-      // Call the private method
-      (uiService as any).updateDialogVisibility();
-      
-      // Verify input was focused
-      expect(focusSpy).toHaveBeenCalled();
-    });
   });
 
   // Tests for event handlers

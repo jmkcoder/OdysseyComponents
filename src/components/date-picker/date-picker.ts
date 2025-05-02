@@ -4,6 +4,7 @@ import { InternationalizationService } from '../../services';
 import { defineCustomElement } from '../../utilities/define-custom-element';
 import { StateService } from './services/state.service';
 import { UIService } from './services/ui.service';
+import { EventDispatcherService } from './services/event-dispatcher.service';
 
 /**
  * DatePicker web component
@@ -56,6 +57,7 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
   private formatter: IDateFormatter;
   private i18nService: InternationalizationService;
   private uiService: UIService;
+  private eventDispatcherService: EventDispatcherService;
   
   // State tracking for events
   private _wasOpen: boolean = false;
@@ -78,6 +80,10 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
     this.formatter = DateFormatterProvider.getFormatter(this.i18nService.locale);
     this.stateService = new StateService(this.formatter);
     this.uiService = new UIService(this.stateService, this.formatter);
+    this.eventDispatcherService = new EventDispatcherService(this);
+    
+    // Completely suppress events during initialization
+    this.eventDispatcherService.suppressEvents(true);
     
     // Initialize the component
     this.initializeComponent();
@@ -708,19 +714,15 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
             // Update the last selected date to prevent duplicate events
             this._lastSelectedDate = `${this.formatter.format(this.stateService.rangeStart, 'yyyy-MM-dd')}-${this.formatter.format(this.stateService.rangeEnd, 'yyyy-MM-dd')}`;
             
-            // Dispatch manual input event
-            this.dispatchEvent(
-              new CustomEvent('date-change', {
-                detail: {
-                  rangeStart: this.formatter.format(this.stateService.rangeStart, this.stateService.format),
-                  rangeEnd: this.formatter.format(this.stateService.rangeEnd, this.stateService.format),
-                  availableDates: formattedDates,
-                  availableDatesObjects: availableDates,
-                  source: 'manual-input'
-                },
-                bubbles: true,
-                composed: true
-              })
+            // Dispatch manual input event using the event dispatcher service
+            this.eventDispatcherService.dispatchRangeChangeEvent(
+              this.stateService.rangeStart,
+              this.stateService.rangeEnd,
+              this.formatter.format(this.stateService.rangeStart, this.stateService.format),
+              this.formatter.format(this.stateService.rangeEnd, this.stateService.format),
+              availableDates,
+              formattedDates,
+              'manual-input'
             );
           }
           
@@ -884,19 +886,12 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
               // Update the last selected date to prevent duplicate events
               this._lastSelectedDate = dateKey;
               
-              // Only dispatch date-change for manual input
-              this.dispatchEvent(
-                new CustomEvent('date-change', {
-                  detail: {
-                    date: this.formatter.format(date, this.stateService.format),
-                    dateObj: new Date(date),
-                    events: eventsForDate,
-                    hasEvents: eventsForDate.length > 0,
-                    source: 'manual-input'
-                  },
-                  bubbles: true,
-                  composed: true
-                })
+              // Use the event dispatcher service for date changes from manual input
+              this.eventDispatcherService.dispatchDateChangeEvent(
+                date,
+                this.formatter.format(date, this.stateService.format),
+                eventsForDate,
+                'manual-input'
               );
             }
             
@@ -1097,10 +1092,10 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
     // Handle open/close events immediately (don't batch these)
     if (this.stateService.isOpen && !this._wasOpen) {
       this._wasOpen = true;
-      this.dispatchEvent(new CustomEvent('calendar-open', { bubbles: true }));
+      this.eventDispatcherService.dispatchCalendarOpenEvent();
     } else if (!this.stateService.isOpen && this._wasOpen) {
       this._wasOpen = false;
-      this.dispatchEvent(new CustomEvent('calendar-close', { bubbles: true }));
+      this.eventDispatcherService.dispatchCalendarCloseEvent();
     }
   }
   
@@ -1112,33 +1107,20 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
     this._pendingChangeEvent = false;
     this._eventBatchTimer = null;
     
-    // Skip date-change event if this was just an open/close action with no date selection
-    // or if this was just a toggle calendar action
-    if ((this._eventBatch.size === 1 && this._eventBatch.has('open-state')) || 
-        this._eventBatch.has('toggle-only')) {
-      this._eventBatch.clear();
-      return;
-    }
+    // Use the event dispatcher service to process batched events
+    this.eventDispatcherService.processBatchedEvents(
+      this.stateService,
+      this.formatter,
+      this._lastSelectedDate,
+      this._dateChangePrevented,
+      this._eventBatch,
+      (value: string | null) => {
+        this._lastSelectedDate = value;
+      },
+      this._isInitializing // Pass the initialization state
+    );
     
-    // Track the current date value to prevent duplicate events
-    const getCurrentValue = () => {
-      if (this.stateService.isRangeMode && this.stateService.rangeStart && this.stateService.rangeEnd) {
-        return `${this.formatter.format(this.stateService.rangeStart, 'yyyy-MM-dd')}-${this.formatter.format(this.stateService.rangeEnd, 'yyyy-MM-dd')}`;
-      } else if (!this.stateService.isRangeMode && this.stateService.selectedDate) {
-        return this.formatter.format(this.stateService.selectedDate, 'yyyy-MM-dd');
-      }
-      return null;
-    };
-
-    // Check if this is the same date as the last event we dispatched
-    const currentValue = getCurrentValue();
-    const isDuplicate = this._lastSelectedDate === currentValue;
-    const isManualInput = this._eventBatch.has('manual-input');
-    const isClearAction = this._eventBatch.has('clear-action');
-    const wasClearAction = isClearAction || 
-                         (this._lastSelectedDate !== null && currentValue === null);
-    
-    // Process actual date changes
+    // Update attributes based on current state
     if (this.stateService.isRangeMode) {
       if (this.stateService.rangeStart && this.stateService.rangeEnd) {
         this.setAttribute(
@@ -1147,97 +1129,16 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
             this.formatter.format(this.stateService.rangeEnd, this.stateService.format)
           }`
         );
-        
-        // Get available dates within the range (excluding disabled dates)
-        const availableDates = this.getAvailableDatesInRange();
-        const formattedDates = availableDates.map(date => 
-          this.formatter.format(date, this.stateService.format)
-        );
-        
-        // Only dispatch if not a manual input (which already dispatched its own event)
-        // and if this isn't a duplicate of the last event we fired
-        if (!isManualInput && !isDuplicate && !this._dateChangePrevented) {
-          // Dispatch range selection event with available dates
-          this.dispatchEvent(
-            new CustomEvent('date-change', {
-              detail: {
-                rangeStart: this.formatter.format(this.stateService.rangeStart, this.stateService.format),
-                rangeEnd: this.formatter.format(this.stateService.rangeEnd, this.stateService.format),
-                availableDates: formattedDates,
-                availableDatesObjects: availableDates,
-                source: 'calendar-selection'
-              },
-              bubbles: true,
-              composed: true
-            })
-          );
-        }
       } else if (!this.stateService.rangeStart && !this.stateService.rangeEnd) {
         this.removeAttribute('value');
-        
-        // Dispatch clear event when a clear action happened
-        if (wasClearAction) {
-          // Reset the last selected date
-          this._lastSelectedDate = null;
-          
-          // Dispatch clear event
-          this.dispatchEvent(
-            new CustomEvent('date-clear', {
-              bubbles: true,
-              composed: true
-            })
-          );
-        }
       }
     } else {
       if (this.stateService.selectedDate) {
         const dateString = this.formatter.format(this.stateService.selectedDate, this.stateService.format);
         this.setAttribute('value', dateString);
-        
-        // Get any events for the selected date
-        const dateKey = this.formatter.format(this.stateService.selectedDate, 'yyyy-MM-dd');
-        const eventsForDate = this.stateService.getEvents(dateKey) || [];
-        
-        // Only dispatch if not a manual input (which already dispatched its own event)
-        // and if this isn't a duplicate of the last event we fired
-        if (!isManualInput && !isDuplicate && !this._dateChangePrevented) {
-          // Dispatch date selection event with events information
-          this.dispatchEvent(
-            new CustomEvent('date-change', {
-              detail: {
-                date: dateString,
-                dateObj: new Date(this.stateService.selectedDate),
-                events: eventsForDate,
-                hasEvents: eventsForDate.length > 0,
-                source: 'calendar-selection'
-              },
-              bubbles: true,
-              composed: true
-            })
-          );
-        }
       } else {
         this.removeAttribute('value');
-        
-        // Dispatch clear event when a clear action happened
-        if (wasClearAction) {
-          // Reset the last selected date
-          this._lastSelectedDate = null;
-          
-          // Dispatch clear event
-          this.dispatchEvent(
-            new CustomEvent('date-clear', {
-              bubbles: true,
-              composed: true
-            })
-          );
-        }
       }
-    }
-    
-    // Update the last selected date value after processing
-    if (!isClearAction) {
-      this._lastSelectedDate = currentValue;
     }
     
     // Reset the date change prevention flag
@@ -1251,11 +1152,69 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
    * Connected callback - called when the component is added to the DOM
    */
   connectedCallback() {
-    // After a small delay, mark initialization as complete
-    // This delay ensures all initial attribute processing is done
+    // Block events during initialization with multiple flags
+    this._dateChangePrevented = true;
+    this._isInitializing = true;
+    this.eventDispatcherService.suppressEvents(true);
+    
+    // Save the original values to restore if the user already provided them
+    const initialSelectedDate = this.stateService.selectedDate ? new Date(this.stateService.selectedDate) : null;
+    const initialRangeStart = this.stateService.rangeStart ? new Date(this.stateService.rangeStart) : null;
+    const initialRangeEnd = this.stateService.rangeEnd ? new Date(this.stateService.rangeEnd) : null;
+    
+    // Create a sequence of operations that ensures all DOM operations are complete
+    // BEFORE we enable events
     setTimeout(() => {
-      this._isInitializing = false;
-    }, 10);
+      // Update attributes silently
+      if (this.stateService.selectedDate) {
+        const dateString = this.formatter.format(this.stateService.selectedDate, this.stateService.format);
+        this.setAttribute('value', dateString);
+      } else if (this.stateService.isRangeMode && this.stateService.rangeStart && this.stateService.rangeEnd) {
+        this.setAttribute(
+          'value', 
+          `${this.formatter.format(this.stateService.rangeStart, this.stateService.format)} - ${
+            this.formatter.format(this.stateService.rangeEnd, this.stateService.format)
+          }`
+        );
+      }
+      
+      // First update the display without enabling events
+      this.updateInputDisplay();
+      
+      // In rare race conditions, a state change might have occurred during init
+      // Reset to the saved initial values to prevent unwanted events
+      if (initialSelectedDate) {
+        this.stateService.selectedDate = initialSelectedDate;
+      }
+      
+      if (initialRangeStart) {
+        this.stateService.rangeStart = initialRangeStart;
+      }
+      
+      if (initialRangeEnd) {
+        this.stateService.rangeEnd = initialRangeEnd;
+      }
+      
+      // Set the last selected date value to prevent initial change events
+      if (this.stateService.selectedDate) {
+        this._lastSelectedDate = this.formatter.format(this.stateService.selectedDate, 'yyyy-MM-dd');
+      } else if (this.stateService.isRangeMode && this.stateService.rangeStart && this.stateService.rangeEnd) {
+        this._lastSelectedDate = `${this.formatter.format(this.stateService.rangeStart, 'yyyy-MM-dd')}-${this.formatter.format(this.stateService.rangeEnd, 'yyyy-MM-dd')}`;
+      }
+      
+      // Mark initialization as complete AFTER attribute changes
+      setTimeout(() => {
+        // Add a small delay before enabling events to prevent any race conditions
+        setTimeout(() => {
+          // Enable events after initialization
+          this._isInitializing = false;
+          this._dateChangePrevented = false;
+          this.eventDispatcherService.suppressEvents(false);
+          
+          console.log('Date picker fully initialized, events enabled');
+        }, 50);
+      }, 100);
+    }, 100);
   }
 
   /**
