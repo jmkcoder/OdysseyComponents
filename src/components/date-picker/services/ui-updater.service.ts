@@ -411,7 +411,13 @@ export class UIUpdaterService {
       }
       const yearRangeEnd = yearRangeStart + 11;
       
-      // Log the year range being displayed
+      // IMPORTANT FIX: Only highlight a year if it's within the currently displayed range
+      // This ensures no arbitrary year gets highlighted when navigating to different ranges
+      if (yearForHighlighting < yearRangeStart || yearForHighlighting > yearRangeEnd) {
+        // If the year to highlight is outside the visible range, don't highlight any year
+        yearForHighlighting = -1;  // Using -1 to indicate no year should be highlighted
+      }
+      
       console.log(`Rendering year range: ${yearRangeStart}-${yearRangeEnd}, highlighting year: ${yearForHighlighting}`);
       
       this.renderYearsView(content, yearRangeStart, yearRangeEnd, yearForHighlighting, (newYear: number) => {
@@ -696,9 +702,6 @@ export class UIUpdaterService {
     yearsContainer.classList.add('date-picker-years-grid');
     yearsContainer.setAttribute('role', 'grid');
     
-    // Only highlight the year if it's within the current view range
-    const shouldHighlight = currentYear >= startYear && currentYear <= endYear;
-    
     // Create years grid (4x3)
     let yearIndex = startYear;
     
@@ -714,14 +717,19 @@ export class UIUpdaterService {
           yearElement.setAttribute('role', 'gridcell');
           yearElement.setAttribute('data-year', yearIndex.toString());
           
-          // Only highlight if the year is in the current view range
-          const isSelected = shouldHighlight && (yearIndex === currentYear);
+          // Only highlight if the year matches the currentYear AND currentYear isn't -1
+          // The -1 value is used to indicate that no year should be highlighted
+          const isSelected = currentYear !== -1 && yearIndex === currentYear;
+          
+          // First year in grid gets keyboard focus (tabindex=0) if no year is selected
+          const isFirstCell = row === 0 && col === 0;
           
           if (isSelected) {
             yearElement.classList.add('selected');
             yearElement.setAttribute('tabindex', '0');
           } else {
-            yearElement.setAttribute('tabindex', '-1');
+            // Make first cell focusable if no selection
+            yearElement.setAttribute('tabindex', isFirstCell && currentYear === -1 ? '0' : '-1');
           }
           
           // Check if it's current year
@@ -763,6 +771,7 @@ export class UIUpdaterService {
    * Calculate year range for the years view
    */
   private getYearRange(year: number): { start: number; end: number } {
+    // Make sure this calculation matches the one in date-picker-service-manager.ts
     const start = Math.floor(year / 12) * 12;
     const end = start + 11;
     return { start, end };

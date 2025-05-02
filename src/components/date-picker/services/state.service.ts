@@ -160,7 +160,7 @@ export class StateService {
     } else if (this._currentView === 'months') {
       newViewDate.setFullYear(newViewDate.getFullYear() + 1);
     } else if (this._currentView === 'years') {
-      newViewDate.setFullYear(newViewDate.getFullYear() + 15);
+      newViewDate.setFullYear(newViewDate.getFullYear() + 12);
     }
     
     this.viewDate = newViewDate;
@@ -174,7 +174,7 @@ export class StateService {
     } else if (this._currentView === 'months') {
       newViewDate.setFullYear(newViewDate.getFullYear() - 1);
     } else if (this._currentView === 'years') {
-      newViewDate.setFullYear(newViewDate.getFullYear() - 15);
+      newViewDate.setFullYear(newViewDate.getFullYear() - 12);
     }
     
     this.viewDate = newViewDate;

@@ -272,10 +272,11 @@ export class UIService{
     } else if (this.state.currentView === 'months') {
       return `Select month, ${year}`;
     } else {
-      // Years view
+      // Years view - calculate the correct year range using the same formula
+      // as in the NavigateToNextPeriod/NavigateToPreviousPeriod methods
       const currentYear = this.state.viewDate.getFullYear();
-      const startYear = currentYear - (currentYear % 12) - 3;
-      const endYear = startYear + 14;
+      const startYear = (Math.floor(currentYear / 12) * 12);
+      const endYear = startYear + 11;
       return `Select year, ${startYear} - ${endYear}`;
     }
   }
@@ -610,6 +611,13 @@ export class UIService{
   }
 
   private handleShowMonthSelector(): void {
+    if (this.state.currentView === 'months')
+    {
+      // If already in months view, just return
+      this.navigateToCalendarView();
+      return;
+    }
+
     this.state.currentView = 'months';
     
     // Get access to the parent DatePicker component to dispatch events
@@ -620,6 +628,13 @@ export class UIService{
   }
 
   private handleShowYearSelector(): void {
+    if (this.state.currentView === 'years')
+    {
+      // If already in years view, just return
+      this.navigateToCalendarView();
+      return;
+    }
+
     this.state.currentView = 'years';
     
     // Get access to the parent DatePicker component to dispatch events
@@ -692,7 +707,10 @@ export class UIService{
       }
     }
     
-    // Always navigate back to the calendar view if we're not already there
+    this.navigateToCalendarView();
+  }
+
+  private navigateToCalendarView(): void {
     if (this.state.currentView !== 'calendar') {
       this.state.currentView = 'calendar';
       

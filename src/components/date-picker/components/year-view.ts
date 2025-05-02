@@ -18,16 +18,16 @@ export class YearView {
   
   public render(container: HTMLElement): void {
     const currentYear = this.config.viewDate.getFullYear();
-    const startYear = currentYear - (currentYear % 12) - 3;
+    const startYear = currentYear - (currentYear % 12);
     
     let yearsContent = '<div class="date-picker-years-grid" role="grid" aria-label="Year selection grid">';
     
-    // The year view renders a 5x3 grid (15 years)
-    const rows = 5;
+    // The year view renders a 4x3 grid (12 years)
+    const rows = 4;
     const cols = 3;
     
     // Highlight the current year from viewDate (the one shown in header)
-    const yearToHighlight = this.config.viewDate.getFullYear();
+    const yearToHighlight = this.config.selectedDate?.getFullYear();
     
     for (let i = 0; i < rows; i++) {
       yearsContent += '<div class="date-picker-row" role="row">';

@@ -110,8 +110,8 @@ export class HeaderView {
     if (this.config.currentView === 'years') {
       // For years view, show range
       const currentYear = this.config.viewDate.getFullYear();
-      const startYear = currentYear - (currentYear % 12) - 3;
-      const endYear = startYear + 14;
+      const startYear = currentYear - (currentYear % 12);
+      const endYear = startYear + 11;
       return `${startYear} - ${endYear}`;
     }
     return this.config.viewDate.getFullYear().toString();

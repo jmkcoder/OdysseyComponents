@@ -450,7 +450,7 @@ export class DatePickerServiceManager {
       
       case CalendarViewMode.YEARS:
         // In years view, navigate to previous year range (12 years back)
-        this._yearRangeStart -= 12;
+        this._yearRangeStart -= 15;
         
         // Dispatch a custom year range change event
         this._eventDispatcherService.dispatchYearChangeEvent(this._currentYear);
@@ -489,11 +489,11 @@ export class DatePickerServiceManager {
       
       case CalendarViewMode.YEARS:
         // In years view, navigate to next year range (12 years forward)
-        this._yearRangeStart += 12;
+        this._yearRangeStart += 15;
         
         // Dispatch a custom year range change event
         this._eventDispatcherService.dispatchYearChangeEvent(this._currentYear);
-        console.log(`Year range changed to: ${this._yearRangeStart}-${this._yearRangeStart + 11}`);
+        console.log(`Year range changed to: ${this._yearRangeStart}-${this._yearRangeStart + 14}`);
         break;
     }
     
@@ -565,7 +565,7 @@ export class DatePickerServiceManager {
       }
       
       // Set the year range start to show the range containing the selected year
-      this._yearRangeStart = Math.floor(yearToUse / 12) * 12;
+      this._yearRangeStart = Math.floor(yearToUse / 15) * 15;
       
       // Also update the current year to match the selected date for proper highlighting
       this._currentYear = yearToUse;
@@ -588,8 +588,10 @@ export class DatePickerServiceManager {
    * This should match the calculation in the UI service
    */
   private getYearRange(year: number): { start: number; end: number } {
-    const start = Math.floor(year / 12) * 12;
-    const end = start + 11;
+    // Fix the year range calculation to use proper math for 15-year ranges
+    // This creates ranges like 2020-2031, 2032-2043, etc.
+    const start = Math.floor(year / 15) * 15;
+    const end = start + 14;
     return { start, end };
   }
   
