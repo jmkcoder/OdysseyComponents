@@ -390,42 +390,86 @@ console.log(disabledMonths); // e.g., [5, 6, 7]
 datePicker.toggleCalendar();
 ```
 
-### Event Handling
+### Events API
+
+The DatePicker component utilizes a custom event system to provide feedback on user interactions and state changes.
+
+#### Event Reference
+
+| Event Category | Event Name | Description | Detail Properties |
+|---------------|------------|-------------|-------------------|
+| **Core Events** | `date-change` | Fired when selected date or range changes | Mode-specific (see below) |
+| | `calendar-open` | Calendar popup is opened | None |
+| | `calendar-close` | Calendar popup is closed | None |
+| **Range Events** | `range-start` | First date in range selected | `{ startDate, formattedDate }` |
+| | `range-complete` | Range selection completed | `{ startDate, endDate, formattedRange }` |
+| | `range-clear` | Range selection cleared | None |
+| **Navigation** | `month-change` | Calendar view month changed | `{ month, year }` |
+| | `year-change` | Calendar view year changed | `{ year }` |
+| | `view-mode-change` | View mode changed (day/month/year) | `{ viewMode }` |
+| | `focus-date` | Keyboard navigation focused date | `{ date }` |
+| **Calendar Events** | `events-added` | Event indicators added to date(s) | `{ events }` |
+| | `events-removed` | Event indicators removed from date | `{ date }` |
+| | `events-cleared` | All event indicators cleared | None |
+| **Clearing** | `date-clear` | Date selection cleared | None |
+
+#### Event Detail Objects
+
+<details>
+  <summary><strong>Single Mode <code>date-change</code> Event</strong></summary>
+  
+  ```javascript
+  {
+    date: "2025-04-15",          // Formatted according to format property
+    dateObj: Date,               // JavaScript Date object
+    events: ["Meeting", "Call"], // Event labels (if any)
+    hasEvents: true,             // Boolean flag for quick checking
+    source: "calendar-selection" // How the selection was made
+  }
+  ```
+</details>
+
+<details>
+  <summary><strong>Range Mode <code>date-change</code> Event</strong></summary>
+  
+  ```javascript
+  {
+    rangeStart: "2025-04-15",      // Formatted start date
+    rangeEnd: "2025-04-22",        // Formatted end date
+    availableDates: ["2025-04-15", "2025-04-16", ...], // All valid dates in range
+    availableDatesObjects: [Date, Date, ...],          // As Date objects
+    source: "calendar-selection"   // How the selection was made
+  }
+  ```
+</details>
+
+#### Usage Example
 
 ```javascript
-// Listen for date changes
+const datePicker = document.querySelector('odyssey-date-picker');
+
+// Listen for date selection changes
 datePicker.addEventListener('date-change', (event) => {
-  console.log('Selected date:', event.detail.date);
-  console.log('Date object:', event.detail.dateObj);
+  const detail = event.detail;
   
-  // For events on the selected date
-  if (event.detail.hasEvents) {
-    console.log('Events:', event.detail.events);
+  if (detail.date) {
+    // Single date mode
+    console.log(`Date selected: ${detail.date}`);
+    if (detail.hasEvents) {
+      console.log(`Events: ${detail.events.join(', ')}`);
+    }
+  } else {
+    // Range mode
+    console.log(`Range: ${detail.rangeStart} to ${detail.rangeEnd}`);
+    console.log(`Available dates in range: ${detail.availableDates.length}`);
   }
-  
-  // Source of the change ('calendar-selection', 'manual-input', etc.)
-  console.log('Source:', event.detail.source);
 });
 
-// For range mode
-rangePicker.addEventListener('date-change', (event) => {
-  console.log('Range start:', event.detail.rangeStart);
-  console.log('Range end:', event.detail.rangeEnd);
-  console.log('Available dates in range:', event.detail.availableDates);
-});
-
-// Calendar open/close events
-datePicker.addEventListener('calendar-open', () => {
-  console.log('Calendar opened');
-});
-
-datePicker.addEventListener('calendar-close', () => {
-  console.log('Calendar closed');
-});
-
-// Date clear event
-datePicker.addEventListener('date-clear', () => {
-  console.log('Date selection cleared');
+// Example of combining multiple event listeners
+['calendar-open', 'calendar-close'].forEach(eventName => {
+  datePicker.addEventListener(eventName, () => {
+    console.log(`Calendar ${eventName.split('-')[1]}ed`);
+  });
 });
 ```
 
@@ -526,15 +570,6 @@ On mobile devices, the component supports touch gestures:
 | `clearDisabledMonths()`       | -                                         | `void`         | Clears all disabled month settings |
 | `isMonthDisabled(month)`      | `month: number`                           | `boolean`      | Checks if a month is disabled |
 | `getDisabledMonths()`         | -                                         | `number[]`     | Gets all currently disabled months |
-
-### Events
-
-| Event Name         | Detail Object                                      | Description                                  |
-|--------------------|---------------------------------------------------|----------------------------------------------|
-| `date-change`      | Single mode: `{date: string, dateObj: Date, events: string[], hasEvents: boolean, source: string}`<br/>Range mode: `{rangeStart: string, rangeEnd: string, availableDates: string[], availableDatesObjects: Date[], source: string}` | Fired when the selected date changes |
-| `calendar-open`    | `{}`                                              | Fired when the calendar is opened             |
-| `calendar-close`   | `{}`                                              | Fired when the calendar is closed             |
-| `date-clear`       | `{}`                                              | Fired when the date selection is cleared      |
 
 ### CSS Custom Properties
 

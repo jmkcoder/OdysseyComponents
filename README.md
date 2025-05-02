@@ -263,23 +263,70 @@ datePicker.clearEvents(new Date(2025, 3, 15));
 
 ### Events
 
+The DatePicker component dispatches various events that you can listen for to respond to user interactions:
+
 ```javascript
-// Selection events
-datePicker.addEventListener('date-change', (e) => {
-  console.log('Date changed:', e.detail.date); // Single date mode
-  // Or in range mode:
-  // console.log('Range:', e.detail.rangeStart, e.detail.rangeEnd);
-});
-
-// Calendar state
-datePicker.addEventListener('calendar-open', () => {
-  console.log('Calendar opened');
-});
-
-datePicker.addEventListener('calendar-close', () => {
-  console.log('Calendar closed');
+// Basic pattern
+datePicker.addEventListener('event-name', (event) => {
+  // Access event.detail to get event-specific data
 });
 ```
+
+#### Core Events
+
+| Event Name | Triggered When | Detail Properties |
+|------------|---------------|-------------------|
+| `date-change` | Date selection changes | See below for mode-specific properties |
+| `calendar-open` | Calendar popup opens | None |
+| `calendar-close` | Calendar popup closes | None |
+| `date-clear` | Date is cleared | None |
+
+#### Single Date Mode (detail properties for `date-change`)
+```
+{
+  date: string,           // Formatted date
+  dateObj: Date,          // JavaScript Date object
+  events: string[],       // Event labels for this date (if any)
+  hasEvents: boolean,     // Whether this date has events
+  source: string          // 'calendar-selection', 'manual-input', or 'api-call'
+}
+```
+
+#### Range Mode (detail properties for `date-change`)
+```
+{
+  rangeStart: string,           // Formatted start date
+  rangeEnd: string,             // Formatted end date  
+  availableDates: string[],     // Formatted available dates in the range
+  availableDatesObjects: Date[], // JavaScript Date objects for available dates
+  source: string                // How the change was triggered
+}
+```
+
+#### Range-Specific Events
+
+| Event Name | Triggered When | Detail Properties |
+|------------|---------------|-------------------|
+| `range-start` | First date in range is selected | `{ startDate: Date, formattedDate: string }` |
+| `range-complete` | Both dates in range are selected | `{ startDate: Date, endDate: Date, formattedRange: string }` |
+| `range-clear` | Range is cleared | None |
+
+#### Navigation Events
+
+| Event Name | Triggered When | Detail Properties |
+|------------|---------------|-------------------|
+| `month-change` | Month view changes | `{ month: number, year: number }` |
+| `year-change` | Year changes | `{ year: number }` |
+| `view-mode-change` | View mode changes | `{ viewMode: 'calendar'\|'months'\|'years' }` |
+| `focus-date` | Date is focused via keyboard | `{ date: Date }` |
+
+#### Event Management
+
+| Event Name | Triggered When | Detail Properties |
+|------------|---------------|-------------------|
+| `events-added` | Events are added to dates | `{ events: Record<string, string[]> }` |
+| `events-removed` | Events are removed from a date | `{ date: string }` |
+| `events-cleared` | All events are cleared | None |
 
 ### CSS Customization
 

@@ -374,7 +374,7 @@ export class DatePickerServiceManager {
     );
     
     // Dispatch open event
-    this._eventDispatcherService.dispatchOpenEvent();
+    this._eventDispatcherService.dispatchCalendarOpenEvent();
   }
   
   /**
@@ -419,7 +419,7 @@ export class DatePickerServiceManager {
     );
     
     // Dispatch close event
-    this._eventDispatcherService.dispatchCloseEvent();
+    this._eventDispatcherService.dispatchCalendarCloseEvent();
   }
   
   /**
@@ -629,10 +629,11 @@ export class DatePickerServiceManager {
       }
       
       // Dispatch change event
-      this._eventDispatcherService.dispatchChangeEvent(
+      this._eventDispatcherService.dispatchDateChangeEvent(
         this._selectedDate,
         this._i18nService.formatDate(this._selectedDate),
-        this._calendarService.formatDate(this._selectedDate)
+        [],
+        'calendar-selection'
       );
       
       // Keep the calendar open - removed automatic closing
@@ -760,9 +761,16 @@ export class DatePickerServiceManager {
       this.updateCalendarView();
     }
     
-    // Dispatch clear event
+    // Dispatch change event
     if (this._selectionMode === DatePickerSelectionMode.SINGLE) {
-      this._eventDispatcherService.dispatchChangeEvent(null, null, null);
+      // Create a dummy date for the null case to satisfy TypeScript
+      const dummyDate = this._selectedDate ? this._selectedDate : new Date();
+      this._eventDispatcherService.dispatchDateChangeEvent(
+        dummyDate,
+        "", // Empty string instead of null
+        [],
+        'calendar-clear'
+      );
     } else {
       this._eventDispatcherService.dispatchRangeClearEvent();
     }
@@ -1093,11 +1101,23 @@ export class DatePickerServiceManager {
     }
     
     // Dispatch change event
-    this._eventDispatcherService.dispatchChangeEvent(
-      this._selectedDate,
-      this._selectedDate ? this._i18nService.formatDate(this._selectedDate) : null,
-      this._selectedDate ? this._calendarService.formatDate(this._selectedDate) : null
-    );
+    if (this._selectedDate) {
+      this._eventDispatcherService.dispatchDateChangeEvent(
+        this._selectedDate,
+        this._i18nService.formatDate(this._selectedDate),
+        [],
+        'calendar-programmatic'
+      );
+    } else {
+      // Create a dummy date when null to satisfy TypeScript
+      const dummyDate = new Date();
+      this._eventDispatcherService.dispatchDateChangeEvent(
+        dummyDate,
+        "", // Empty string instead of null
+        [],
+        'calendar-programmatic'
+      );
+    }
   }
   
   /**
