@@ -1,4 +1,4 @@
-import { DateFormatter } from '../../services/date-formatter.service';
+import { DateFormatter } from '../../services/date-formatter/date-formatter.service';
 
 describe('DateFormatter', () => {
   let dateFormatter: DateFormatter;

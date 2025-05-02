@@ -1,6 +1,6 @@
 // Calendar Service for the date-picker component
 import { areDatesEqual } from '../../../utilities/date-utils';
-import { DateFormatter } from './date-formatter.service';
+import { DateFormatter } from './date-formatter/date-formatter.service';
 
 export interface CalendarDay {
   date: Date;

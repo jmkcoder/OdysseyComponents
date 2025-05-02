@@ -1,4 +1,4 @@
-import { IDateFormatter } from '../services';
+import { IDateFormatter } from '../services/date-formatter';
 import { CalendarViewMode } from '../services/ui-updater.service';
 
 export interface HeaderViewConfig {

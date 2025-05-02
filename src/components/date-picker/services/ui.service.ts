@@ -1,5 +1,5 @@
 import { CalendarView, FooterView, HeaderView, MonthView, YearView } from '../components';
-import { IDateFormatter } from './date-formatter.interface';
+import { IDateFormatter } from './date-formatter/date-formatter.interface';
 import { StateService } from './state.service';
 import { KeyboardNavigationService } from './keyboard-navigation.service';
 import { CalendarService } from './calendar.service';

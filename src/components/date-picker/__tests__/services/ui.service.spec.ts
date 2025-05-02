@@ -1,6 +1,6 @@
 import { UIService } from '../../services/ui.service';
 import { StateService } from '../../services/state.service';
-import { IDateFormatter } from '../../services/date-formatter.interface';
+import { IDateFormatter } from '../../services/date-formatter/date-formatter.interface';
 import { StateChangeListener } from '../../services/state.service';
 
 // Instead of extending StateService, create a complete mock with the same interface

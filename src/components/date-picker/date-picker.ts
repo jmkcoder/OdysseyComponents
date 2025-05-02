@@ -1,5 +1,5 @@
 import './date-picker.scss';
-import { DateFormatterProvider, IDateFormatter } from './services';
+import { DateFormatterProvider, IDateFormatter } from './services/date-formatter';
 import { InternationalizationService } from '../../services';
 import { defineCustomElement } from '../../utilities/define-custom-element';
 import { StateService } from './services/state.service';
@@ -848,11 +848,12 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
         this.setRangeFromString(inputValue);
       } else {
         // Single date handling
-        // First, try to parse the date using the current format that's being displayed
+        // Always try to parse using the current format first to ensure consistency
         let date = this.formatter.parse(inputValue, this.stateService.format);
         
-        // If that fails, try the default parsing which handles various formats
-        if (!date || isNaN(date.getTime())) {
+        // Only fall back to general parsing if the format-specific parse failed AND
+        // the input doesn't contain dashes (to prevent format switching with dash-separated dates)
+        if ((!date || isNaN(date.getTime())) && !inputValue.includes('-')) {
           date = this.formatter.parse(inputValue);
         }
         

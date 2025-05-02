@@ -1,4 +1,4 @@
-import { IDateFormatter } from './date-formatter.interface';
+import { IDateFormatter } from './date-formatter/date-formatter.interface';
 import { DateUtils } from '../../../utilities/date-utils';
 
 export type DatePickerViewMode = 'calendar' | 'months' | 'years';
@@ -221,7 +221,19 @@ export class StateService {
   
   public selectSingleDate(date: Date): void {
     if (!this.isDateDisabled(date)) {
-      this._selectedDate = date;
+      // IMPORTANT: Ensure the selected date goes through the formatter with the explicit format
+      // This enforces consistent parsing between manual input and calendar selection
+      if (this._format) {
+        const formattedDate = this._formatter.format(date, this._format);
+        const parsedDate = this._formatter.parse(formattedDate, this._format);
+        if (parsedDate && !isNaN(parsedDate.getTime())) {
+          this._selectedDate = parsedDate;
+        } else {
+          this._selectedDate = date;  // Fallback to original date if parsing fails
+        }
+      } else {
+        this._selectedDate = date;
+      }
       this.notifyListeners();
     }
   }
@@ -232,20 +244,30 @@ export class StateService {
       return;
     }
     
+    // Process the date through format/parse cycle for consistent handling
+    let processedDate = date;
+    if (this._format) {
+      const formattedDate = this._formatter.format(date, this._format);
+      const parsedDate = this._formatter.parse(formattedDate, this._format);
+      if (parsedDate && !isNaN(parsedDate.getTime())) {
+        processedDate = parsedDate;
+      }
+    }
+    
     if (!this._rangeSelectionInProgress) {
       this.resetRangeSelection();
-      this._rangeStart = date;
+      this._rangeStart = processedDate;
       this._rangeSelectionInProgress = true;
     } else {
-      if (this.isSameDate(date, this._rangeStart!)) {
+      if (this.isSameDate(processedDate, this._rangeStart!)) {
         this._rangeEnd = new Date(this._rangeStart!);
         this._rangeSelectionInProgress = false;
       } else {
-        if (date < this._rangeStart!) {
+        if (processedDate < this._rangeStart!) {
           this._rangeEnd = new Date(this._rangeStart!);
-          this._rangeStart = date;
+          this._rangeStart = processedDate;
         } else {
-          this._rangeEnd = date;
+          this._rangeEnd = processedDate;
         }
         this._rangeSelectionInProgress = false;
       }

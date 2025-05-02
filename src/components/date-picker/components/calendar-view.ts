@@ -1,4 +1,4 @@
-import { IDateFormatter } from '../services';
+import { IDateFormatter } from '../services/date-formatter';
 import { DateUtils } from '../../../utilities/date-utils';
 
 export interface CalendarViewConfig {

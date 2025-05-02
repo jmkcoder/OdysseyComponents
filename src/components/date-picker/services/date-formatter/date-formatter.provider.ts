@@ -1,6 +1,6 @@
 import { IDateFormatter } from './date-formatter.interface';
 import { DateFormatter } from './date-formatter.service';
-import { InternationalizationService } from '../../../services';
+import { InternationalizationService } from '../../../../services';
 
 /**
  * DateFormatterProvider - A simple service provider/factory for date formatting services

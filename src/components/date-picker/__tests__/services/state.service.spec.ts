@@ -1,5 +1,5 @@
 import { StateService } from '../../services/state.service';
-import { IDateFormatter } from '../../services/date-formatter.interface';
+import { IDateFormatter } from '../../services/date-formatter/date-formatter.interface';
 
 describe('StateService', () => {
   let stateService: StateService;

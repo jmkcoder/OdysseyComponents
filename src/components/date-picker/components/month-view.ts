@@ -1,4 +1,4 @@
-import { IDateFormatter } from '../services';
+import { IDateFormatter } from '../services/date-formatter';
 
 export interface MonthViewConfig {
   formatter: IDateFormatter;
