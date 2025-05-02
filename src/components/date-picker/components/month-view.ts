@@ -76,9 +76,24 @@ export class MonthView {
   private attachEventListeners(container: HTMLElement): void {
     const monthCells = container.querySelectorAll('.month-cell');
     monthCells.forEach(cell => {
+      // Click event handler for selection
       cell.addEventListener('click', () => {
         const monthIndex = parseInt((cell as HTMLElement).dataset.month || '0', 10);
         this.callbacks.onMonthSelect(monthIndex);
+      });
+      
+      // Focus event handler to dispatch focus-month event
+      cell.addEventListener('focus', () => {
+        const monthIndex = parseInt((cell as HTMLElement).dataset.monthIndex || '0', 10);
+        
+        // Find the year from header or from viewDate
+        const currentYear = this.config.viewDate.getFullYear();
+        
+        // Get the parent date-picker component
+        const datePicker = container.closest('odyssey-date-picker') as any;
+        if (datePicker && datePicker.eventDispatcherService) {
+          datePicker.eventDispatcherService.dispatchFocusMonthEvent(currentYear, monthIndex);
+        }
       });
     });
   }

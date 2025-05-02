@@ -188,6 +188,8 @@ export class CalendarView {
     // Add click handlers to date cells
     const dateCells = container.querySelectorAll('.date-picker-cell:not(.weekday)');
     dateCells.forEach(cell => {
+
+      // Add click handler for date selection
       cell.addEventListener('click', (e) => {
         // Don't handle clicks on disabled dates
         if (cell.classList.contains('disabled')) {

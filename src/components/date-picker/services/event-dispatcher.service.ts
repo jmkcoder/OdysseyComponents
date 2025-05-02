@@ -153,36 +153,30 @@ export class EventDispatcherService {
   }
 
   /**
-   * Dispatch a date selection change event
-   */
-  dispatchChangeEvent(date: Date | null, formattedDate: string | null, isoDate: string | null): void {
-    this.queueEvent('change', {
-      date,
-      formattedDate,
-      isoDate
-    }, true);
-  }
-
-  /**
-   * Dispatch an open event when calendar opens
-   */
-  dispatchOpenEvent(): void {
-    this.queueEvent('open', null, true);
-  }
-
-  /**
-   * Dispatch a close event when calendar closes
-   */
-  dispatchCloseEvent(): void {
-    this.queueEvent('close', null, true);
-  }
-
-  /**
    * Dispatch a focused date change event
    */
   dispatchFocusDateEvent(date: Date): void {
     this.queueEvent('focus-date', {
       date: new Date(date) // Create a new Date to avoid reference issues
+    }, true);
+  }
+  
+  /**
+   * Dispatch a focused month change event
+   */
+  dispatchFocusMonthEvent(year: number, month: number): void {
+    this.queueEvent('focus-month', {
+      year,
+      month
+    }, true);
+  }
+  
+  /**
+   * Dispatch a focused year change event
+   */
+  dispatchFocusYearEvent(year: number): void {
+    this.queueEvent('focus-year', {
+      year
     }, true);
   }
 

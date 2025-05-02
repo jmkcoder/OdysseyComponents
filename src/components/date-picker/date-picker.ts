@@ -1236,6 +1236,21 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
     
     this.stateService.selectedDate = date;
     this.stateService.viewDate = new Date(date);
+    
+    // Get any events for the selected date
+    const dateKey = this.formatter.format(date, 'yyyy-MM-dd');
+    const eventsForDate = this.stateService.getEvents(dateKey) || [];
+    
+    // Update the last selected date to prevent duplicate events
+    this._lastSelectedDate = dateKey;
+    
+    // Dispatch date change event
+    this.eventDispatcherService.dispatchDateChangeEvent(
+      date,
+      this.formatter.format(date, this.stateService.format),
+      eventsForDate,
+      'api-call'
+    );
   }
   
   /**
@@ -1255,6 +1270,32 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
     }
     
     this.stateService.viewDate = new Date(this.stateService.rangeStart);
+    
+    // Get available dates within the range
+    const availableDates = this.getAvailableDatesInRange();
+    const formattedDates = availableDates.map(date => 
+      this.formatter.format(date, this.stateService.format)
+    );
+    
+    // Dispatch range complete event
+    this.eventDispatcherService.dispatchRangeCompleteEvent(
+      this.stateService.rangeStart,
+      this.stateService.rangeEnd,
+      `${this.formatter.format(this.stateService.rangeStart, this.stateService.format)} - ${
+        this.formatter.format(this.stateService.rangeEnd, this.stateService.format)
+      }`
+    );
+    
+    // Also dispatch range change event
+    this.eventDispatcherService.dispatchRangeChangeEvent(
+      this.stateService.rangeStart,
+      this.stateService.rangeEnd,
+      this.formatter.format(this.stateService.rangeStart, this.stateService.format),
+      this.formatter.format(this.stateService.rangeEnd, this.stateService.format),
+      availableDates,
+      formattedDates,
+      'api-call'
+    );
   }
   
   /**
@@ -1264,6 +1305,11 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
    */
   public addEvent(date: Date, eventName: string = 'event') {
     this.stateService.addEvent(date, eventName);
+    
+    // Dispatch events-added event
+    const dateKey = this.formatter.format(date, 'yyyy-MM-dd');
+    const events = { [dateKey]: this.stateService.getEvents(dateKey) || [] };
+    this.eventDispatcherService.dispatchEventsAddedEvent(events);
   }
   
   /**
@@ -1271,7 +1317,15 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
    * @param date The date to clear events from
    */
   public clearEvents(date: Date) {
-    this.stateService.clearEvents(date);
+    const dateKey = this.formatter.format(date, 'yyyy-MM-dd');
+    
+    // Only dispatch if there are events to remove
+    if (this.stateService.getEvents(dateKey)?.length > 0) {
+      this.stateService.clearEvents(date);
+      
+      // Dispatch events-removed event
+      this.eventDispatcherService.dispatchEventsRemovedEvent(dateKey);
+    }
   }
   
   /**
@@ -1281,6 +1335,10 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
    */
   public addDisabledDate(date: Date, reason: string = '') {
     this.stateService.addDisabledDate(date, reason);
+    // Trigger a UI refresh if the calendar is open
+    if (this.stateService.isOpen) {
+      this.uiService.updateUI();
+    }
   }
   
   /**
@@ -1289,6 +1347,10 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
    */
   public removeDisabledDate(date: Date) {
     this.stateService.removeDisabledDate(date);
+    // Trigger a UI refresh if the calendar is open
+    if (this.stateService.isOpen) {
+      this.uiService.updateUI();
+    }
   }
   
   /**
@@ -1298,6 +1360,10 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
    */
   public addDisabledDates(dates: Date[], reason: string = '') {
     this.stateService.addDisabledDates(dates, reason);
+    // Trigger a UI refresh if the calendar is open
+    if (this.stateService.isOpen) {
+      this.uiService.updateUI();
+    }
   }
   
   /**
@@ -1305,6 +1371,10 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
    */
   public clearDisabledDates() {
     this.stateService.clearDisabledDates();
+    // Trigger a UI refresh if the calendar is open
+    if (this.stateService.isOpen) {
+      this.uiService.updateUI();
+    }
   }
   
   /**
@@ -1489,6 +1559,75 @@ export class DatePicker extends HTMLElement implements EventListenerObject {
       // Also reset the date-change prevention flag
       this._preventDateChangeOnFocus = false;
     }, 100);
+  }
+
+  /**
+   * Process a date selection in range mode
+   * This is called when a date is clicked in range mode
+   */
+  public handleRangeDateSelection(date: Date): void {
+    if (this.stateService.isDateDisabled(date)) {
+      return;
+    }
+
+    if (!this.stateService.rangeSelectionInProgress) {
+      // First date in range selection
+      this.stateService.resetRangeSelection();
+      this.stateService.rangeStart = date;
+      this.stateService.rangeSelectionInProgress = true;
+      
+      // Dispatch range-start event
+      this.eventDispatcherService.dispatchRangeStartEvent(
+        date,
+        this.formatter.format(date, this.stateService.format)
+      );
+    } else {
+      // Second date in range selection
+      if (this.stateService.isSameDate(date, this.stateService.rangeStart!)) {
+        // Same date selected - make it a one-day range
+        this.stateService.rangeEnd = new Date(this.stateService.rangeStart!);
+      } else if (date < this.stateService.rangeStart!) {
+        // Selected date is before start date - swap them
+        this.stateService.rangeEnd = new Date(this.stateService.rangeStart!);
+        this.stateService.rangeStart = date;
+      } else {
+        // Normal range selection
+        this.stateService.rangeEnd = date;
+      }
+      
+      this.stateService.rangeSelectionInProgress = false;
+      
+      // Get available dates in the range
+      const availableDates = this.getAvailableDatesInRange();
+      const formattedDates = availableDates.map(d => 
+        this.formatter.format(d, this.stateService.format)
+      );
+      
+      // Dispatch range-complete event
+      this.eventDispatcherService.dispatchRangeCompleteEvent(
+        this.stateService.rangeStart!,
+        this.stateService.rangeEnd!,
+        `${this.formatter.format(this.stateService.rangeStart!, this.stateService.format)} - ${
+          this.formatter.format(this.stateService.rangeEnd!, this.stateService.format)
+        }`
+      );
+      
+      // Also dispatch range-change event
+      this.eventDispatcherService.dispatchRangeChangeEvent(
+        this.stateService.rangeStart!,
+        this.stateService.rangeEnd!,
+        this.formatter.format(this.stateService.rangeStart!, this.stateService.format),
+        this.formatter.format(this.stateService.rangeEnd!, this.stateService.format),
+        availableDates,
+        formattedDates,
+        'calendar-selection'
+      );
+      
+      // Update the last selected date to prevent duplicate events
+      this._lastSelectedDate = `${this.formatter.format(this.stateService.rangeStart!, 'yyyy-MM-dd')}-${
+        this.formatter.format(this.stateService.rangeEnd!, 'yyyy-MM-dd')
+      }`;
+    }
   }
 }
 

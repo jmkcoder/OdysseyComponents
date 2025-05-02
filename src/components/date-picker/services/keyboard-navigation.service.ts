@@ -449,6 +449,12 @@ export class KeyboardNavigationService {
       // Only actually focus the element if setFocus is true
       if (setFocus) {
         dateCell.focus();
+        
+        // Dispatch focus-date event when a date cell is focused
+        const datePicker = dialog.closest('odyssey-date-picker') as any;
+        if (datePicker && datePicker.eventDispatcherService) {
+          datePicker.eventDispatcherService.dispatchFocusDateEvent(date);
+        }
       }
     } else {
       // If we couldn't find the exact cell, try to find cells from the same month
@@ -464,6 +470,16 @@ export class KeyboardNavigationService {
         // Only actually focus the element if setFocus is true
         if (setFocus) {
           firstCell.focus();
+          
+          // Try to get the date from the data attribute for the focus event
+          const dateAttr = firstCell.getAttribute('data-date');
+          if (dateAttr) {
+            const cellDate = new Date(dateAttr);
+            const datePicker = dialog.closest('odyssey-date-picker') as any;
+            if (datePicker && datePicker.eventDispatcherService) {
+              datePicker.eventDispatcherService.dispatchFocusDateEvent(cellDate);
+            }
+          }
         }
       }
     }
@@ -797,6 +813,23 @@ export class KeyboardNavigationService {
       
       // Focus it
       monthCell.focus();
+      
+      // Get the year from the header title or the current view date
+      let year = new Date().getFullYear();
+      const headerTitle = dialog.querySelector('.date-picker-header-title');
+      if (headerTitle) {
+        const titleText = headerTitle.textContent || '';
+        const yearMatch = titleText.match(/\d{4}/);
+        if (yearMatch) {
+          year = parseInt(yearMatch[0], 10);
+        }
+      }
+      
+      // Dispatch focus-month event
+      const datePicker = dialog.closest('odyssey-date-picker') as any;
+      if (datePicker && datePicker.eventDispatcherService) {
+        datePicker.eventDispatcherService.dispatchFocusMonthEvent(year, monthIndex);
+      }
     }
   }
   
@@ -969,6 +1002,12 @@ export class KeyboardNavigationService {
       
       // Focus it
       yearCell.focus();
+      
+      // Dispatch focus-year event
+      const datePicker = dialog.closest('odyssey-date-picker') as any;
+      if (datePicker && datePicker.eventDispatcherService) {
+        datePicker.eventDispatcherService.dispatchFocusYearEvent(year);
+      }
     } else {
       // If the exact year is not found, try to find the closest year
       const availableYears = Array.from(allYearCells).map(
@@ -985,6 +1024,12 @@ export class KeyboardNavigationService {
         if (closestYearCell) {
           closestYearCell.setAttribute('tabindex', '0');
           closestYearCell.focus();
+          
+          // Dispatch focus-year event for the closest year
+          const datePicker = dialog.closest('odyssey-date-picker') as any;
+          if (datePicker && datePicker.eventDispatcherService) {
+            datePicker.eventDispatcherService.dispatchFocusYearEvent(closestYear);
+          }
         }
       }
     }

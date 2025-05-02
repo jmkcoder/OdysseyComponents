@@ -77,9 +77,21 @@ export class YearView {
   private attachEventListeners(container: HTMLElement): void {
     const yearCells = container.querySelectorAll('.year-cell');
     yearCells.forEach(cell => {
+      // Click event handler for selection
       cell.addEventListener('click', () => {
         const yearValue = parseInt((cell as HTMLElement).dataset.year || '0', 10);
         this.callbacks.onYearSelect(yearValue);
+      });
+
+      // Focus event handler to dispatch focus-year event
+      cell.addEventListener('focus', () => {
+        const yearValue = parseInt((cell as HTMLElement).dataset.year || '0', 10);
+        
+        // Get the parent date-picker component
+        const datePicker = container.closest('odyssey-date-picker') as any;
+        if (datePicker && datePicker.eventDispatcherService) {
+          datePicker.eventDispatcherService.dispatchFocusYearEvent(yearValue);
+        }
       });
     });
   }

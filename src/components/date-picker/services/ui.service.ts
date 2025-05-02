@@ -184,6 +184,12 @@ export class UIService{
       // Only actually focus the element if setFocus is true
       if (setFocus) {
         cell.focus();
+        
+        // Dispatch focus-date event
+        const datePicker = this.dialogElement.closest('odyssey-date-picker') as any;
+        if (datePicker && datePicker.eventDispatcherService) {
+          datePicker.eventDispatcherService.dispatchFocusDateEvent(date);
+        }
       }
     }
   }
@@ -552,7 +558,14 @@ export class UIService{
 
   private handleDateSelect(date: Date): void {
     if (this.state.isRangeMode) {
-      this.state.selectRangeDate(date);
+      // For range mode, delegate to the DatePicker's handleRangeDateSelection method
+      const datePicker = this.dialogElement?.closest('odyssey-date-picker') as any;
+      if (datePicker && typeof datePicker.handleRangeDateSelection === 'function') {
+        datePicker.handleRangeDateSelection(date);
+      } else {
+        // Fallback to standard range selection if handleRangeDateSelection isn't available
+        this.state.selectRangeDate(date);
+      }
     } else {
       this.state.selectSingleDate(date);
     }
@@ -560,18 +573,60 @@ export class UIService{
 
   private handlePrevMonth(): void {
     this.state.navigateToPreviousPeriod();
+    
+    // Get access to the parent DatePicker component to dispatch events
+    const datePicker = this.dialogElement?.closest('odyssey-date-picker') as any;
+    if (datePicker && datePicker.eventDispatcherService) {
+      if (this.state.currentView === 'calendar') {
+        datePicker.eventDispatcherService.dispatchMonthChangeEvent(
+          this.state.viewDate.getFullYear(), 
+          this.state.viewDate.getMonth()
+        );
+      } else if (this.state.currentView === 'months') {
+        datePicker.eventDispatcherService.dispatchYearChangeEvent(
+          this.state.viewDate.getFullYear()
+        );
+      }
+    }
   }
 
   private handleNextMonth(): void {
     this.state.navigateToNextPeriod();
+    
+    // Get access to the parent DatePicker component to dispatch events
+    const datePicker = this.dialogElement?.closest('odyssey-date-picker') as any;
+    if (datePicker && datePicker.eventDispatcherService) {
+      if (this.state.currentView === 'calendar') {
+        datePicker.eventDispatcherService.dispatchMonthChangeEvent(
+          this.state.viewDate.getFullYear(), 
+          this.state.viewDate.getMonth()
+        );
+      } else if (this.state.currentView === 'months') {
+        datePicker.eventDispatcherService.dispatchYearChangeEvent(
+          this.state.viewDate.getFullYear()
+        );
+      }
+    }
   }
 
   private handleShowMonthSelector(): void {
     this.state.currentView = 'months';
+    
+    // Get access to the parent DatePicker component to dispatch events
+    const datePicker = this.dialogElement?.closest('odyssey-date-picker') as any;
+    if (datePicker && datePicker.eventDispatcherService) {
+      datePicker.eventDispatcherService.dispatchViewModeChangeEvent('months');
+    }
   }
 
   private handleShowYearSelector(): void {
     this.state.currentView = 'years';
+    
+    // Get access to the parent DatePicker component to dispatch events
+    const datePicker = this.dialogElement?.closest('odyssey-date-picker') as any;
+    if (datePicker && datePicker.eventDispatcherService) {
+      datePicker.eventDispatcherService.dispatchViewModeChangeEvent('years');
+    }
   }
 
   private handleMonthSelect(monthIndex: number): void {
@@ -584,6 +639,13 @@ export class UIService{
     
     // Navigate to calendar view after selecting a month
     this.state.currentView = 'calendar';
+    
+    // Get access to the parent DatePicker component to dispatch events
+    const datePicker = this.dialogElement?.closest('odyssey-date-picker') as any;
+    if (datePicker && datePicker.eventDispatcherService) {
+      datePicker.eventDispatcherService.dispatchMonthChangeEvent(newDate.getFullYear(), monthIndex);
+      datePicker.eventDispatcherService.dispatchViewModeChangeEvent('calendar');
+    }
   }
 
   private handleYearSelect(year: number): void {
@@ -596,6 +658,13 @@ export class UIService{
     
     // Navigate to months view after selecting a year
     this.state.currentView = 'months';
+    
+    // Get access to the parent DatePicker component to dispatch events
+    const datePicker = this.dialogElement?.closest('odyssey-date-picker') as any;
+    if (datePicker && datePicker.eventDispatcherService) {
+      datePicker.eventDispatcherService.dispatchYearChangeEvent(year);
+      datePicker.eventDispatcherService.dispatchViewModeChangeEvent('months');
+    }
   }
 
   private handleTodayClick(): void {
@@ -605,19 +674,60 @@ export class UIService{
     // Only select today if it's within the allowed date range
     if (!this.state.isRangeMode && !this.state.isDateDisabled(today)) {
       this.state.selectedDate = today;
+      
+      // Get access to the parent DatePicker component to dispatch events
+      const datePicker = this.dialogElement?.closest('odyssey-date-picker') as any;
+      if (datePicker && datePicker.eventDispatcherService) {
+        // Get any events for today
+        const dateKey = this.formatter.format(today, 'yyyy-MM-dd');
+        const eventsForDate = this.state.getEvents ? this.state.getEvents(dateKey) || [] : [];
+        
+        // Dispatch date change event for today selection
+        datePicker.eventDispatcherService.dispatchDateChangeEvent(
+          today,
+          this.formatter.format(today, this.state.format),
+          eventsForDate,
+          'today-button'
+        );
+      }
     }
     
     // Always navigate back to the calendar view if we're not already there
     if (this.state.currentView !== 'calendar') {
       this.state.currentView = 'calendar';
+      
+      // Get access to the parent DatePicker component to dispatch view mode change event
+      const datePicker = this.dialogElement?.closest('odyssey-date-picker') as any;
+      if (datePicker && datePicker.eventDispatcherService) {
+        datePicker.eventDispatcherService.dispatchViewModeChangeEvent('calendar');
+      }
     }
   }
 
   private handleClearClick(): void {
+    // Get access to the parent DatePicker component to dispatch events
+    const datePicker = this.dialogElement?.closest('odyssey-date-picker') as any;
+    
     if (this.state.isRangeMode) {
+      // Only dispatch if there was a selection to clear
+      const hadSelection = this.state.rangeStart !== null || this.state.rangeEnd !== null;
+      
       this.state.resetRangeSelection();
+      
+      if (hadSelection && datePicker && datePicker.eventDispatcherService) {
+        datePicker.eventDispatcherService.dispatchRangeClearEvent();
+        datePicker._lastSelectedDate = null; // Reset the last selected date to prevent duplicate events
+      }
     } else {
+      // Only dispatch if there was a selection to clear
+      const hadSelection = this.state.selectedDate !== null;
+      
       this.state.selectedDate = null;
+      
+      if (hadSelection && datePicker && datePicker.eventDispatcherService) {
+        datePicker.eventDispatcherService.dispatchDateClearEvent();
+        datePicker._lastSelectedDate = null; // Reset the last selected date to prevent duplicate events
+      }
     }
   }
 

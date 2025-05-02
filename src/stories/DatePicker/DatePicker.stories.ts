@@ -25,6 +25,20 @@ const meta: Meta = {
         @calendar-open=${args.onCalendarOpen}
         @calendar-close=${args.onCalendarClose}
         @date-clear=${args.onDateClear}
+        @change=${args.onChange}
+        @focus-date=${args.onFocusDate}
+        @month-change=${args.onMonthChange}
+        @year-change=${args.onYearChange}
+        @view-mode-change=${args.onViewModeChange}
+        @events-added=${args.onEventsAdded}
+        @events-removed=${args.onEventsRemoved}
+        @events-cleared=${args.onEventsCleared}
+        @mode-change=${args.onModeChange}
+        @range-start=${args.onRangeStart}
+        @range-complete=${args.onRangeComplete}
+        @range-clear=${args.onRangeClear}
+        @open=${args.onOpen}
+        @close=${args.onClose}
       ></odyssey-date-picker>
     `;
   },
@@ -70,10 +84,25 @@ const meta: Meta = {
       control: 'text',
       description: 'Custom date format pattern'
     },
+    // Action handlers for all events
     onDateChange: { action: 'date-change' },
     onCalendarOpen: { action: 'calendar-open' },
     onCalendarClose: { action: 'calendar-close' },
-    onDateClear: { action: 'date-clear' }
+    onDateClear: { action: 'date-clear' },
+    onChange: { action: 'change' },
+    onFocusDate: { action: 'focus-date' },
+    onMonthChange: { action: 'month-change' },
+    onYearChange: { action: 'year-change' },
+    onViewModeChange: { action: 'view-mode-change' },
+    onEventsAdded: { action: 'events-added' },
+    onEventsRemoved: { action: 'events-removed' },
+    onEventsCleared: { action: 'events-cleared' },
+    onModeChange: { action: 'mode-change' },
+    onRangeStart: { action: 'range-start' },
+    onRangeComplete: { action: 'range-complete' },
+    onRangeClear: { action: 'range-clear' },
+    onOpen: { action: 'open' },
+    onClose: { action: 'close' }
   },
   args: {
     disabled: false,
@@ -92,7 +121,26 @@ const meta: Meta = {
   },
   parameters: {
     actions: {
-      handles: ['date-change', 'calendar-open', 'calendar-close', 'date-clear']
+      handles: [
+        'date-change', 
+        'calendar-open', 
+        'calendar-close', 
+        'date-clear', 
+        'change', 
+        'focus-date', 
+        'month-change', 
+        'year-change', 
+        'view-mode-change', 
+        'events-added', 
+        'events-removed', 
+        'events-cleared', 
+        'mode-change', 
+        'range-start', 
+        'range-complete', 
+        'range-clear',
+        'open',
+        'close',
+      ]
     }
   }
 };
@@ -195,6 +243,20 @@ export const WithEvents: Story = {
           @calendar-open=${args.onCalendarOpen}
           @calendar-close=${args.onCalendarClose}
           @date-clear=${args.onDateClear}
+          @change=${args.onChange}
+          @focus-date=${args.onFocusDate}
+          @month-change=${args.onMonthChange}
+          @year-change=${args.onYearChange}
+          @view-mode-change=${args.onViewModeChange}
+          @events-added=${args.onEventsAdded}
+          @events-removed=${args.onEventsRemoved}
+          @events-cleared=${args.onEventsCleared}
+          @mode-change=${args.onModeChange}
+          @range-start=${args.onRangeStart}
+          @range-complete=${args.onRangeComplete}
+          @range-clear=${args.onRangeClear}
+          @open=${args.onOpen}
+          @close=${args.onClose}
         ></odyssey-date-picker>
       </div>
 
@@ -240,7 +302,21 @@ export const WithEvents: Story = {
     onDateChange: { action: 'date-change' },
     onCalendarOpen: { action: 'calendar-open' },
     onCalendarClose: { action: 'calendar-close' },
-    onDateClear: { action: 'date-clear' }
+    onDateClear: { action: 'date-clear' },
+    onChange: { action: 'change' },
+    onFocusDate: { action: 'focus-date' },
+    onMonthChange: { action: 'month-change' },
+    onYearChange: { action: 'year-change' },
+    onViewModeChange: { action: 'view-mode-change' },
+    onEventsAdded: { action: 'events-added' },
+    onEventsRemoved: { action: 'events-removed' },
+    onEventsCleared: { action: 'events-cleared' },
+    onModeChange: { action: 'mode-change' },
+    onRangeStart: { action: 'range-start' },
+    onRangeComplete: { action: 'range-complete' },
+    onRangeClear: { action: 'range-clear' },
+    onOpen: { action: 'open' },
+    onClose: { action: 'close' }
   },
   parameters: {
     docs: {
